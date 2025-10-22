@@ -5,71 +5,99 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title id="page-title">Схема зала</title>
   <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .hall{display:grid;gap:8px;justify-content:center;padding:16px;border:1px dashed #ddd;border-radius:12px}
+    .hall[data-cols]{grid-template-columns:repeat(var(--cols),36px)}
+    .seat{width:36px;height:36px;border-radius:6px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700}
+    .seat.selected{background:#4caf50;color:#fff}
+    .seat.reserved{background:#9e9e9e;color:#fff;cursor:not-allowed}
+    .spacer{width:36px;height:36px;opacity:0;pointer-events:none}
+    .rowlabel{grid-column:1/-1;text-align:center;color:#666;margin-top:6px}
+  </style>
 </head>
 <body>
-  <header class="header">
-    <a id="back" href="../afisha.html">← Назад</a>
-    <h2 id="title">Вибір місць</h2>
-  </header>
+<header class="header">
+  <a id="back" href="../afisha.html">← Назад</a>
+  <h2 id="title">Вибір місць</h2>
+</header>
 
-  <div class="container">
-    <div id="hall" class="hall" aria-label="Схема залу"></div>
-    <div style="margin-top:12px">
-      <span>Вибрано місць: <strong id="count">0</strong></span> •
-      <span>Сума: <strong id="sum">0</strong> грн</span>
-      <div><button id="toCheckout" class="btn" disabled>Перейти до оплати</button></div>
-    </div>
+<div class="container">
+  <div id="hall" class="hall" aria-label="Схема залу"></div>
+  <div style="margin-top:12px">
+    <span>Вибрано місць: <strong id="count">0</strong></span> •
+    <span>Сума: <strong id="sum">0</strong> грн</span>
+    <div><button id="toCheckout" class="btn" disabled>Перейти до оплати</button></div>
   </div>
+</div>
 
-  <script>
-    const qp = new URLSearchParams(location.search);
-    const slug = qp.get('show');
-    const stageName = s => s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
-    if (!slug) { document.body.innerHTML = 'Помилка: немає параметра ?show'; throw new Error(); }
+<script>
+const qp=new URLSearchParams(location.search);
+const showSlug=qp.get('show');
+if(!showSlug){document.body.innerHTML='Помилка: немає параметра ?show';throw new Error('no show');}
+const stageName=s=>s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
 
-    fetch(`../data/shows/${slug}.json`).then(r=>r.json()).then(show=>{
-      document.getElementById('page-title').textContent = 'Схема — ' + show.title;
-      document.getElementById('title').textContent = 'Вибір місць — «' + show.title + '» ' + (show.stage?('('+stageName(show.stage)+')'):'');
-      document.getElementById('back').href = `show.html?show=${encodeURIComponent(slug)}`;
+fetch(`../data/shows/${showSlug}.json`).then(r=>r.json()).then(show=>{
+  document.getElementById('page-title').textContent='Схема — '+show.title;
+  document.getElementById('title').textContent='Вибір місць — «'+show.title+'» '+(show.stage?('('+stageName(show.stage)+')'):'');
+  document.getElementById('back').href=`show.html?show=${encodeURIComponent(showSlug)}`;
 
-      const hall = document.getElementById('hall');
-      const reserved = new Set(show.reserved||[]);
-      (show.rows||[]).forEach(cfg=>{
-        for(let s=1; s<=cfg.seats; s++){
-          const key = `${cfg.row}-${s}`;
-          const el = document.createElement('div');
-          el.className='seat'; el.textContent=s;
-          el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
-          el.title=`Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
-          if(reserved.has(key)){ el.classList.add('reserved'); }
-          else { el.addEventListener('click', ()=>toggle(el)); }
-          hall.appendChild(el);
-        }
-      });
+  const allRows=(show.rows||[]).filter(r=>r.enabled!==false);
+  const rowsToRender=allRows.filter(r=>(r.section||'parter')!=='balcony');
 
-      let selected=[];
-      function toggle(el){
-        const key=el.dataset.key;
-        const idx=selected.findIndex(x=>x.key===key);
-        if(idx!==-1){ selected.splice(idx,1); el.classList.remove('selected'); }
-        else { selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price}); el.classList.add('selected'); }
-        update();
+  const hall=document.getElementById('hall');
+  const reserved=new Set(show.reserved||[]);
+  const layoutCols=show.layout?.cols||Math.max(...rowsToRender.map(r=>(r.aisles?(r.seats+r.aisles.length):r.seats)));
+  hall.style.setProperty('--cols',layoutCols); hall.setAttribute('data-cols',layoutCols);
+
+  let selected=[];
+  rowsToRender.forEach(cfg=>{
+    const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
+    let nextA=0;
+    for(let s=1;s<=cfg.seats;s++){
+      while(nextA<aisles.length && (s===aisles[nextA]+1)){
+        const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++;
       }
-      function update(){
-        const total=selected.reduce((a,b)=>a+b.price,0);
-        document.getElementById('count').textContent=selected.length;
-        document.getElementById('sum').textContent=total;
-        document.getElementById('toCheckout').disabled=selected.length===0;
-      }
-      document.getElementById('toCheckout').addEventListener('click', ()=>{
-        const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
-        const total=selected.reduce((a,b)=>a+b.price,0);
-        location.href = `../checkout.html?show=${encodeURIComponent(slug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
-      });
-    }).catch(e=>{
-      document.body.innerHTML = 'Не вдалося завантажити схему.';
-      console.error(e);
-    });
-  </script>
+      const key=`${cfg.row}-${s}`;
+      const el=document.createElement('div');
+      el.className='seat'; el.textContent=s;
+      el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
+      el.title=`Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
+      if(reserved.has(key)) el.classList.add('reserved');
+      else el.addEventListener('click',()=>toggle(el));
+      hall.appendChild(el);
+    }
+    while(nextA<(cfg.aisles||[]).length){
+      const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++;
+    }
+    const rl=document.createElement('div'); rl.className='rowlabel';
+    rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; hall.appendChild(rl);
+  });
+
+  if(show.images && show.images.balcony){
+    const wrap=document.createElement('div'); wrap.style.marginTop='16px';
+    wrap.innerHTML=`<img src="${show.images.balcony}" alt="Балкон" style="max-width:100%;border:1px solid #eee;border-radius:8px">`;
+    document.querySelector('.container').appendChild(wrap);
+  }
+
+  function toggle(el){
+    const key=el.dataset.key;
+    const i=selected.findIndex(x=>x.key===key);
+    if(i!==-1){selected.splice(i,1); el.classList.remove('selected');}
+    else{selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price}); el.classList.add('selected');}
+    update();
+  }
+  function update(){
+    const total=selected.reduce((a,b)=>a+b.price,0);
+    document.getElementById('count').textContent=selected.length;
+    document.getElementById('sum').textContent=total;
+    document.getElementById('toCheckout').disabled=selected.length===0;
+  }
+  document.getElementById('toCheckout').addEventListener('click',()=>{
+    const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
+    const total=selected.reduce((a,b)=>a+b.price,0);
+    location.href=`../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
+  });
+}).catch(e=>{document.body.innerHTML='Не вдалося завантажити схему.'; console.error(e);});
+</script>
 </body>
 </html>
