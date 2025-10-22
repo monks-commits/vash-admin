@@ -6,98 +6,189 @@
   <title id="page-title">Схема зала</title>
   <link rel="stylesheet" href="../styles.css" />
   <style>
-    .hall{display:grid;gap:8px;justify-content:center;padding:16px;border:1px dashed #ddd;border-radius:12px}
-    .hall[data-cols]{grid-template-columns:repeat(var(--cols),36px)}
-    .seat{width:36px;height:36px;border-radius:6px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700}
-    .seat.selected{background:#4caf50;color:#fff}
-    .seat.reserved{background:#9e9e9e;color:#fff;cursor:not-allowed}
-    .spacer{width:36px;height:36px;opacity:0;pointer-events:none}
-    .rowlabel{grid-column:1/-1;text-align:center;color:#666;margin-top:6px}
+    :root { --seat: 32px; --gap: 6px; } /* БАЗОВЫЙ РАЗМЕР МЕСТА */
+    /* На мобилках делаем места меньше по умолчанию */
+    @media (max-width: 640px){
+      :root { --seat: 24px; --gap: 4px; }
+    }
+
+    .controls {
+      position: sticky; top: 0; z-index: 5;
+      background: #fff; padding: 8px 0; margin: -8px 0 8px;
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      border-bottom: 1px solid #eee;
+    }
+    .controls .btn { padding: 6px 10px; font-size: 14px; }
+    .controls .meta { font-size: 13px; color: #666; }
+
+    .hall-wrap{
+      overflow: auto; /* Горизонтальная/вертикальная прокрутка только у схемы */
+      border:1px dashed #ddd; border-radius:12px; padding: 12px;
+      max-height: 72vh; /* чтобы на мобилке не выходило за экран */
+      background: #fff;
+    }
+
+    .hall{
+      display:grid; gap: var(--gap);
+      justify-content:center;
+      /* столбцы задаём переменной, чтобы менять зумом */
+      grid-template-columns: repeat(var(--cols, 10), var(--seat));
+    }
+    .seat{ width: var(--seat); height: var(--seat);
+      border-radius:6px; background:#e0e0e0; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-weight:700; font-size: 12px; user-select: none;
+    }
+    .seat.selected{ background:#4caf50; color:#fff }
+    .seat.reserved{ background:#9e9e9e; color:#fff; cursor:not-allowed }
+    .spacer{ width: var(--seat); height: var(--seat); opacity:0; pointer-events:none }
+    .rowlabel{ grid-column:1/-1; text-align:center; color:#666; margin-top:4px; font-size:12px }
+
+    /* Легенда */
+    .legend { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+    .legend .item { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #eee; border-radius:8px; font-size:13px; }
+    .legend .swatch { width:16px; height:16px; border-radius:4px; border:1px solid #ddd; }
+
+    /* Цвета по цене (можно править) */
+    .seat.available{ background:#dbeafe }
+    .p-220{ background:#93c5fd } .p-200{ background:#60a5fa }
+    .p-190{ background:#a78bfa } .p-180{ background:#8b5cf6 }
+    .p-170{ background:#fbbf24 } .p-160{ background:#f472b6 }
+    .p-150{ background:#38bdf8 } .p-140{ background:#22c55e }
+    .p-130{ background:#10b981 } .p-120{ background:#14b8a6 }
+    .p-100{ background:#ef4444 }
   </style>
 </head>
 <body>
-<header class="header">
-  <a id="back" href="../afisha.html">← Назад</a>
-  <h2 id="title">Вибір місць</h2>
-</header>
+  <header class="header">
+    <a id="back" href="../afisha.html">← Назад</a>
+    <h2 id="title">Вибір місць</h2>
+  </header>
 
-<div class="container">
-  <div id="hall" class="hall" aria-label="Схема залу"></div>
-  <div style="margin-top:12px">
-    <span>Вибрано місць: <strong id="count">0</strong></span> •
-    <span>Сума: <strong id="sum">0</strong> грн</span>
-    <div><button id="toCheckout" class="btn" disabled>Перейти до оплати</button></div>
+  <div class="container">
+    <!-- Панель управления масштабом -->
+    <div class="controls">
+      <button id="zoomOut" class="btn secondary">−</button>
+      <button id="zoomIn" class="btn">+</button>
+      <button id="fitWidth" class="btn">По ширині</button>
+      <span id="zoomInfo" class="meta">Масштаб: <strong id="zoomVal">100%</strong></span>
+    </div>
+
+    <!-- Легенда цін -->
+    <div id="legend" class="legend"></div>
+
+    <!-- Прокручиваемая обёртка схемы -->
+    <div class="hall-wrap">
+      <div id="hall" class="hall" aria-label="Схема залу"></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <span>Вибрано місць: <strong id="count">0</strong></span> •
+      <span>Сума: <strong id="sum">0</strong> грн</span>
+      <div><button id="toCheckout" class="btn" disabled>Перейти до оплати</button></div>
+    </div>
   </div>
-</div>
 
-<script>
-const qp=new URLSearchParams(location.search);
-const showSlug=qp.get('show');
-if(!showSlug){document.body.innerHTML='Помилка: немає параметра ?show';throw new Error('no show');}
-const stageName=s=>s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
+  <script>
+  const qp=new URLSearchParams(location.search);
+  const showSlug=qp.get('show');
+  if(!showSlug){document.body.innerHTML='Помилка: немає параметра ?show';throw new Error('no show');}
+  const stageName=s=>s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
 
-fetch(`../data/shows/${showSlug}.json`).then(r=>r.json()).then(show=>{
-  document.getElementById('page-title').textContent='Схема — '+show.title;
-  document.getElementById('title').textContent='Вибір місць — «'+show.title+'» '+(show.stage?('('+stageName(show.stage)+')'):'');
-  document.getElementById('back').href=`show.html?show=${encodeURIComponent(showSlug)}`;
+  // Хелперы для масштаба
+  const rootStyle = document.documentElement.style;
+  const zoomValEl = document.getElementById('zoomVal');
+  function getSeatPx(){
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--seat').trim();
+    return parseInt(v.replace('px','')||'32',10);
+  }
+  function setSeatPx(px){
+    const clamped = Math.max(18, Math.min(px, 48)); // ограничим от 18px до 48px
+    rootStyle.setProperty('--seat', clamped+'px');
+    zoomValEl.textContent = Math.round(clamped/32*100)+'%';
+  }
 
-  const allRows=(show.rows||[]).filter(r=>r.enabled!==false);
-  const rowsToRender=allRows.filter(r=>(r.section||'parter')!=='balcony');
+  fetch(`../data/shows/${showSlug}.json`).then(r=>r.json()).then(show=>{
+    document.getElementById('page-title').textContent='Схема — '+show.title;
+    document.getElementById('title').textContent='Вибір місць — «'+show.title+'» '+(show.stage?('('+stageName(show.stage)+')'):'');
+    document.getElementById('back').href=`show.html?show=${encodeURIComponent(showSlug)}`;
 
-  const hall=document.getElementById('hall');
-  const reserved=new Set(show.reserved||[]);
-  const layoutCols=show.layout?.cols||Math.max(...rowsToRender.map(r=>(r.aisles?(r.seats+r.aisles.length):r.seats)));
-  hall.style.setProperty('--cols',layoutCols); hall.setAttribute('data-cols',layoutCols);
+    const allRows=(show.rows||[]).filter(r=>r.enabled!==false);
+    const rowsToRender=allRows.filter(r=>(r.section||'parter')!=='balcony'); // партер интерактивный
+    const hall=document.getElementById('hall');
+    const reserved=new Set(show.reserved||[]);
+    const layoutCols=show.layout?.cols || Math.max(...rowsToRender.map(r=>(r.aisles ? (r.seats + r.aisles.length) : r.seats)));
+    hall.style.setProperty('--cols', layoutCols);
 
-  let selected=[];
-  rowsToRender.forEach(cfg=>{
-    const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
-    let nextA=0;
-    for(let s=1;s<=cfg.seats;s++){
-      while(nextA<aisles.length && (s===aisles[nextA]+1)){
-        const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++;
+    // Легенда по ценам
+    const uniquePrices = Array.from(new Set(rowsToRender.map(r=>r.price).filter(p=>typeof p==='number'))).sort((a,b)=>b-a);
+    const legend = document.getElementById('legend');
+    legend.innerHTML = uniquePrices.map(p => `
+      <div class="item"><span class="swatch p-${p}"></span><span>${p} грн</span></div>
+    `).join('');
+
+    let selected=[];
+
+    rowsToRender.forEach(cfg=>{
+      const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
+      let nextA=0;
+      for(let s=1;s<=cfg.seats;s++){
+        while(nextA<aisles.length && (s===aisles[nextA]+1)){
+          const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++;
+        }
+        const key=`${cfg.row}-${s}`;
+        const el=document.createElement('div');
+        el.className='seat';
+        el.textContent=s;
+        el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
+        el.title=`Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
+        if(reserved.has(key)){ el.classList.add('reserved'); }
+        else { el.classList.add('available', `p-${cfg.price}`); el.addEventListener('click',()=>toggle(el)); }
+        hall.appendChild(el);
       }
-      const key=`${cfg.row}-${s}`;
-      const el=document.createElement('div');
-      el.className='seat'; el.textContent=s;
-      el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
-      el.title=`Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
-      if(reserved.has(key)) el.classList.add('reserved');
-      else el.addEventListener('click',()=>toggle(el));
-      hall.appendChild(el);
-    }
-    while(nextA<(cfg.aisles||[]).length){
-      const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++;
-    }
-    const rl=document.createElement('div'); rl.className='rowlabel';
-    rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; hall.appendChild(rl);
-  });
+      while(nextA<(cfg.aisles||[]).length){ const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++; }
+      const rl=document.createElement('div'); rl.className='rowlabel'; rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; hall.appendChild(rl);
+    });
 
-  if(show.images && show.images.balcony){
-    const wrap=document.createElement('div'); wrap.style.marginTop='16px';
-    wrap.innerHTML=`<img src="${show.images.balcony}" alt="Балкон" style="max-width:100%;border:1px solid #eee;border-radius:8px">`;
-    document.querySelector('.container').appendChild(wrap);
-  }
+    // Балкон — как картинка (если есть), без текста про продажу
+    if (show.images && show.images.balcony) {
+      const wrap=document.createElement('div'); wrap.style.marginTop='16px';
+      wrap.innerHTML=`<img src="${show.images.balcony}" alt="Балкон" style="max-width:100%;border:1px solid #eee;border-radius:8px">`;
+      document.querySelector('.container').appendChild(wrap);
+    }
 
-  function toggle(el){
-    const key=el.dataset.key;
-    const i=selected.findIndex(x=>x.key===key);
-    if(i!==-1){selected.splice(i,1); el.classList.remove('selected');}
-    else{selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price}); el.classList.add('selected');}
-    update();
-  }
-  function update(){
-    const total=selected.reduce((a,b)=>a+b.price,0);
-    document.getElementById('count').textContent=selected.length;
-    document.getElementById('sum').textContent=total;
-    document.getElementById('toCheckout').disabled=selected.length===0;
-  }
-  document.getElementById('toCheckout').addEventListener('click',()=>{
-    const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
-    const total=selected.reduce((a,b)=>a+b.price,0);
-    location.href=`../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
-  });
-}).catch(e=>{document.body.innerHTML='Не вдалося завантажити схему.'; console.error(e);});
-</script>
+    function toggle(el){
+      const key=el.dataset.key;
+      const i=selected.findIndex(x=>x.key===key);
+      if(i!==-1){selected.splice(i,1); el.classList.remove('selected');}
+      else{selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price}); el.classList.add('selected');}
+      update();
+    }
+    function update(){
+      const total=selected.reduce((a,b)=>a+b.price,0);
+      document.getElementById('count').textContent=selected.length;
+      document.getElementById('sum').textContent=total;
+      document.getElementById('toCheckout').disabled=selected.length===0;
+    }
+    document.getElementById('toCheckout').addEventListener('click',()=>{
+      const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
+      const total=selected.reduce((a,b)=>a+b.price,0);
+      location.href=`../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
+    });
+
+    // Кнопки масштаба
+    document.getElementById('zoomIn').addEventListener('click',()=> setSeatPx(getSeatPx()+4));
+    document.getElementById('zoomOut').addEventListener('click',()=> setSeatPx(getSeatPx()-4));
+    document.getElementById('fitWidth').addEventListener('click',()=>{
+      const wrap = document.querySelector('.hall-wrap');
+      const padding = 24; // небольшой запас
+      const seat = Math.floor((wrap.clientWidth - padding) / layoutCols);
+      setSeatPx(seat);
+      // После «по ширине» прокрутим наверх
+      wrap.scrollTop = 0; wrap.scrollLeft = 0;
+    });
+    // Инициализация индикатора масштаба
+    zoomValEl.textContent = Math.round(getSeatPx()/32*100)+'%';
+  }).catch(e=>{document.body.innerHTML='Не вдалося завантажити схему.'; console.error(e);});
+  </script>
 </body>
 </html>
