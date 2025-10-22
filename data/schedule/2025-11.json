@@ -2,7 +2,7 @@
   {
     "theatre": "shevchenko",
     "stage": "big",
-    "show": "za-dvoma-zaytsiamy",
+    "show": "shevchenko/za-dvoma-zaytsiamy",
     "show_title": "За двома зайцями (Велика сцена)",
     "date": "2025-11-05",
     "time": "17:00",
@@ -10,3 +10,10 @@
     "poster": "../images/posters/shevchenko/za-dvoma-zaytsiamy.jpg"
   }
 ]
+
+
+
+
+
+
+
