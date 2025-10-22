@@ -1,11 +1,97 @@
-<!DOCTYPE html><meta charset="utf-8">
-<link rel="stylesheet" href="styles.css">
-<div class="container">
-  <h1>Оплата (чернетка)</h1>
-  <p id="info"></p>
-</div>
-<script>
-  const p = new URLSearchParams(location.search);
-  const info = `Спектакль: ${p.get('show')}<br>Місця: ${p.get('seats')}<br>Сума: ${p.get('sum')} грн`;
-  document.getElementById('info').innerHTML = info;
-</script>
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оплата — Ваш Адмін</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <img src="images/logo-placeholder.png" alt="Ваш Адмін">
+        <div>
+          <h1>Ваш Адмін</h1>
+          <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="index.html">Головна</a>
+        <a class="active" href="afisha.html">Афіша</a>
+        <a href="theatres.html">Театри</a>
+        <a href="about.html">Про нас</a>
+        <a href="contacts.html">Контакти</a>
+      </nav>
+      <div class="social-icons">
+        <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank"><i class="fa-brands fa-telegram"></i></a>
+        <a class="icon ig" href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a class="icon tt" href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="section">
+      <h2>Оплата замовлення</h2>
+      <div id="orderInfo" class="meta"></div>
+
+      <div style="display:grid; gap:10px; max-width:420px; margin-top:12px">
+        <label>Ім’я <input id="name" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px"></label>
+        <label>Email <input id="email" type="email" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px"></label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px">
+          <button id="btnPayLater" class="btn secondary">Оплатити пізніше (тест)</button>
+          <button id="btnLiqPay" class="btn" disabled>Оплатити LiqPay (скоро)</button>
+        </div>
+        <div class="meta">Після оплати ви отримаєте підтвердження на email.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>© 2025 Ваш Адмін</div>
+      <div class="social-icons">
+        <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank"><i class="fa-brands fa-telegram"></i></a>
+        <a class="icon ig" href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a class="icon tt" href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { supabase } from './scripts/db.js'
+    const p = new URLSearchParams(location.search);
+    const resId = p.get('res');
+    const show = p.get('show');
+    const sum = +p.get('sum' || '0');
+
+    document.getElementById('orderInfo').textContent = `Бронь: ${resId} • Сума: ${sum} грн`;
+
+    document.getElementById('btnPayLater').addEventListener('click', async ()=>{
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      if (!name || !email) { alert('Вкажіть ім’я та email'); return; }
+      const { data, error } = await supabase.rpc('confirm_order', {
+        p_reservation_id: resId,
+        p_customer_name: name,
+        p_customer_email: email
+      });
+      if (error){ alert('Помилка підтвердження: '+ error.message); return; }
+      alert('Дякуємо! Замовлення підтверджено. Номер: ' + data);
+      location.href = 'afisha.html';
+    });
+
+    // TODO LiqPay:
+    // На стороне сервера (Cloudflare Worker / Make / сервер) нужно сформировать:
+    // - data (base64 json с суммой, описанием, публичным ключом, callback URL)
+    // - signature (base64 sha1 приватный_ключ + data + приватный_ключ)
+    // Вариант «без сервера» можно сделать через Make.com: кнопка → webhook → Make формирует data/signature → редиректит на LiqPay.
+    // После успешной оплаты ваш backend/webhook вызывает supabase.rpc('confirm_order', {...})
+  </script>
+</body>
+</html>
