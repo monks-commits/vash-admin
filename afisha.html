@@ -1,26 +1,113 @@
 <!DOCTYPE html>
-<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Афіша</title><link rel="stylesheet" href="styles.css"></head>
-<body><header class="header"><h1>Афіша — Листопад 2025</h1><nav class="nav"><a href="index.html">Головна</a><a href="theatres.html">Театри</a></nav></header>
-<div class="container"><div id="filter" class="meta"></div><div id="grid" class="grid"></div></div>
-<script>
-const params = new URLSearchParams(location.search);
-const theatreFilter = params.get('theatre');
-document.getElementById('filter').textContent = theatreFilter ? ('Фільтр: ' + theatreFilter) : 'Усі театри';
-const stageName = s => s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
-fetch('data/schedule/2025-11.json').then(r=>r.json()).then(items=>{
-  const grid = document.getElementById('grid');
-  items.filter(x => !theatreFilter || x.theatre === theatreFilter).forEach(ev => {
-    const card = document.createElement('div'); card.className='card';
-    const img = document.createElement('img'); img.src = ev.poster || 'images/posters/' + ev.theatre + '/' + ev.show + '.jpg'; img.alt = ev.show_title || ev.show; card.appendChild(img);
-    const h3 = document.createElement('h3'); h3.textContent = ev.show_title || ev.show; 
-    if (ev.stage) { const b=document.createElement('span'); b.className='badge'; b.textContent=stageName(ev.stage); h3.appendChild(b); }
-    card.appendChild(h3);
-    const p = document.createElement('p'); p.className='meta'; p.textContent = (ev.date||'') + (ev.time?(' • '+ev.time):'') + (ev.venue?(' • '+ev.venue):''); card.appendChild(p);
-    const actions = document.createElement('div');
-    const a1 = document.createElement('a'); a1.className='btn secondary'; a1.textContent='Детальніше'; a1.href='spectacles/show.html?show=' + ev.theatre + '/' + ev.show;
-    const a2 = document.createElement('a'); a2.className='btn'; a2.style.marginLeft='8px'; a2.textContent='Вибрати місця'; a2.href='spectacles/hall.html?show=' + ev.theatre + '/' + ev.show;
-    actions.appendChild(a1); actions.appendChild(a2); card.appendChild(actions); grid.appendChild(card);
-  });
-}).catch(err=>{document.getElementById('grid').textContent='Не вдалося завантажити афішу.'; console.error(err);});
-</script></body></html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Афіша — Ваш Адмін</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <img src="images/logo-placeholder.png" alt="Ваш Адмін">
+        <div>
+          <h1>Ваш Адмін</h1>
+          <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="index.html">Головна</a>
+        <a class="active" href="afisha.html">Афіша</a>
+        <a href="theatres.html">Театри</a>
+        <a href="about.html">Про нас</a>
+        <a href="contacts.html">Контакти</a>
+      </nav>
+      <div class="social-icons">
+        <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank"><i class="fa-brands fa-telegram"></i></a>
+        <a class="icon ig" href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a class="icon tt" href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="section">
+      <div class="tabs" id="cityTabs">
+        <button class="btn" data-city="all">Всі міста</button>
+        <button class="btn secondary" data-city="Дніпро">Дніпро</button>
+        <button class="btn secondary" data-city="Кривий Ріг">Кривий Ріг</button>
+      </div>
+
+      <div class="afisha-grid" id="afishaList"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>© 2025 Ваш Адмін</div>
+      <div class="social-icons">
+        <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank"><i class="fa-brands fa-telegram"></i></a>
+        <a class="icon ig" href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a class="icon tt" href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { supabase } from './scripts/db.js';
+
+    let allEvents = [];
+    let activeCity = 'all';
+
+    async function loadAfisha(){
+      const { data, error } = await supabase
+        .from('shows')
+        .select('id, slug, title, date, time, stage, poster_url, venue, theatres!inner(name,slug,city)')
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
+      if (error) { console.error(error); return; }
+      allEvents = data || [];
+      render();
+    }
+
+    function render(){
+      const list = document.getElementById('afishaList');
+      const items = activeCity === 'all' ? allEvents : allEvents.filter(ev => (ev.theatres?.city || '').trim() === activeCity);
+
+      list.innerHTML = items.map(ev => {
+        const thSlug = ev.theatres?.slug || 'unknown';
+        const showSlug = ev.slug;
+        return `
+          <div class="card afisha-card">
+            <img src="${ev.poster_url || ''}" alt="" onerror="this.style.display='none'">
+            <div>
+              <div style="font-weight:700">${ev.title}</div>
+              <div class="meta">${ev.date} • ${ev.time} • ${ev.venue || ''}</div>
+              <div style="margin-top:8px">
+                <a class="btn" href="spectacles/show.html?show=${thSlug}/${showSlug}">Детальніше</a>
+                <a class="btn secondary" href="spectacles/hall.html?show=${thSlug}/${showSlug}">Вибрати місця</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') || '<div class="meta">Немає подій для обраного міста.</div>';
+    }
+
+    document.getElementById('cityTabs').addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-city]');
+      if (!btn) return;
+      activeCity = btn.dataset.city;
+      [...document.querySelectorAll('#cityTabs .btn')].forEach(b=>b.classList.toggle('secondary', b.dataset.city !== activeCity));
+      render();
+    });
+
+    loadAfisha();
+  </script>
+</body>
+</html>
