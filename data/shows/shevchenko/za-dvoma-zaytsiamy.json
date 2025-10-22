@@ -1,0 +1,16 @@
+{
+  "title": "За двома зайцями",
+  "theatre": "shevchenko",
+  "stage": "big",
+  "venue": "Театр ім. Т.Г. Шевченка (Велика сцена)",
+  "poster": "../../images/posters/shevchenko/za-dvoma-zaytsiamy.jpg",
+  "description": "Класична українська комедія про кохання, обман і дотепність. Весела, легка та улюблена глядачами вистава.",
+  "rows": [
+    { "row": 1, "seats": 10, "price": 200 },
+    { "row": 2, "seats": 10, "price": 180 },
+    { "row": 3, "seats": 10, "price": 160 },
+    { "row": 4, "seats": 10, "price": 140 },
+    { "row": 5, "seats": 10, "price": 120 }
+  ],
+  "reserved": ["1-3", "2-5", "4-7"]
+}
