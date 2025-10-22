@@ -4,13 +4,46 @@
   "stage": "big",
   "venue": "Театр ім. Т.Г. Шевченка (Велика сцена)",
   "poster": "../../images/posters/shevchenko/za-dvoma-zaytsiamy.jpg",
-  "description": "Класична українська комедія про кохання, обман і дотепність. Весела, легка та улюблена глядачами вистава.",
+  "description": "Класична комедія.",
+  "layout": { "cols": 25 },
+
   "rows": [
-    { "row": 1, "seats": 10, "price": 200 },
-    { "row": 2, "seats": 10, "price": 180 },
-    { "row": 3, "seats": 10, "price": 160 },
-    { "row": 4, "seats": 10, "price": 140 },
-    { "row": 5, "seats": 10, "price": 120 }
+    { "row": 1,  "seats": 24, "price": 200, "aisles": [12], "section": "parter" },
+    { "row": 2,  "seats": 24, "price": 200, "aisles": [12], "section": "parter" },
+    { "row": 3,  "seats": 24, "price": 200, "aisles": [12], "section": "parter" },
+    { "row": 4,  "seats": 24, "price": 190, "aisles": [12], "section": "parter" },
+    { "row": 5,  "seats": 24, "price": 190, "aisles": [12], "section": "parter" },
+    { "row": 6,  "seats": 24, "price": 180, "aisles": [12], "section": "parter" },
+    { "row": 7,  "seats": 24, "price": 180, "aisles": [12], "section": "parter" },
+    { "row": 8,  "seats": 24, "price": 170, "aisles": [12], "section": "parter" },
+    { "row": 9,  "seats": 24, "price": 170, "aisles": [12], "section": "parter" },
+    { "row": 10, "seats": 24, "price": 160, "aisles": [12], "section": "parter" },
+    { "row": 11, "seats": 24, "price": 160, "aisles": [12], "section": "parter" },
+    { "row": 12, "seats": 24, "price": 150, "aisles": [12], "section": "parter" },
+    { "row": 13, "seats": 24, "price": 150, "aisles": [12], "section": "parter" },
+    { "row": 14, "seats": 24, "price": 140, "aisles": [12], "section": "parter" },
+    { "row": 15, "seats": 24, "price": 140, "aisles": [12], "section": "parter" },
+    { "row": 16, "seats": 24, "price": 130, "aisles": [12], "section": "parter" },
+    { "row": 17, "seats": 24, "price": 130, "aisles": [12], "section": "parter" },
+    { "row": 18, "seats": 24, "price": 130, "aisles": [12], "section": "parter" },
+
+    { "row": 19, "seats": 22, "price": 120, "aisles": [11], "section": "parter" },
+    { "row": 20, "seats": 22, "price": 120, "aisles": [11], "section": "parter" },
+    { "row": 21, "seats": 22, "price": 120, "aisles": [11], "section": "parter" },
+    { "row": 22, "seats": 11, "price": 100, "section": "parter" },
+    { "row": 23, "seats": 11, "price": 100, "section": "parter" },
+
+    { "row": 101, "seats": 28, "price": 100, "aisles": [14], "section": "balcony", "enabled": false },
+    { "row": 102, "seats": 28, "price": 100, "aisles": [14], "section": "balcony", "enabled": false },
+    { "row": 103, "seats": 28, "price": 100, "aisles": [14], "section": "balcony", "enabled": false },
+    { "row": 104, "seats": 28, "price": 100, "aisles": [14], "section": "balcony", "enabled": false },
+    { "row": 105, "seats": 28, "price": 100, "aisles": [14], "section": "balcony", "enabled": false },
+    { "row": 106, "seats": 28, "price": 100, "aisles": [14], "section": "balcony", "enabled": false }
   ],
-  "reserved": ["1-3", "2-5", "4-7"]
+
+  "images": {
+    "balcony": "../../images/halls/shevchenko/balcony.png"
+  },
+
+  "reserved": []
 }
