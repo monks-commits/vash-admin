@@ -6,10 +6,9 @@
   <title id="page-title">Схема зала</title>
   <link rel="stylesheet" href="../styles.css" />
   <style>
-    :root { --seat: 32px; --gap: 6px; } /* БАЗОВЫЙ РАЗМЕР МЕСТА */
-    /* На мобилках делаем места меньше по умолчанию */
+    :root { --seat: 32px; --gap: 6px; } /* базовый размер места */
     @media (max-width: 640px){
-      :root { --seat: 24px; --gap: 4px; }
+      :root { --seat: 22px; --gap: 4px; } /* меньше на телефоне */
     }
 
     .controls {
@@ -22,18 +21,20 @@
     .controls .meta { font-size: 13px; color: #666; }
 
     .hall-wrap{
-      overflow: auto; /* Горизонтальная/вертикальная прокрутка только у схемы */
+      overflow: auto;           /* только схема скроллится */
       border:1px dashed #ddd; border-radius:12px; padding: 12px;
-      max-height: 72vh; /* чтобы на мобилке не выходило за экран */
+      max-height: 72vh;         /* чтобы элементы управления были видны */
       background: #fff;
+      width: 100%;
     }
 
     .hall{
       display:grid; gap: var(--gap);
-      justify-content:center;
-      /* столбцы задаём переменной, чтобы менять зумом */
+      justify-content:flex-start;  /* важно для трансформации */
       grid-template-columns: repeat(var(--cols, 10), var(--seat));
+      transform-origin: top left;  /* масштабируем от левого верхнего угла */
     }
+
     .seat{ width: var(--seat); height: var(--seat);
       border-radius:6px; background:#e0e0e0; display:flex; align-items:center; justify-content:center;
       cursor:pointer; font-weight:700; font-size: 12px; user-select: none;
@@ -43,12 +44,11 @@
     .spacer{ width: var(--seat); height: var(--seat); opacity:0; pointer-events:none }
     .rowlabel{ grid-column:1/-1; text-align:center; color:#666; margin-top:4px; font-size:12px }
 
-    /* Легенда */
     .legend { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
     .legend .item { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #eee; border-radius:8px; font-size:13px; }
     .legend .swatch { width:16px; height:16px; border-radius:4px; border:1px solid #ddd; }
 
-    /* Цвета по цене (можно править) */
+    /* Цвета по цене (правьте под свою палитру) */
     .seat.available{ background:#dbeafe }
     .p-220{ background:#93c5fd } .p-200{ background:#60a5fa }
     .p-190{ background:#a78bfa } .p-180{ background:#8b5cf6 }
@@ -56,6 +56,10 @@
     .p-150{ background:#38bdf8 } .p-140{ background:#22c55e }
     .p-130{ background:#10b981 } .p-120{ background:#14b8a6 }
     .p-100{ background:#ef4444 }
+
+    .error {
+      padding: 12px; border:1px solid #fca5a5; background:#fee2e2; color:#7f1d1d; border-radius:10px; margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -65,7 +69,7 @@
   </header>
 
   <div class="container">
-    <!-- Панель управления масштабом -->
+    <!-- Управление масштабом -->
     <div class="controls">
       <button id="zoomOut" class="btn secondary">−</button>
       <button id="zoomIn" class="btn">+</button>
@@ -76,10 +80,12 @@
     <!-- Легенда цін -->
     <div id="legend" class="legend"></div>
 
-    <!-- Прокручиваемая обёртка схемы -->
+    <!-- Область схемы -->
     <div class="hall-wrap">
       <div id="hall" class="hall" aria-label="Схема залу"></div>
     </div>
+
+    <div id="errorBox" class="error" style="display:none"></div>
 
     <div style="margin-top:12px">
       <span>Вибрано місць: <strong id="count">0</strong></span> •
@@ -94,7 +100,6 @@
   if(!showSlug){document.body.innerHTML='Помилка: немає параметра ?show';throw new Error('no show');}
   const stageName=s=>s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
 
-  // Хелперы для масштаба
   const rootStyle = document.documentElement.style;
   const zoomValEl = document.getElementById('zoomVal');
   function getSeatPx(){
@@ -102,19 +107,37 @@
     return parseInt(v.replace('px','')||'32',10);
   }
   function setSeatPx(px){
-    const clamped = Math.max(18, Math.min(px, 48)); // ограничим от 18px до 48px
+    const clamped = Math.max(16, Math.min(px, 56)); // 16–56px
     rootStyle.setProperty('--seat', clamped+'px');
     zoomValEl.textContent = Math.round(clamped/32*100)+'%';
+    // при изменении размера снимем transform-скейл
+    const hall = document.getElementById('hall');
+    hall.style.transform = 'scale(1)';
   }
 
-  fetch(`../data/shows/${showSlug}.json`).then(r=>r.json()).then(show=>{
+  function showError(msg){
+    const box = document.getElementById('errorBox');
+    box.style.display = 'block';
+    box.textContent = msg;
+  }
+
+  fetch(`../data/shows/${showSlug}.json`).then(r=>{
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(show=>{
     document.getElementById('page-title').textContent='Схема — '+show.title;
     document.getElementById('title').textContent='Вибір місць — «'+show.title+'» '+(show.stage?('('+stageName(show.stage)+')'):'');
     document.getElementById('back').href=`show.html?show=${encodeURIComponent(showSlug)}`;
 
     const allRows=(show.rows||[]).filter(r=>r.enabled!==false);
-    const rowsToRender=allRows.filter(r=>(r.section||'parter')!=='balcony'); // партер интерактивный
+    const rowsToRender=allRows.filter(r=>(r.section||'parter')!=='balcony'); // сейчас рендерим только партер
+    if (!rowsToRender.length){
+      showError('Немає активних рядів для відображення.');
+      return;
+    }
+
     const hall=document.getElementById('hall');
+    const wrap=document.querySelector('.hall-wrap');
     const reserved=new Set(show.reserved||[]);
     const layoutCols=show.layout?.cols || Math.max(...rowsToRender.map(r=>(r.aisles ? (r.seats + r.aisles.length) : r.seats)));
     hall.style.setProperty('--cols', layoutCols);
@@ -149,12 +172,46 @@
       const rl=document.createElement('div'); rl.className='rowlabel'; rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; hall.appendChild(rl);
     });
 
-    // Балкон — как картинка (если есть), без текста про продажу
+    // Балкон — просто картинка (если указана)
     if (show.images && show.images.balcony) {
-      const wrap=document.createElement('div'); wrap.style.marginTop='16px';
-      wrap.innerHTML=`<img src="${show.images.balcony}" alt="Балкон" style="max-width:100%;border:1px solid #eee;border-radius:8px">`;
-      document.querySelector('.container').appendChild(wrap);
+      const img = new Image();
+      img.src = show.images.balcony;
+      img.alt = 'Балкон';
+      img.style.maxWidth = '100%';
+      img.style.border = '1px solid #eee';
+      img.style.borderRadius = '8px';
+      const wrapImg=document.createElement('div'); wrapImg.style.marginTop='16px';
+      wrapImg.appendChild(img);
+      document.querySelector('.container').appendChild(wrapImg);
     }
+
+    // === Авто-подгон ширины (Double-Fit) ===
+    function fitWidth(){
+      // 1) подбираем размер места так, чтобы в ширину влезли все колонки
+      const padding = 32; // небольшой запас
+      const seat = Math.floor((wrap.clientWidth - padding) / layoutCols);
+      if (seat >= 16) setSeatPx(seat);
+
+      // 2) на всякий случай докручиваем transform-скейлом
+      requestAnimationFrame(()=>{
+        const need = wrap.clientWidth - 20; // оставим небольшой зазор
+        const current = hall.scrollWidth;
+        const scale = current > 0 ? Math.min(1, need / current) : 1;
+        hall.style.transform = `scale(${scale})`;
+        zoomValEl.textContent = Math.round(getSeatPx()/32*100*scale)+'%';
+        wrap.scrollTop = 0; wrap.scrollLeft = 0;
+      });
+    }
+
+    // Кнопки масштаба
+    document.getElementById('zoomIn').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()+4); });
+    document.getElementById('zoomOut').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()-4); });
+    document.getElementById('fitWidth').addEventListener('click', fitWidth);
+
+    // Автоматически подгоняем по ширине после первой отрисовки
+    // два раза (иногда браузер считает ширину сетки после layout)
+    fitWidth();
+    setTimeout(fitWidth, 80);
 
     function toggle(el){
       const key=el.dataset.key;
@@ -175,20 +232,11 @@
       location.href=`../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
     });
 
-    // Кнопки масштаба
-    document.getElementById('zoomIn').addEventListener('click',()=> setSeatPx(getSeatPx()+4));
-    document.getElementById('zoomOut').addEventListener('click',()=> setSeatPx(getSeatPx()-4));
-    document.getElementById('fitWidth').addEventListener('click',()=>{
-      const wrap = document.querySelector('.hall-wrap');
-      const padding = 24; // небольшой запас
-      const seat = Math.floor((wrap.clientWidth - padding) / layoutCols);
-      setSeatPx(seat);
-      // После «по ширине» прокрутим наверх
-      wrap.scrollTop = 0; wrap.scrollLeft = 0;
-    });
-    // Инициализация индикатора масштаба
-    zoomValEl.textContent = Math.round(getSeatPx()/32*100)+'%';
-  }).catch(e=>{document.body.innerHTML='Не вдалося завантажити схему.'; console.error(e);});
+  }).catch(e=>{
+    console.error(e);
+    showError('Не вдалося завантажити схему. Перевірте, чи існує файл даних та шлях: '+
+      `data/shows/${showSlug}.json`);
+  });
   </script>
 </body>
 </html>
