@@ -1,0 +1,11 @@
+<!DOCTYPE html><meta charset="utf-8">
+<link rel="stylesheet" href="styles.css">
+<div class="container">
+  <h1>Оплата (чернетка)</h1>
+  <p id="info"></p>
+</div>
+<script>
+  const p = new URLSearchParams(location.search);
+  const info = `Спектакль: ${p.get('show')}<br>Місця: ${p.get('seats')}<br>Сума: ${p.get('sum')} грн`;
+  document.getElementById('info').innerHTML = info;
+</script>
