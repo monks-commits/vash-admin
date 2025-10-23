@@ -1,13 +1,10 @@
-[
-  {
-    "id": "shev-za-dvoma-2025-11-05-1700",
-    "title": "За двома зайцями (Велика сцена)",
-    "theatre": "Театр ім. Т.Г. Шевченка",
-    "city": "krivyi_rih",
-    "city_label": "Кривий Ріг",
-    "datetime": "2025-11-05T17:00:00+02:00",
-    "poster": "images/posters/za-dvoma-zaytsiamy.jpg",
-    "details_url": "#",
-    "show_slug": "shevchenko/za-dvoma-zaytsiamy"
-  }
-]
+{
+  "show": "shevchenko/za-dvoma-zaytsiamy",
+  "title": "За двома зайцями",
+  "city": "Кривий Ріг",
+  "theatre": "Театр ім. Т.Г. Шевченка",
+  "date": "2025-11-05",
+  "time": "17:00",
+  "stage": "Велика сцена",
+  "poster": "images/posters/shevchenko/za-dvoma-zaytsiamy.jpg"
+}
