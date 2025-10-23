@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Оплата квитків — Ваш Адмін</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
+    .row{display:grid;gap:12px}
+    .row.two{grid-template-columns:1fr 1fr}
+    @media (max-width:720px){.row.two{grid-template-columns:1fr}}
+    label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+    input{height:42px;border:1px solid #ddd;border-radius:10px;padding:0 12px}
+    .hint{font-size:12px;color:#6b7280}
+    .ok{background:#ecfdf5;border:1px solid #10b981;color:#065f46;border-radius:10px;padding:12px;margin-top:12px;display:none}
+    .err{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d;border-radius:10px;padding:12px;margin-top:12px;display:none}
+  </style>
 </head>
 <body>
   <header class="header">
@@ -13,63 +24,122 @@
   </header>
 
   <main class="container">
-    <div id="infoBox" class="card" style="padding:16px; margin-bottom:16px;"></div>
-    <form id="payForm" class="card" style="padding:16px">
-      <label>Ім’я покупця</label>
-      <input type="text" id="customerName" required placeholder="Ваше ім’я" />
-      <label>Телефон</label>
-      <input type="tel" id="customerPhone" required placeholder="+380..." />
-      <button type="submit" class="btn">Перейти до оплати</button>
+    <!-- Підтвердження замовлення -->
+    <div id="infoBox" class="card" style="margin-bottom:16px"></div>
+
+    <!-- Форма покупця -->
+    <form id="payForm" class="card" novalidate>
+      <div class="row two">
+        <label>
+          Ім’я покупця
+          <input type="text" id="customerName" required placeholder="Ваше ім’я" autocomplete="name" />
+        </label>
+        <label>
+          Телефон
+          <input type="tel" id="customerPhone" required placeholder="+380..." inputmode="tel" autocomplete="tel" />
+          <span class="hint">Ми надішлемо SMS у разі змін</span>
+        </label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label>
+          Електронна пошта для отримання квитків
+          <input type="email" id="customerEmail" required placeholder="example@gmail.com" autocomplete="email" />
+          <span class="hint">На цю адресу прийде електронний квиток</span>
+        </label>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="btn">Перейти до оплати</button>
+        <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
+      </div>
+
+      <div id="ok" class="ok">✅ Бронювання збережено. Далі — оплата через LiqPay.</div>
+      <div id="err" class="err"></div>
     </form>
   </main>
 
   <footer class="footer">
-    <div class="footer-inner">
-      <div>© 2025 Ваш Адмін</div>
-    </div>
+    <div class="footer-inner"><div>© 2025 Ваш Адмін</div></div>
   </footer>
 
   <script type="module">
     import { supabase } from './scripts/db.js';
 
-    const qp = new URLSearchParams(location.search);
+    const qp   = new URLSearchParams(location.search);
     const show = qp.get('show');
-    const seats = qp.get('seats');
-    const sum = qp.get('sum');
+    const seats= qp.get('seats'); // формат: "Р2-М3,Р3-М3" або "2-5,2-6"
+    const sum  = qp.get('sum');
 
-    const infoBox = document.getElementById('infoBox');
+    const infoBox   = document.getElementById('infoBox');
+    const form      = document.getElementById('payForm');
+    const okBox     = document.getElementById('ok');
+    const errBox    = document.getElementById('err');
+    const backToHall= document.getElementById('backToHall');
+
+    // Рендер інформації про замовлення
     if (!show || !seats || !sum) {
       infoBox.innerHTML = '<p>❌ Помилка: неповні дані для оплати.</p>';
-      document.getElementById('payForm').style.display = 'none';
+      form.style.display = 'none';
     } else {
+      const prettyShow = show.split('/').join(' / ').replace(/-/g,' ');
       infoBox.innerHTML = `
-        <h3>Підтвердження замовлення</h3>
-        <p><strong>Вистава:</strong> ${show.replaceAll('-', ' ')}</p>
-        <p><strong>Місця:</strong> ${seats}</p>
-        <p><strong>Сума:</strong> ${sum} грн</p>
+        <h3 style="margin:0 0 8px">Підтвердження замовлення</h3>
+        <p style="margin:0 0 4px"><strong>Вистава:</strong> ${prettyShow}</p>
+        <p style="margin:0 0 4px"><strong>Місця:</strong> ${seats}</p>
+        <p style="margin:0"><strong>Сума:</strong> ${sum} грн</p>
       `;
+      // Посилання «Змінити місця»
+      backToHall.href = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
     }
 
-    document.getElementById('payForm').addEventListener('submit', async e => {
+    // Проста валідація e-mail
+    function validEmail(v){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('customerName').value.trim();
+      errBox.style.display = 'none';
+      okBox.style.display  = 'none';
+
+      const name  = document.getElementById('customerName').value.trim();
       const phone = document.getElementById('customerPhone').value.trim();
+      const email = document.getElementById('customerEmail').value.trim();
 
-      if (!name || !phone) return alert('Заповніть усі поля.');
-
-      // 🟡 Зберігаємо бронювання у Supabase
-      const { error } = await supabase.from('bookings').insert([{
-        seat_ids: seats.split(','),
-        customer_name: name,
-        customer_phone: phone
-      }]);
-      if (error) {
-        alert('Помилка при збереженні: ' + error.message);
+      if (!name || !phone || !email) {
+        errBox.textContent = 'Заповніть, будь ласка, усі поля.';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (!validEmail(email)) {
+        errBox.textContent = 'Невірний формат e-mail.';
+        errBox.style.display = 'block';
         return;
       }
 
-      // 🔜 Тут далі буде інтеграція з LiqPay
-      alert('Бронювання збережено. Далі буде оплата через LiqPay.');
+      // Зберігаємо бронювання у Supabase
+      try {
+        const payload = {
+          seat_ids: seats.split(',').map(s => s.trim()),
+          customer_name: name,
+          customer_phone: phone,
+          customer_email: email,
+          show_slug: show,
+          amount: Number(sum) || 0
+        };
+
+        const { error } = await supabase.from('bookings').insert([payload]);
+        if (error) throw error;
+
+        okBox.style.display = 'block';
+
+        // TODO: інтеграція з LiqPay (після збереження бронювання)
+        // Тут ми сформуємо форму LiqPay і відправимо користувача на оплату.
+        // Поки просто показуємо повідомлення.
+        alert('Бронювання збережено. Далі — оплата через LiqPay.');
+      } catch (err) {
+        errBox.textContent = 'Помилка при збереженні бронювання: ' + (err.message || err);
+        errBox.style.display = 'block';
+      }
     });
   </script>
 </body>
