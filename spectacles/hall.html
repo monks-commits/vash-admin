@@ -15,17 +15,18 @@
     .controls .btn{ padding: 6px 10px; font-size: 14px; }
     .controls .meta{ font-size: 13px; color:#666; }
 
-    /* макет: Ложа A (верт.) | Партер (центр) | Ложа B (верт.) */
+    /* макет: Ложа A | Партер | Ложа B — всегда в 3 колонки */
     .layout {
       display: grid;
-      grid-template-columns: minmax(80px, 1fr) minmax(340px, 6fr) minmax(80px, 1fr);
-      gap: 12px;
+      grid-template-columns: 110px minmax(280px, 1fr) 110px; /* фикс. боковые, центр растягивается */
+      gap: 8px;         /* меньше зазор — ложи ближе к партеру */
       align-items: start;
     }
     @media (max-width: 900px){
-      .layout { grid-template-columns: 1fr; }
-      .loge { order: 2; }  /* на узких экранах боковые ложи уйдут под партер */
-      .center { order: 1; }
+      .layout {
+        grid-template-columns: 90px minmax(220px, 1fr) 90px;
+        gap: 6px;
+      }
     }
 
     /* центр: контейнер с прокруткой ТОЛЬКО у схемы партера */
@@ -191,7 +192,7 @@
       }
 
       // === ЛОЖИ как ВЕРТИКАЛЬНЫЕ колонки (по 1 месту на уровень 1..18) ===
-      // Цены лож привязываем к ценам рядов партера 1..18
+      // Цена лож = цена соответствующего ряда партера (1..18)
       const priceByRow = {};
       parter.forEach(r => { if (r.row>=1 && r.row<=18) priceByRow[r.row]=r.price; });
 
