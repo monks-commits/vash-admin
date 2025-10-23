@@ -3,251 +3,161 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title id="page-title">Схема залу — Ваш Адмін</title>
-  <link rel="stylesheet" href="../styles.css" />
+  <title>Оплата — Ваш Адмін</title>
+  <link rel="stylesheet" href="styles.css" />
   <style>
-    :root { --seat: 32px; --gap: 6px; }
-    @media (max-width: 640px){ :root { --seat: 22px; --gap: 4px; } }
-
-    /* верхняя панель */
-    .controls { position: sticky; top: 0; z-index: 5; background: #fff; padding: 8px 0; margin: -8px 0 8px;
-      display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #eee; }
-    .controls .btn{ padding: 6px 10px; font-size: 14px; }
-    .controls .meta{ font-size: 13px; color:#666; }
-
-    /* макет: Ложа A | Партер | Ложа B — всегда в 3 колонки */
-    .layout {
-      display: grid;
-      grid-template-columns: 110px minmax(280px, 1fr) 110px; /* фикс. боковые, центр растягивается */
-      gap: 8px;         /* меньше зазор — ложи ближе к партеру */
-      align-items: start;
-    }
-    @media (max-width: 900px){
-      .layout {
-        grid-template-columns: 90px minmax(220px, 1fr) 90px;
-        gap: 6px;
-      }
-    }
-
-    /* центр: контейнер с прокруткой ТОЛЬКО у схемы партера */
-    .hall-wrap { overflow: auto; border:1px dashed #ddd; border-radius:12px; padding: 12px; max-height: 72vh; background:#fff; width: 100%; }
-    .hall { display:grid; gap: var(--gap); justify-content:flex-start; grid-template-columns: repeat(var(--cols, 10), var(--seat)); transform-origin: top left; }
-    .stage { grid-column:1/-1; text-align:center; font-weight:700; padding:8px 0; background:#eee; border-radius:8px; margin-bottom:6px }
-
-    .seat { width: var(--seat); height: var(--seat); border-radius:6px; background:#e0e0e0; display:flex; align-items:center; justify-content:center;
-      cursor:pointer; font-weight:700; font-size: 12px; user-select: none; }
-    .seat.selected{ background:#4caf50; color:#fff }
-    .seat.reserved{ background:#9e9e9e; color:#fff; cursor:not-allowed }
-    .spacer{ width: var(--seat); height: var(--seat); opacity:0; pointer-events:none }
-    .rowlabel{ grid-column:1/-1; text-align:center; color:#666; margin-top:4px; font-size:12px }
-    .rowgap{ grid-column:1/-1; height: calc(var(--seat)*1.2); }
-
-    .legend { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
-    .legend .item { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #eee; border-radius:8px; font-size:13px; }
-    .legend .swatch { width:16px; height:16px; border-radius:4px; border:1px solid #ddd; }
-
-    /* боковые ложи: ОДНА ВЕРТИКАЛЬНАЯ КОЛОНКА на 18 "уровней" */
-    .loge { background:#fff; border:1px dashed #ddd; border-radius:12px; padding:10px; position: sticky; top: 76px; max-height: 72vh; overflow:auto; }
-    .loge h3 { margin: 0 0 8px; font-size: 14px; color:#444; text-align:center; }
-    .loge-vert {
-      display:grid;
-      grid-template-rows: repeat(18, calc(var(--seat) * 0.9));
-      gap: var(--gap);
-      justify-items:center;
-      align-content:start;
-    }
-    .loge-vert .seat{ width: calc(var(--seat) * 0.9); height: calc(var(--seat) * 0.9); font-size: 11px; }
-    .loge-note { text-align:center; font-size: 11px; color:#777; margin-top:6px; }
-
-    .error { padding: 12px; border:1px solid #fca5a5; background:#fee2e2; color:#7f1d1d; border-radius:10px; margin-top: 8px; display:none; }
+    .container{ max-width: 880px; margin: 0 auto; padding: 16px; }
+    .card{ border:1px solid #eee; border-radius:12px; padding:16px; background:#fff; }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width: 720px){ .row{ grid-template-columns: 1fr; } }
+    .field{ display:flex; flex-direction:column; gap:6px; }
+    .field input{ border:1px solid #ddd; border-radius:10px; padding:10px 12px; font-size:16px; }
+    .summary{ background:#f7f7f7; border-radius:10px; padding:10px 12px; }
+    .error{ display:none; border:1px solid #fca5a5; background:#fee2e2; color:#7f1d1d; border-radius:10px; padding:12px; margin-top:12px; }
+    .ok{ display:none; border:1px solid #bbf7d0; background:#ecfdf5; color:#065f46; border-radius:10px; padding:12px; margin-top:12px; }
+    .btn{ padding:10px 14px; border-radius:10px; border: none; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; }
+    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
   </style>
 </head>
 <body>
   <header class="header">
-    <a id="back" href="../afisha.html">← Назад</a>
-    <h2 id="title">Вибір місць</h2>
+    <a href="afisha.html">← Назад до афіші</a>
+    <h2>Оплата замовлення</h2>
   </header>
 
-  <div class="container">
-    <!-- Кнопки масштаба -->
-    <div class="controls">
-      <button id="zoomOut" class="btn secondary">−</button>
-      <button id="zoomIn" class="btn">+</button>
-      <button id="fitWidth" class="btn">По ширині</button>
-      <span id="zoomInfo" class="meta">Масштаб: <strong id="zoomVal">100%</strong></span>
-    </div>
+  <main class="container">
+    <section class="card">
+      <h3 style="margin-top:0">Ваше замовлення</h3>
+      <div class="summary" id="orderSummary"></div>
+    </section>
 
-    <!-- Легенда -->
-    <div id="legend" class="legend"></div>
-
-    <!-- Трёхколоночный макет: Ложа A (вертикаль) | Партер | Ложа B (вертикаль) -->
-    <div class="layout">
-      <!-- ЛОЖА A (слева) -->
-      <aside class="loge">
-        <h3>Ложа A (ліва)</h3>
-        <div id="logeA" class="loge-vert"></div>
-        <div class="loge-note">1…18 — відповідають рядам партера</div>
-      </aside>
-
-      <!-- ПАРТЕР (центр) -->
-      <section class="center">
-        <div class="hall-wrap">
-          <div id="hall" class="hall" aria-label="Схема залу"></div>
+    <form class="card" id="payForm" style="margin-top:12px">
+      <h3 style="margin-top:0">Покупець</h3>
+      <div class="row">
+        <div class="field">
+          <label for="customerName">ПІБ</label>
+          <input id="customerName" type="text" placeholder="Прізвище Ім'я По-батькові" required />
         </div>
-        <div id="errorBox" class="error"></div>
-
-        <div style="margin-top:12px">
-          <span>Вибрано місць: <strong id="count">0</strong></span> •
-          <span>Сума: <strong id="sum">0</strong> грн</span>
-          <div><button id="toCheckout" class="btn" disabled>Перейти до оплати</button></div>
+        <div class="field">
+          <label for="customerPhone">Телефон</label>
+          <input id="customerPhone" type="tel" placeholder="+380..." required />
         </div>
-      </section>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="field">
+          <label for="customerEmail">Електронна пошта (квиток сюди)</label>
+          <input id="customerEmail" type="email" placeholder="name@example.com" required />
+        </div>
+      </div>
 
-      <!-- ЛОЖА B (справа) -->
-      <aside class="loge">
-        <h3>Ложа B (права)</h3>
-        <div id="logeB" class="loge-vert"></div>
-        <div class="loge-note">1…18 — відповідають рядам партера</div>
-      </aside>
-    </div>
-  </div>
+      <div id="errBox" class="error"></div>
+      <div id="okBox"  class="ok"></div>
 
+      <div style="margin-top:10px">
+        <button id="payBtn" class="btn" type="submit">Перейти до LiqPay</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Подключаем Supabase-клиент из твоего файла -->
   <script type="module">
-    const rootStyle = document.documentElement.style;
-    const zoomValEl = document.getElementById('zoomVal');
-    function getSeatPx(){ const v=getComputedStyle(document.documentElement).getPropertyValue('--seat').trim(); return parseInt(v.replace('px','')||'32',10); }
-    function setSeatPx(px){ const c=Math.max(16,Math.min(px,56)); rootStyle.setProperty('--seat', c+'px'); zoomValEl.textContent = Math.round(c/32*100)+'%'; document.getElementById('hall').style.transform='scale(1)'; }
-    function showError(msg){ const box=document.getElementById('errorBox'); box.style.display='block'; box.textContent=msg; }
+    import { supabase } from './scripts/db.js';
 
-    const qp = new URLSearchParams(location.search);
-    const showSlug = qp.get('show'); // e.g. shevchenko/za-dvoma-zaytsiamy
-    if (!showSlug) { showError('Немає параметра ?show'); throw new Error('no show'); }
+    // ❗ Обязательно: URL твоего проекта Supabase (как в scripts/db.js)
+    const supabaseUrl = 'https://hkeuabtiemsxadusmqlo.supabase.co'; // ← Поставь СВОЙ, если другой
 
-    // Подгружаем JSON описания схемы
-    fetch(`../data/shows/${showSlug}.json?ts=${Date.now()}`).then(r=>{
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return r.json();
-    }).then(show=>{
-      document.getElementById('page-title').textContent='Схема — '+show.title;
-      document.getElementById('title').textContent='«'+show.title+'»';
-      document.getElementById('back').href='../afisha.html';
+    // Читаем параметры из URL
+    const qp   = new URLSearchParams(location.search);
+    const show = qp.get('show') || '';
+    const seats = qp.get('seats') || '';
+    const sum = qp.get('sum') || '0';
 
-      const hall = document.getElementById('hall');
-      const rows = (show.rows||[]);
-      const parter = rows.filter(r => (r.section||'parter')==='parter').sort((a,b)=>a.row-b.row);
-      const reserved = new Set(show.reserved || []);
+    // Рендер краткого резюме заказа
+    const orderSummary = document.getElementById('orderSummary');
+    orderSummary.innerHTML = `
+      <div><strong>Вистава:</strong> ${show || '(невідомо)'}</div>
+      <div><strong>Місця:</strong> ${seats || '(не обрано)'}</div>
+      <div><strong>Сума до сплати:</strong> ${sum} грн</div>
+    `;
 
-      if (!parter.length) { showError('Немає рядів партера для відображення.'); return; }
+    const form  = document.getElementById('payForm');
+    const errBox= document.getElementById('errBox');
+    const okBox = document.getElementById('okBox');
 
-      // Легенда цен (по партеру)
-      const legend = document.getElementById('legend');
-      const prices = Array.from(new Set(parter.map(r=>r.price))).sort((a,b)=>b-a);
-      legend.innerHTML = prices.map(p=>`<div class="item"><span class="swatch" style="background:#${(p*1234567).toString(16).slice(0,6)}"></span><span>${p} грн</span></div>`).join('');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      okBox.style.display  = 'none';
 
-      // Кол-во колонок с учётом проходов
-      const calcCols = r => (r.seats || 0) + ((r.aisles||[]).length || 0);
-      const layoutCols = Math.max(...parter.map(calcCols));
-      hall.style.setProperty('--cols', layoutCols);
+      const name  = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      const email = document.getElementById('customerEmail').value.trim();
 
-      // Сцена
-      const st = document.createElement('div'); st.className='stage'; st.textContent='Сцена'; hall.appendChild(st);
-
-      // Рендер ряда партера (с проходами)
-      let selected=[];
-      function renderParterRow(cfg){
-        const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
-        let nextA=0;
-        for(let s=1; s<=cfg.seats; s++){
-          while(nextA<aisles.length && (s===aisles[nextA]+1)){
-            const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++;
-          }
-          const key=`${cfg.row}-${s}`;
-          const el=document.createElement('div');
-          el.className='seat'; el.textContent=s;
-          el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
-          el.title=`Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
-          if(reserved.has(key)){ el.classList.add('reserved'); }
-          else { el.addEventListener('click',()=>toggle(el)); }
-          hall.appendChild(el);
-        }
-        while(nextA<(cfg.aisles||[]).length){ const sp=document.createElement('div'); sp.className='spacer'; hall.appendChild(sp); nextA++; }
-        const rl=document.createElement('div'); rl.className='rowlabel'; rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; hall.appendChild(rl);
+      // Примитивная валидация
+      if (!name || !phone || !email) {
+        errBox.textContent = 'Заповніть, будь ласка, усі поля.';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errBox.textContent = 'Невірний формат e-mail.';
+        errBox.style.display = 'block';
+        return;
       }
 
-      // Партер 1–18, затем зазор, затем 19–21
-      parter.forEach(r=>{
-        renderParterRow(r);
-        if (r.row===18){ const gap=document.createElement('div'); gap.className='rowgap'; hall.appendChild(gap); }
-      });
+      try {
+        // 1) Сохраняем бронь
+        const payload = {
+          seat_ids: seats.split(',').map(s => s.trim()).filter(Boolean),
+          customer_name: name,
+          customer_phone: phone,
+          customer_email: email,
+          show_slug: show,
+          amount: Number(sum) || 0
+        };
+        const { data: inserted, error } = await supabase
+          .from('bookings')
+          .insert([payload])
+          .select('id')
+          .single();
 
-      function toggle(el){
-        const key=el.dataset.key;
-        const i=selected.findIndex(x=>x.key===key);
-        if(i!==-1){selected.splice(i,1); el.classList.remove('selected');}
-        else{selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price}); el.classList.add('selected');}
-        const total=selected.reduce((a,b)=>a+b.price,0);
-        document.getElementById('count').textContent=selected.length;
-        document.getElementById('sum').textContent=total;
-        document.getElementById('toCheckout').disabled=selected.length===0;
-      }
+        if (error) throw error;
 
-      // === ЛОЖИ как ВЕРТИКАЛЬНЫЕ колонки (по 1 месту на уровень 1..18) ===
-      // Цена лож = цена соответствующего ряда партера (1..18)
-      const priceByRow = {};
-      parter.forEach(r => { if (r.row>=1 && r.row<=18) priceByRow[r.row]=r.price; });
+        okBox.textContent = 'Бронювання збережено. Переходимо до оплати...';
+        okBox.style.display = 'block';
 
-      function renderVerticalLoge(containerId, prefix){
-        const box = document.getElementById(containerId);
-        box.innerHTML = '';
-        for (let level=1; level<=18; level++){
-          const price = priceByRow[level] ?? priceByRow[18] ?? 0;
-          const key = `${prefix}-${level}`; // LA-7 / LB-12
-          const el = document.createElement('div');
-          el.className = 'seat';
-          el.textContent = level;
-          el.title = `Ложа ${prefix==='LA'?'A':'B'}, рівень ${level} — ${price} грн`;
-          el.dataset.key = key;
-          el.dataset.row = level; // для корзини: рівень
-          el.dataset.seat = level; // номер у ложе = рівень
-          el.dataset.price = price;
-          if (reserved.has(key)) { el.classList.add('reserved'); }
-          else { el.addEventListener('click',()=>toggle(el)); }
-          box.appendChild(el);
-        }
-      }
-      renderVerticalLoge('logeA', 'LA');
-      renderVerticalLoge('logeB', 'LB');
-
-      // Зум/подгон
-      const hallWrap = document.querySelector('.hall-wrap');
-      function fitWidth(){
-        const padding = 32;
-        const cols = parseInt(getComputedStyle(hall).getPropertyValue('--cols')) || 10;
-        const seat = Math.floor((hallWrap.clientWidth - padding) / cols);
-        if (seat >= 16) setSeatPx(seat);
-        requestAnimationFrame(()=>{
-          const need = hallWrap.clientWidth - 20;
-          const cur  = hall.scrollWidth;
-          const scale = cur>0 ? Math.min(1, need/cur) : 1;
-          hall.style.transform = `scale(${scale})`;
-          zoomValEl.textContent = Math.round(getSeatPx()/32*100*scale)+'%';
-          hallWrap.scrollTop=0; hallWrap.scrollLeft=0;
+        // 2) Запрашиваем у edge-функции LiqPay подписи/данные
+        const fx = `${supabaseUrl}/functions/v1/liqpay-init`;
+        const resp = await fetch(fx, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ booking_id: inserted.id })
         });
+        const init = await resp.json();
+        if (!init?.data || !init?.signature || !init?.action) {
+          throw new Error('Помилка ініціалізації LiqPay');
+        }
+
+        // 3) Формируем и отправляем скрытую форму в LiqPay
+        const formLiq = document.createElement('form');
+        formLiq.action = init.action;
+        formLiq.method = 'POST';
+        formLiq.style.display = 'none';
+
+        const fData = document.createElement('input');
+        fData.type = 'hidden'; fData.name = 'data'; fData.value = init.data;
+        const fSign = document.createElement('input');
+        fSign.type = 'hidden'; fSign.name = 'signature'; fSign.value = init.signature;
+
+        formLiq.appendChild(fData);
+        formLiq.appendChild(fSign);
+        document.body.appendChild(formLiq);
+        formLiq.submit();
+
+      } catch (err) {
+        errBox.textContent = 'Помилка при ініціалізації оплати: ' + (err.message || err);
+        errBox.style.display = 'block';
       }
-      document.getElementById('zoomIn').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()+4); });
-      document.getElementById('zoomOut').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()-4); });
-      document.getElementById('fitWidth').addEventListener('click', fitWidth);
-      fitWidth(); setTimeout(fitWidth, 80);
-
-      // Переход к оплате
-      document.getElementById('toCheckout').addEventListener('click',()=>{
-        const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
-        const total=selected.reduce((a,b)=>a+b.price,0);
-        location.href=`../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
-      });
-
-    }).catch(e=>{
-      console.error(e); showError('Не вдалося завантажити схему: '+e.message);
     });
   </script>
 </body>
