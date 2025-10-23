@@ -52,7 +52,7 @@
         <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
       </div>
 
-      <div id="ok" class="ok">✅ Бронювання збережено. Далі — оплата через LiqPay.</div>
+      <div id="ok" class="ok">✅ Бронювання збережено. Зараз відкриється LiqPay.</div>
       <div id="err" class="err"></div>
     </form>
   </main>
@@ -61,21 +61,22 @@
     <div class="footer-inner"><div>© 2025 Ваш Адмін</div></div>
   </footer>
 
+  <!-- ВАЖЛИВО: файл scripts/db.js уже має містити твій Project URL і anon key -->
   <script type="module">
     import { supabase } from './scripts/db.js';
 
     const qp   = new URLSearchParams(location.search);
     const show = qp.get('show');
-    const seats= qp.get('seats'); // формат: "Р2-М3,Р3-М3" або "2-5,2-6"
+    const seats= qp.get('seats'); // приклад: "Р2-М3,Р3-М3" або "2-5,2-6"
     const sum  = qp.get('sum');
 
-    const infoBox   = document.getElementById('infoBox');
-    const form      = document.getElementById('payForm');
-    const okBox     = document.getElementById('ok');
-    const errBox    = document.getElementById('err');
-    const backToHall= document.getElementById('backToHall');
+    const infoBox    = document.getElementById('infoBox');
+    const form       = document.getElementById('payForm');
+    const okBox      = document.getElementById('ok');
+    const errBox     = document.getElementById('err');
+    const backToHall = document.getElementById('backToHall');
 
-    // Рендер інформації про замовлення
+    // 1) показуємо інформацію про замовлення
     if (!show || !seats || !sum) {
       infoBox.innerHTML = '<p>❌ Помилка: неповні дані для оплати.</p>';
       form.style.display = 'none';
@@ -87,14 +88,11 @@
         <p style="margin:0 0 4px"><strong>Місця:</strong> ${seats}</p>
         <p style="margin:0"><strong>Сума:</strong> ${sum} грн</p>
       `;
-      // Посилання «Змінити місця»
-      backToHall.href = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
+      backToHall.href = \`spectacles/hall.html?show=\${encodeURIComponent(show)}\`;
     }
 
-    // Проста валідація e-mail
-    function validEmail(v){
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-    }
+    // проста перевірка e-mail
+    const validEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -116,28 +114,60 @@
         return;
       }
 
-      // Зберігаємо бронювання у Supabase
       try {
-        const payload = {
+        // 2) створюємо запис у Supabase (бронь зі статусом pending)
+        const orderId = 'ORD-' + Date.now(); // простий унікальний ID замовлення
+
+        const { error: insertError } = await supabase.from('bookings').insert([{
           seat_ids: seats.split(',').map(s => s.trim()),
           customer_name: name,
           customer_phone: phone,
           customer_email: email,
           show_slug: show,
-          amount: Number(sum) || 0
-        };
+          amount: Number(sum) || 0,
+          status: 'pending',
+          liqpay_order_id: orderId
+        }]);
 
-        const { error } = await supabase.from('bookings').insert([payload]);
-        if (error) throw error;
+        if (insertError) throw insertError;
 
         okBox.style.display = 'block';
 
-        // TODO: інтеграція з LiqPay (після збереження бронювання)
-        // Тут ми сформуємо форму LiqPay і відправимо користувача на оплату.
-        // Поки просто показуємо повідомлення.
-        alert('Бронювання збережено. Далі — оплата через LiqPay.');
+        // 3) просимо Edge Function підготувати дані для LiqPay
+        //    (endpoint дивись у Supabase → Edge Functions → liqpay-init → Endpoint URL)
+        const EDGE_INIT_URL = 'https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-init';
+
+        const resp = await fetch(EDGE_INIT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: Number(sum) || 0,
+            description: \`Оплата квитків — \${show}\`,
+            order_id: orderId
+            // за потреби можна додати: result_url, server_url — якщо так очікує твоя функція
+          })
+        });
+
+        const liq = await resp.json();
+        if (!resp.ok || liq.error || !liq.data || !liq.signature) {
+          console.error('LiqPay init error:', liq);
+          throw new Error('Помилка ініціалізації LiqPay.');
+        }
+
+        // 4) створюємо приховану форму і відправляємо користувача в LiqPay
+        const formLiq = document.createElement('form');
+        formLiq.method = 'POST';
+        formLiq.action = 'https://www.liqpay.ua/api/3/checkout';
+        formLiq.innerHTML = `
+          <input type="hidden" name="data" value="${liq.data}" />
+          <input type="hidden" name="signature" value="${liq.signature}" />
+        `;
+        document.body.appendChild(formLiq);
+        formLiq.submit();
+
       } catch (err) {
-        errBox.textContent = 'Помилка при збереженні бронювання: ' + (err.message || err);
+        console.error(err);
+        errBox.textContent = 'Помилка при підготовці оплати: ' + (err.message || err);
         errBox.style.display = 'block';
       }
     });
