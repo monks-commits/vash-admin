@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Переходимо до вибору місць…</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:20px;max-width:560px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+    .muted{color:#64748b}
+    a.btn{display:inline-block;margin-top:12px;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none}
+    .small{font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 8px">Переходимо до вибору місць…</h2>
+    <div class="muted small" id="status">Готуємо схему залу</div>
+    <a id="fallback" class="btn" href="#" style="display:none">Відкрити вручну</a>
+  </div>
+
+  <script>
+    (function(){
+      const qp = new URLSearchParams(location.search);
+      const show = qp.get('show');
+
+      const statusEl = document.getElementById('status');
+      const fallback = document.getElementById('fallback');
+
+      if(!show){
+        statusEl.textContent = 'Помилка: не передано параметр ?show';
+        return;
+      }
+
+      // Куди маємо піти: одразу на схему залу
+      const target = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
+
+      // Показати запасне посилання (раптом щось блокне редірект)
+      fallback.href = target;
+      fallback.style.display = 'inline-block';
+
+      // Мʼякий редірект (без повернення в історії)
+      statusEl.textContent = 'Відкриваємо схему залу…';
+      location.replace(target);
+    })();
+  </script>
+</body>
+</html>
