@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Переходимо до вибору місць…</title>
+  <meta id="meta-refresh">
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:20px;max-width:560px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
@@ -21,27 +22,36 @@
 
   <script>
     (function(){
-      const qp = new URLSearchParams(location.search);
-      const show = qp.get('show');
+      const qs = new URLSearchParams(location.search);
+      // Приймаємо різні назви параметрів на всяк випадок
+      const show = qs.get('show') || qs.get('slug') || qs.get('s');
 
       const statusEl = document.getElementById('status');
       const fallback = document.getElementById('fallback');
+      const metaRefresh = document.getElementById('meta-refresh');
 
       if(!show){
-        statusEl.textContent = 'Помилка: не передано параметр ?show';
+        statusEl.textContent = 'Помилка: не передано параметр ?show (або ?slug / ?s).';
         return;
       }
 
-      // Куди маємо піти: одразу на схему залу
       const target = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
 
-      // Показати запасне посилання (раптом щось блокне редірект)
+      // Показуємо запасне посилання
       fallback.href = target;
       fallback.style.display = 'inline-block';
 
-      // Мʼякий редірект (без повернення в історії)
+      // Ставимо meta refresh як дубль до JS redirect (на 1 секунду)
+      metaRefresh.setAttribute('http-equiv', 'refresh');
+      metaRefresh.setAttribute('content', `1;url=${target}`);
+
+      // Ініціюємо миттєвий redirect
       statusEl.textContent = 'Відкриваємо схему залу…';
-      location.replace(target);
+      try {
+        location.replace(target);
+      } catch(e) {
+        // Якщо щось пішло не так — залишиться meta refresh + кнопка
+      }
     })();
   </script>
 </body>
