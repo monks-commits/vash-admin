@@ -15,10 +15,10 @@
     .controls .btn{ padding: 6px 10px; font-size: 14px; }
     .controls .meta{ font-size: 13px; color:#666; }
 
-    /* макет: ложе слева | партер по центру | ложе справа */
+    /* макет: Ложа A (верт.) | Партер (центр) | Ложа B (верт.) */
     .layout {
       display: grid;
-      grid-template-columns: minmax(140px, 1fr) minmax(340px, 6fr) minmax(140px, 1fr);
+      grid-template-columns: minmax(80px, 1fr) minmax(340px, 6fr) minmax(80px, 1fr);
       gap: 12px;
       align-items: start;
     }
@@ -31,7 +31,6 @@
     /* центр: контейнер с прокруткой ТОЛЬКО у схемы партера */
     .hall-wrap { overflow: auto; border:1px dashed #ddd; border-radius:12px; padding: 12px; max-height: 72vh; background:#fff; width: 100%; }
     .hall { display:grid; gap: var(--gap); justify-content:flex-start; grid-template-columns: repeat(var(--cols, 10), var(--seat)); transform-origin: top left; }
-
     .stage { grid-column:1/-1; text-align:center; font-weight:700; padding:8px 0; background:#eee; border-radius:8px; margin-bottom:6px }
 
     .seat { width: var(--seat); height: var(--seat); border-radius:6px; background:#e0e0e0; display:flex; align-items:center; justify-content:center;
@@ -46,11 +45,17 @@
     .legend .item { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #eee; border-radius:8px; font-size:13px; }
     .legend .swatch { width:16px; height:16px; border-radius:4px; border:1px solid #ddd; }
 
-    /* боковые ложи — один горизонтальный ряд на 18 мест */
-    .loge { background:#fff; border:1px dashed #ddd; border-radius:12px; padding:10px; }
+    /* боковые ложи: ОДНА ВЕРТИКАЛЬНАЯ КОЛОНКА на 18 "уровней" */
+    .loge { background:#fff; border:1px dashed #ddd; border-radius:12px; padding:10px; position: sticky; top: 76px; max-height: 72vh; overflow:auto; }
     .loge h3 { margin: 0 0 8px; font-size: 14px; color:#444; text-align:center; }
-    .loge-strip { display:grid; gap: var(--gap); grid-template-columns: repeat(18, calc(var(--seat) * 0.9)); justify-content:center; }
-    .loge-strip .seat{ width: calc(var(--seat) * 0.9); height: calc(var(--seat) * 0.9); font-size: 11px; }
+    .loge-vert {
+      display:grid;
+      grid-template-rows: repeat(18, calc(var(--seat) * 0.9));
+      gap: var(--gap);
+      justify-items:center;
+      align-content:start;
+    }
+    .loge-vert .seat{ width: calc(var(--seat) * 0.9); height: calc(var(--seat) * 0.9); font-size: 11px; }
     .loge-note { text-align:center; font-size: 11px; color:#777; margin-top:6px; }
 
     .error { padding: 12px; border:1px solid #fca5a5; background:#fee2e2; color:#7f1d1d; border-radius:10px; margin-top: 8px; display:none; }
@@ -74,12 +79,12 @@
     <!-- Легенда -->
     <div id="legend" class="legend"></div>
 
-    <!-- Трёхколоночный макет: Ложа A | Партер | Ложа B -->
+    <!-- Трёхколоночный макет: Ложа A (вертикаль) | Партер | Ложа B (вертикаль) -->
     <div class="layout">
       <!-- ЛОЖА A (слева) -->
       <aside class="loge">
         <h3>Ложа A (ліва)</h3>
-        <div id="logeA" class="loge-strip"></div>
+        <div id="logeA" class="loge-vert"></div>
         <div class="loge-note">1…18 — відповідають рядам партера</div>
       </aside>
 
@@ -100,7 +105,7 @@
       <!-- ЛОЖА B (справа) -->
       <aside class="loge">
         <h3>Ложа B (права)</h3>
-        <div id="logeB" class="loge-strip"></div>
+        <div id="logeB" class="loge-vert"></div>
         <div class="loge-note">1…18 — відповідають рядам партера</div>
       </aside>
     </div>
@@ -185,32 +190,32 @@
         document.getElementById('toCheckout').disabled=selected.length===0;
       }
 
-      // === ЛОЖИ как ОДИН горизонтальный ряд на 18 мест ===
-      // Цены лог привязываем к ценам рядов партера 1..18
+      // === ЛОЖИ как ВЕРТИКАЛЬНЫЕ колонки (по 1 месту на уровень 1..18) ===
+      // Цены лож привязываем к ценам рядов партера 1..18
       const priceByRow = {};
       parter.forEach(r => { if (r.row>=1 && r.row<=18) priceByRow[r.row]=r.price; });
 
-      function renderLogeRow(containerId, prefix){
+      function renderVerticalLoge(containerId, prefix){
         const box = document.getElementById(containerId);
-        box.innerHTML = ''; // на всякий случай
-        for (let i=1;i<=18;i++){
-          const price = priceByRow[i] ?? priceByRow[18] ?? 0;
-          const key = `${prefix}-${i}`;             // напр. LA-7 или LB-12
+        box.innerHTML = '';
+        for (let level=1; level<=18; level++){
+          const price = priceByRow[level] ?? priceByRow[18] ?? 0;
+          const key = `${prefix}-${level}`; // LA-7 / LB-12
           const el = document.createElement('div');
           el.className = 'seat';
-          el.textContent = i;
-          el.title = `Ложа ${prefix==='LA'?'A':'B'}, рівень ${i} — ${price} грн`;
+          el.textContent = level;
+          el.title = `Ложа ${prefix==='LA'?'A':'B'}, рівень ${level} — ${price} грн`;
           el.dataset.key = key;
-          el.dataset.row = i;       // для відображення
-          el.dataset.seat = i;      // номер у ложе = рівень
+          el.dataset.row = level; // для корзини: рівень
+          el.dataset.seat = level; // номер у ложе = рівень
           el.dataset.price = price;
           if (reserved.has(key)) { el.classList.add('reserved'); }
           else { el.addEventListener('click',()=>toggle(el)); }
           box.appendChild(el);
         }
       }
-      renderLogeRow('logeA', 'LA');
-      renderLogeRow('logeB', 'LB');
+      renderVerticalLoge('logeA', 'LA');
+      renderVerticalLoge('logeB', 'LB');
 
       // Зум/подгон
       const hallWrap = document.querySelector('.hall-wrap');
