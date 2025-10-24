@@ -7,17 +7,23 @@
   <link rel="stylesheet" href="../styles.css" />
   <style>
     :root { --seat: 22px; --gap: 4px; } /* компактнее по умолчанию */
-    @media (min-width: 900px){ :root { --seat: 28px; --gap: 6px; } }
+    @media (min-width: 900px){ :root { --seat: 26px; --gap: 6px; } }
 
     .controls{position:sticky;top:0;z-index:5;background:#fff;
       padding:8px 0;margin:-8px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #eee;}
     .controls .btn{padding:6px 10px;font-size:14px}
     .controls .meta{font-size:13px;color:#666}
 
-    .hall-wrap{overflow:auto;border:1px dashed #ddd;border-radius:12px;padding:12px;
-      max-height:72vh;background:#fff;width:100%;}
+    .wrap{border:1px dashed #ddd;border-radius:12px;padding:12px;background:#fff}
+    .layout{display:grid;gap:12px}
+    /* на широком — 3 колонки (Ложа А | Партер | Ложа Б), на узком — партер сверху, ложи снизу */
+    @media (min-width: 980px){
+      .layout{grid-template-columns:auto 1fr auto; align-items:start}
+    }
+
     .hall{display:grid;gap:var(--gap);justify-content:flex-start;
-      grid-template-columns: repeat(var(--cols, 10), var(--seat)); transform-origin:top left;}
+      grid-template-columns: repeat(var(--cols, 10), var(--seat)); transform-origin:top left; }
+    .hall.parter{max-width:100%; overflow:auto}
 
     .seat{width:var(--seat);height:var(--seat);border-radius:6px;background:#e5e7eb;
       display:flex;align-items:center;justify-content:center;cursor:pointer;
@@ -39,9 +45,8 @@
     .p-100{background:#38bdf8}.p-90{background:#86efac}.p-80{background:#c4b5fd}.p-70{background:#166534}
 
     .error{padding:12px;border:1px solid #fecaca;background:#fee2e2;border-radius:10px;color:#7f1d1d;display:none;margin-top:10px}
-    .section-title{margin:14px 0 6px;color:#374151;font-weight:700}
-    .lodge-cols{display:grid; gap:16px; grid-template-columns:1fr; margin-top:16px}
-    @media (min-width:900px){ .lodge-cols{ grid-template-columns:1fr 1fr } }
+    .lodgeTitle{font-weight:700;color:#374151;margin-bottom:6px;text-align:center}
+    .scene{margin:6px auto 12px; text-align:center; font-weight:700; color:#666}
   </style>
 </head>
 <body>
@@ -60,8 +65,13 @@
 
   <div id="legend" class="legend"></div>
 
-  <div class="hall-wrap">
-    <div id="hall" class="hall" aria-label="Схема залу"></div>
+  <div class="wrap">
+    <div class="scene">СЦЕНА</div>
+    <div class="layout">
+      <div id="lodgeLeftWrap"></div>
+      <div id="parterWrap"></div>
+      <div id="lodgeRightWrap"></div>
+    </div>
   </div>
 
   <div id="err" class="error"></div>
@@ -73,8 +83,6 @@
       <button id="toCheckout" class="btn" disabled>Перейти до оплати</button>
     </div>
   </div>
-
-  <div id="lodges" class="lodge-cols"></div>
 </main>
 
 <footer class="footer">
@@ -86,19 +94,19 @@
   const qp = new URLSearchParams(location.search);
   const showSlug = qp.get('show');
   const stageName = s => s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
-  const hall = document.getElementById('hall');
-  const wrap = document.querySelector('.hall-wrap');
   const zoomValEl = document.getElementById('zoomVal');
   const legendEl = document.getElementById('legend');
   const errEl = document.getElementById('err');
-  const lodgesEl = document.getElementById('lodges');
+
+  const parterWrap = document.getElementById('parterWrap');
+  const lodgeLeftWrap  = document.getElementById('lodgeLeftWrap');
+  const lodgeRightWrap = document.getElementById('lodgeRightWrap');
 
   if(!showSlug){
     return fail('Відсутній параметр ?show.');
   }
   document.getElementById('back').href = `../show.html?show=${encodeURIComponent(showSlug)}`;
 
-  // масштаб
   function getSeatPx(){
     const v = getComputedStyle(document.documentElement).getPropertyValue('--seat').trim();
     return parseInt(v.replace('px','') || '22', 10);
@@ -107,47 +115,31 @@
     const clamped = Math.max(16, Math.min(px, 56));
     document.documentElement.style.setProperty('--seat', clamped+'px');
     zoomValEl.textContent = Math.round(clamped/22*100) + '%';
-    hall.style.transform = 'scale(1)';
   }
   document.getElementById('zoomIn').addEventListener('click', ()=> setSeatPx(getSeatPx()+4));
   document.getElementById('zoomOut').addEventListener('click', ()=> setSeatPx(getSeatPx()-4));
   document.getElementById('fitWidth').addEventListener('click', fitWidth);
-  window.addEventListener('resize', ()=>{ fitWidth(); });
-
-  function fitWidth(){
-    const cols = +getComputedStyle(hall).getPropertyValue('--cols');
-    if(!cols) return;
-    const padding = 28;
-    const seat = Math.floor((wrap.clientWidth - padding)/cols);
-    if (seat >= 16) setSeatPx(seat);
-    requestAnimationFrame(()=>{
-      const need = wrap.clientWidth - 16;
-      const current = hall.scrollWidth;
-      const scale = current>0 ? Math.min(1, need/current) : 1;
-      hall.style.transform = `scale(${scale})`;
-      zoomValEl.textContent = Math.round(getSeatPx()/22*100*scale)+'%';
-      wrap.scrollTop = wrap.scrollLeft = 0;
-    });
-  }
+  window.addEventListener('resize', fitWidth);
 
   function fail(msg){
     errEl.textContent = msg;
     errEl.style.display = 'block';
   }
 
-  // === загрузка JSON ===
   fetch(`../data/shows/${showSlug}.json`, {cache:'no-store'})
     .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(show=>{
       document.getElementById('title').textContent =
         `Вибір місць — «${show.title||''}» ${show.stage?('('+stageName(show.stage)+')'):''}`;
 
-      // --- ПАРТЕР ---
+      // --- Партер ---
       const parterRows = (show.rows||[]).filter(r => (r.section||'parter') === 'parter' && r.enabled!==false);
       if(!parterRows.length){ fail('Немає активних рядів партера у файлі схеми.'); return; }
 
-      const maxCols = Math.max(...parterRows.map(r => r.seats + ((r.aisles && r.aisles.length) || 0)));
-      hall.style.setProperty('--cols', maxCols);
+      const parter = document.createElement('div');
+      parter.className = 'hall parter';
+      const maxColsParter = Math.max(...parterRows.map(r => r.seats + ((r.aisles && r.aisles.length) || 0)));
+      parter.style.setProperty('--cols', maxColsParter);
 
       const prices = Array.from(new Set(parterRows.map(r=>r.price).filter(p=>typeof p==='number'))).sort((a,b)=>b-a);
       legendEl.innerHTML = prices.map(p=>(
@@ -159,13 +151,22 @@
       const idx = key => selected.findIndex(x=>x.key===key);
 
       function spacer(){ const sp=document.createElement('div'); sp.className='spacer'; return sp; }
+      function toggle(el){
+        const i = idx(el.dataset.key);
+        if (i !== -1){ selected.splice(i,1); el.classList.remove('selected'); }
+        else { selected.push({ key: el.dataset.key, row:+el.dataset.row, seat:+el.dataset.seat, price:+el.dataset.price }); el.classList.add('selected'); }
+        const total = selected.reduce((a,b)=>a+b.price,0);
+        document.getElementById('count').textContent = selected.length;
+        document.getElementById('sum').textContent = total;
+        document.getElementById('toCheckout').disabled = selected.length===0;
+      }
 
-      function renderRow(cfg){
+      function renderRowInto(container, cfg, keyPrefix=''){
         const aisles = (cfg.aisles||[]).slice().sort((a,b)=>a-b);
         let nextA = 0;
         for(let s=1; s<=cfg.seats; s++){
-          while(nextA<aisles.length && (s===aisles[nextA]+1)){ hall.appendChild(spacer()); nextA++; }
-          const key = `${cfg.row}-${s}`;
+          while(nextA<aisles.length && (s===aisles[nextA]+1)){ container.appendChild(spacer()); nextA++; }
+          const key = `${keyPrefix}${cfg.row}-${s}`;
           const el = document.createElement('div');
           el.className = 'seat';
           el.textContent = s;
@@ -174,90 +175,80 @@
           el.dataset.seat = s;
           el.dataset.price = cfg.price;
           el.title = `Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
-          if (reserved.has(key)) el.classList.add('reserved');
-          else { el.classList.add('available', `p-${cfg.price}`); el.addEventListener('click', ()=>toggle(el)); }
-          hall.appendChild(el);
+          el.classList.add(reserved.has(key)?'reserved':'available', `p-${cfg.price}`);
+          if (!reserved.has(key)) el.addEventListener('click', ()=>toggle(el));
+          container.appendChild(el);
         }
-        while(nextA<(cfg.aisles||[]).length){ hall.appendChild(spacer()); nextA++; }
+        while(nextA<(cfg.aisles||[]).length){ container.appendChild(spacer()); nextA++; }
         const rl = document.createElement('div'); rl.className='rowlabel';
         rl.textContent = `Ряд ${cfg.row} • ${cfg.price} грн`;
-        hall.appendChild(rl);
+        container.appendChild(rl);
       }
 
-      parterRows.sort((a,b)=>a.row-b.row).forEach(renderRow);
+      parterRows.sort((a,b)=>a.row-b.row).forEach(cfg=>renderRowInto(parter, cfg));
 
-      // --- ЛОЖИ: logeA / logeB ---
-      const logeA = (show.rows||[]).filter(r => r.section==='logeA' && r.enabled!==false);
-      const logeB = (show.rows||[]).filter(r => r.section==='logeB' && r.enabled!==false);
-
-      function renderLodgeBlock(title, rows){
+      // --- Ложи: logeA / logeB — узкие колонны, небольшая ширина ---
+      function renderLodgeColumn(titleText, rows){
         if (!rows.length) return null;
         const wrap = document.createElement('div');
-        const titleEl = document.createElement('div');
-        titleEl.className = 'section-title';
-        titleEl.textContent = title;
-        wrap.appendChild(titleEl);
+        const title = document.createElement('div');
+        title.className = 'lodgeTitle';
+        title.textContent = titleText;
+        wrap.appendChild(title);
 
         const box = document.createElement('div');
         box.className = 'hall';
         const cols = Math.max(...rows.map(r => r.seats + ((r.aisles && r.aisles.length) || 0)));
-        box.style.setProperty('--cols', cols);
+        // но чтобы колонна не раздувалась — ограничим колонки до реального числа мест (обычно 18)
+        box.style.setProperty('--cols', Math.max( (rows[0] && rows[0].seats) || 1, 1));
 
         rows.sort((a,b)=>a.row-b.row).forEach(cfg=>{
-          const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
-          let nextA=0;
-          for(let s=1;s<=cfg.seats;s++){
-            while(nextA<aisles.length && (s===aisles[nextA]+1)){ box.appendChild(spacer()); nextA++; }
-            const key = `${title}-${cfg.row}-${s}`;
-            const el = document.createElement('div');
-            el.className='seat available';
-            el.textContent=s;
-            el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
-            el.classList.add(`p-${cfg.price}`);
-            el.addEventListener('click',()=>toggle(el));
-            box.appendChild(el);
-          }
-          while(nextA<(cfg.aisles||[]).length){ box.appendChild(spacer()); nextA++; }
-          const rl=document.createElement('div'); rl.className='rowlabel';
-          rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; box.appendChild(rl);
+          // каждая "строка" ложи — это одно место в «ряду» ложи → рисуем по seats, но у тебя seats=18 в ряд — оставим как есть горизонтально
+          renderRowInto(box, cfg, titleText+'-');
         });
 
         wrap.appendChild(box);
         return wrap;
       }
 
-      const left = renderLodgeBlock('Ложа А', logeA);
-      const right = renderLodgeBlock('Ложа Б', logeB);
-      if (left) lodgesEl.appendChild(left);
-      if (right) lodgesEl.appendChild(right);
+      const logeA = (show.rows||[]).filter(r => r.section==='logeA' && r.enabled!==false);
+      const logeB = (show.rows||[]).filter(r => r.section==='logeB' && r.enabled!==false);
 
-      // выбор/итог/переход
-      function toggle(el){
-        const key = el.dataset.key;
-        const i = idx(key);
-        if (i !== -1){ selected.splice(i,1); el.classList.remove('selected'); }
-        else { selected.push({ key, row:+el.dataset.row, seat:+el.dataset.seat, price:+el.dataset.price }); el.classList.add('selected'); }
-        update();
-      }
-      function update(){
-        const total = selected.reduce((a,b)=>a+b.price,0);
-        document.getElementById('count').textContent = selected.length;
-        document.getElementById('sum').textContent = total;
-        document.getElementById('toCheckout').disabled = selected.length===0;
-      }
+      // Вставляем в макет
+      parterWrap.innerHTML=''; parterWrap.appendChild(parter);
+      lodgeLeftWrap.innerHTML=''; lodgeRightWrap.innerHTML='';
+      const left  = renderLodgeColumn('Ложа А', logeA);
+      const right = renderLodgeColumn('Ложа Б', logeB);
+      if (left)  lodgeLeftWrap.appendChild(left);
+      if (right) lodgeRightWrap.appendChild(right);
+
+      // переход к оплате
       document.getElementById('toCheckout').addEventListener('click', ()=>{
         const seats = selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
         const total = selected.reduce((a,b)=>a+b.price,0);
         location.href = `../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
       });
 
-      // авто-подгон
-      fitWidth(); setTimeout(fitWidth, 120);
+      // авто-fit: считаем ширину центрального партера; ложи не должны раздувать масштаб
+      fitWidth(parter);
+      setTimeout(()=>fitWidth(parter), 120);
+      window.addEventListener('resize', ()=>fitWidth(parter));
     })
     .catch(e=>{
       console.error(e);
       fail('Не вдалося завантажити схему. Перевірте шлях: data/shows/'+showSlug+'.json');
     });
+
+  function fitWidth(parterEl){
+    if (!parterEl) return;
+    const cols = +getComputedStyle(parterEl).getPropertyValue('--cols');
+    if(!cols) return;
+    // подбираем размер «квадратика» под ширину контейнера партер-блока
+    const container = parterEl.parentElement; // parterWrap
+    const padding = 24;
+    const seat = Math.floor((container.clientWidth - padding)/cols);
+    if (seat >= 16) setSeatPx(seat);
+  }
 })();
 </script>
 </body>
