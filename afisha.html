@@ -53,26 +53,27 @@
 
 <script>
 (async function(){
-  const listEl  = document.getElementById('list');
-  const errEl   = document.getElementById('error');
-  const btns    = document.querySelectorAll('.filters .btn');
+  const grid   = document.getElementById('grid');
+  const empty  = document.getElementById('empty');
+  const pills  = Array.from(document.querySelectorAll('.pill'));
 
-  let all = [];
+  let items = [];
   let currentCity = 'all';
 
-  // >>> ДОБАВЛЕНО: старт из query
+  // Стартовый фильтр из ?city=
   const qps = new URLSearchParams(location.search);
   const qCity = qps.get('city');
   if (qCity) currentCity = qCity;
 
-  function setActive(city){
-    btns.forEach(b=>{
-      if ((b.dataset.city||'all')===city){ b.classList.remove('secondary'); }
-      else { b.classList.add('secondary'); }
-    });
+  // Загрузка афиши
+  try {
+    const r = await fetch('./data/afisha.json', { cache: 'no-store' });
+    items = await r.json();
+    if (!Array.isArray(items)) items = items ? [items] : [];
+  } catch (e) {
+    console.error('Не вдалося завантажити afisha.json', e);
+    items = [];
   }
-  ...
-
 
   function cardHTML(s){
     const poster = s.poster ? './' + s.poster : '';
@@ -92,21 +93,29 @@
     `;
   }
 
+  function setActive(city){
+    pills.forEach(p => p.classList.toggle('active', (p.dataset.city||'all')===city));
+  }
+
   function render(city='all'){
-    const data = city==='all' ? items : items.filter(x => (x.city||'').toLowerCase() === city.toLowerCase());
+    const data = city==='all'
+      ? items
+      : items.filter(x => (x.city||'').toLowerCase() === city.toLowerCase());
     grid.innerHTML = data.map(cardHTML).join('');
     empty.style.display = data.length ? 'none' : 'block';
   }
 
   pills.forEach(p=>{
     p.addEventListener('click', ()=>{
-      pills.forEach(x=>x.classList.remove('active'));
-      p.classList.add('active');
-      render(p.dataset.city);
+      currentCity = p.dataset.city || 'all';
+      setActive(currentCity);
+      render(currentCity);
     });
   });
 
-  render('all');
+  // Первый рендер
+  setActive(currentCity);
+  render(currentCity);
 })();
 </script>
 </body>
