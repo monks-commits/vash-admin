@@ -6,8 +6,8 @@
   <title>Вибір місць — Ваш Адмін</title>
   <link rel="stylesheet" href="../styles.css" />
   <style>
-    :root { --seat: 30px; --gap: 6px; }
-    @media (max-width: 640px){ :root { --seat: 22px; --gap: 4px; } }
+    :root { --seat: 22px; --gap: 4px; } /* компактнее по умолчанию */
+    @media (min-width: 900px){ :root { --seat: 28px; --gap: 6px; } }
 
     .controls{position:sticky;top:0;z-index:5;background:#fff;
       padding:8px 0;margin:-8px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #eee;}
@@ -40,6 +40,8 @@
 
     .error{padding:12px;border:1px solid #fecaca;background:#fee2e2;border-radius:10px;color:#7f1d1d;display:none;margin-top:10px}
     .section-title{margin:14px 0 6px;color:#374151;font-weight:700}
+    .lodge-cols{display:grid; gap:16px; grid-template-columns:1fr; margin-top:16px}
+    @media (min-width:900px){ .lodge-cols{ grid-template-columns:1fr 1fr } }
   </style>
 </head>
 <body>
@@ -72,7 +74,7 @@
     </div>
   </div>
 
-  <div id="lodgeContainer"></div>
+  <div id="lodges" class="lodge-cols"></div>
 </main>
 
 <footer class="footer">
@@ -82,14 +84,14 @@
 <script>
 (function(){
   const qp = new URLSearchParams(location.search);
-  const showSlug = qp.get('show'); // напр.: shevchenko/za-dvoma-zaytsiamy
+  const showSlug = qp.get('show');
   const stageName = s => s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
   const hall = document.getElementById('hall');
   const wrap = document.querySelector('.hall-wrap');
   const zoomValEl = document.getElementById('zoomVal');
   const legendEl = document.getElementById('legend');
   const errEl = document.getElementById('err');
-  const lodgeContainer = document.getElementById('lodgeContainer');
+  const lodgesEl = document.getElementById('lodges');
 
   if(!showSlug){
     return fail('Відсутній параметр ?show.');
@@ -99,17 +101,18 @@
   // масштаб
   function getSeatPx(){
     const v = getComputedStyle(document.documentElement).getPropertyValue('--seat').trim();
-    return parseInt(v.replace('px','') || '30', 10);
+    return parseInt(v.replace('px','') || '22', 10);
   }
   function setSeatPx(px){
     const clamped = Math.max(16, Math.min(px, 56));
     document.documentElement.style.setProperty('--seat', clamped+'px');
-    zoomValEl.textContent = Math.round(clamped/30*100) + '%';
+    zoomValEl.textContent = Math.round(clamped/22*100) + '%';
     hall.style.transform = 'scale(1)';
   }
   document.getElementById('zoomIn').addEventListener('click', ()=> setSeatPx(getSeatPx()+4));
   document.getElementById('zoomOut').addEventListener('click', ()=> setSeatPx(getSeatPx()-4));
   document.getElementById('fitWidth').addEventListener('click', fitWidth);
+  window.addEventListener('resize', ()=>{ fitWidth(); });
 
   function fitWidth(){
     const cols = +getComputedStyle(hall).getPropertyValue('--cols');
@@ -122,7 +125,7 @@
       const current = hall.scrollWidth;
       const scale = current>0 ? Math.min(1, need/current) : 1;
       hall.style.transform = `scale(${scale})`;
-      zoomValEl.textContent = Math.round(getSeatPx()/30*100*scale)+'%';
+      zoomValEl.textContent = Math.round(getSeatPx()/22*100*scale)+'%';
       wrap.scrollTop = wrap.scrollLeft = 0;
     });
   }
@@ -139,65 +142,29 @@
       document.getElementById('title').textContent =
         `Вибір місць — «${show.title||''}» ${show.stage?('('+stageName(show.stage)+')'):''}`;
 
-      // --- 1) Партeр з підтримкою розбитих рядів (ліва/права частина) ---
-      const allRows = (show.rows||[]).filter(r => r.enabled!==false);
-      const parterRows = allRows.filter(r => (r.section||'parter')==='parter');
+      // --- ПАРТЕР ---
+      const parterRows = (show.rows||[]).filter(r => (r.section||'parter') === 'parter' && r.enabled!==false);
+      if(!parterRows.length){ fail('Немає активних рядів партера у файлі схеми.'); return; }
 
-      // групуємо за номером ряду
-      const groups = new Map();
-      parterRows.forEach(r=>{
-        const key = String(r.row);
-        if(!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(r);
-      });
-
-      // для кожного ряду — відсортуємо сегменти (side/segment/index)
-      function segOrder(a){
-        // ліві частини хай будуть попереду
-        const s = (a.side||a.segment||'').toString().toLowerCase();
-        if (s.includes('left') || s.includes('ліва')) return 0;
-        if (s.includes('right')|| s.includes('права')) return 2;
-        // якщо не вказано, нехай буде середина
-        return 1;
-      }
-
-      // порахувати максимально можливу ширину (колонки) з урахуванням внутрішніх проходів + міжсегментних
-      let maxCols = 0;
-      groups.forEach(segs=>{
-        const sorted = segs.slice().sort((a,b)=> segOrder(a)-segOrder(b));
-        // ширина одного сегмента: seats + (кількість internal aisles)
-        const segWidths = sorted.map(cfg => cfg.seats + (cfg.aisles ? cfg.aisles.length : 0));
-        // між сегментами робимо по 1 "spacer"-колонці
-        const inter = Math.max(0, sorted.length - 1);
-        const total = segWidths.reduce((a,b)=>a+b,0) + inter;
-        maxCols = Math.max(maxCols, total);
-      });
-      if (!maxCols){
-        fail('Немає активних рядів партера для відображення.');
-        return;
-      }
+      const maxCols = Math.max(...parterRows.map(r => r.seats + ((r.aisles && r.aisles.length) || 0)));
       hall.style.setProperty('--cols', maxCols);
 
-      // легенда по цінах (по партеру)
       const prices = Array.from(new Set(parterRows.map(r=>r.price).filter(p=>typeof p==='number'))).sort((a,b)=>b-a);
       legendEl.innerHTML = prices.map(p=>(
         `<div class="item"><span class="swatch p-${p}"></span><span>${p} грн</span></div>`
       )).join('');
 
-      // вибір місць
       const reserved = new Set(show.reserved||[]);
       const selected = [];
       const idx = key => selected.findIndex(x=>x.key===key);
 
-      // рендер одного сегмента
-      function renderSegment(cfg){
+      function spacer(){ const sp=document.createElement('div'); sp.className='spacer'; return sp; }
+
+      function renderRow(cfg){
         const aisles = (cfg.aisles||[]).slice().sort((a,b)=>a-b);
         let nextA = 0;
-        for (let s=1; s<=cfg.seats; s++){
-          while(nextA<aisles.length && (s===aisles[nextA]+1)){
-            hall.appendChild(spacer());
-            nextA++;
-          }
+        for(let s=1; s<=cfg.seats; s++){
+          while(nextA<aisles.length && (s===aisles[nextA]+1)){ hall.appendChild(spacer()); nextA++; }
           const key = `${cfg.row}-${s}`;
           const el = document.createElement('div');
           el.className = 'seat';
@@ -208,51 +175,40 @@
           el.dataset.price = cfg.price;
           el.title = `Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
           if (reserved.has(key)) el.classList.add('reserved');
-          else {
-            el.classList.add('available', `p-${cfg.price}`);
-            el.addEventListener('click', ()=>toggle(el));
-          }
+          else { el.classList.add('available', `p-${cfg.price}`); el.addEventListener('click', ()=>toggle(el)); }
           hall.appendChild(el);
         }
-        // дотягнути залишкові internal spacers (якщо aisles в кінці)
         while(nextA<(cfg.aisles||[]).length){ hall.appendChild(spacer()); nextA++; }
+        const rl = document.createElement('div'); rl.className='rowlabel';
+        rl.textContent = `Ряд ${cfg.row} • ${cfg.price} грн`;
+        hall.appendChild(rl);
       }
 
-      // рендер усього партеру
-      Array.from(groups.keys()).sort((a,b)=> (+a)-(+b)).forEach(rowNum=>{
-        const segs = groups.get(rowNum).slice().sort((a,b)=> segOrder(a)-segOrder(b));
-        segs.forEach((cfg, i)=>{
-          renderSegment(cfg);
-          if (i < segs.length-1) hall.appendChild(spacer()); // головний центральний прохід між сегментами
-        });
-        const rl = document.createElement('div'); rl.className='rowlabel';
-        // ціну покажемо діапазоном, якщо сегменти різні
-        const rowPrices = Array.from(new Set(segs.map(s=>s.price))).sort((a,b)=>a-b);
-        rl.textContent = rowPrices.length===1 ? `Ряд ${rowNum} • ${rowPrices[0]} грн`
-                                              : `Ряд ${rowNum} • ${rowPrices[0]}–${rowPrices[rowPrices.length-1]} грн`;
-        hall.appendChild(rl);
-      });
+      parterRows.sort((a,b)=>a.row-b.row).forEach(renderRow);
 
-      // --- 2) Ложі (показуємо нижнім блоком, щоб точно були видимі) ---
-      const lodgeLeftRows  = (show.lodge_left && Array.isArray(show.lodge_left)) ? show.lodge_left
-                             : allRows.filter(r => r.section==='lodge_left');
-      const lodgeRightRows = (show.lodge_right && Array.isArray(show.lodge_right)) ? show.lodge_right
-                             : allRows.filter(r => r.section==='lodge_right');
+      // --- ЛОЖИ: logeA / logeB ---
+      const logeA = (show.rows||[]).filter(r => r.section==='logeA' && r.enabled!==false);
+      const logeB = (show.rows||[]).filter(r => r.section==='logeB' && r.enabled!==false);
 
       function renderLodgeBlock(title, rows){
-        if (!rows.length) return;
+        if (!rows.length) return null;
+        const wrap = document.createElement('div');
+        const titleEl = document.createElement('div');
+        titleEl.className = 'section-title';
+        titleEl.textContent = title;
+        wrap.appendChild(titleEl);
+
         const box = document.createElement('div');
         box.className = 'hall';
-        const cols = Math.max(...rows.map(r => r.seats + (r.aisles ? r.aisles.length : 0)));
+        const cols = Math.max(...rows.map(r => r.seats + ((r.aisles && r.aisles.length) || 0)));
         box.style.setProperty('--cols', cols);
-        rows.forEach(cfg=>{
+
+        rows.sort((a,b)=>a.row-b.row).forEach(cfg=>{
           const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
           let nextA=0;
           for(let s=1;s<=cfg.seats;s++){
-            while(nextA<aisles.length && (s===aisles[nextA]+1)){
-              const sp=spacer(); box.appendChild(sp); nextA++;
-            }
-            const key = `L${title}-${cfg.row}-${s}`;
+            while(nextA<aisles.length && (s===aisles[nextA]+1)){ box.appendChild(spacer()); nextA++; }
+            const key = `${title}-${cfg.row}-${s}`;
             const el = document.createElement('div');
             el.className='seat available';
             el.textContent=s;
@@ -265,18 +221,17 @@
           const rl=document.createElement('div'); rl.className='rowlabel';
           rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; box.appendChild(rl);
         });
-        const titleEl = document.createElement('div');
-        titleEl.className='section-title';
-        titleEl.textContent = title;
-        lodgeContainer.appendChild(titleEl);
-        lodgeContainer.appendChild(box);
+
+        wrap.appendChild(box);
+        return wrap;
       }
 
-      renderLodgeBlock('Ложа А', lodgeLeftRows);
-      renderLodgeBlock('Ложа Б', lodgeRightRows);
+      const left = renderLodgeBlock('Ложа А', logeA);
+      const right = renderLodgeBlock('Ложа Б', logeB);
+      if (left) lodgesEl.appendChild(left);
+      if (right) lodgesEl.appendChild(right);
 
-      // --- 3) вибір і перехід ---
-      function spacer(){ const sp=document.createElement('div'); sp.className='spacer'; return sp; }
+      // выбор/итог/переход
       function toggle(el){
         const key = el.dataset.key;
         const i = idx(key);
@@ -296,7 +251,7 @@
         location.href = `../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
       });
 
-      // авто-підгон після рендеру
+      // авто-подгон
       fitWidth(); setTimeout(fitWidth, 120);
     })
     .catch(e=>{
