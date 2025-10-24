@@ -3,56 +3,146 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Переходимо до вибору місць…</title>
-  <meta id="meta-refresh">
+  <title id="pageTitle">Вистава — Ваш Адмін</title>
+  <link rel="stylesheet" href="styles.css" />
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:20px;max-width:560px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
-    .muted{color:#64748b}
-    a.btn{display:inline-block;margin-top:12px;padding:10px 14px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none}
-    .small{font-size:13px}
+    .wrap{display:grid;gap:16px}
+    @media (min-width:900px){
+      .wrap{grid-template-columns: 280px 1fr}
+    }
+    .poster{width:100%; max-width:280px; height:380px; object-fit:cover;
+            border-radius:12px; background:#eee}
+    .meta{color:#6b7280;margin:6px 0}
+    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2 style="margin:0 0 8px">Переходимо до вибору місць…</h2>
-    <div class="muted small" id="status">Готуємо схему залу</div>
-    <a id="fallback" class="btn" href="#" style="display:none">Відкрити вручну</a>
+<header class="header">
+  <a href="index.html" class="logo">Ваш Адмін</a>
+  <nav class="nav">
+    <a href="index.html" class="nav-link">Головна</a>
+    <a href="afisha.html" class="nav-link">Афіша</a>
+    <a href="theatres.html" class="nav-link">Театри</a>
+    <a href="about.html" class="nav-link">Про нас</a>
+    <a href="contacts.html" class="nav-link">Контакти</a>
+  </nav>
+</header>
+
+<main class="container">
+  <div id="box" class="card">
+    <div id="loading">Завантаження…</div>
+    <div id="content" style="display:none">
+      <div class="wrap">
+        <img id="poster" class="poster" alt="Постер" onerror="this.style.display='none'"/>
+        <div>
+          <h1 id="title" style="margin:0 0 8px">Вистава</h1>
+          <div class="meta" id="when"></div>
+          <div class="meta" id="where"></div>
+          <div class="meta" id="city"></div>
+          <p id="desc" style="margin:14px 0 0"></p>
+          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+            <a id="toHall" class="btn">Вибрати місця</a>
+            <a href="afisha.html" class="btn secondary">До афіші</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="error" class="meta" style="color:#b91c1c; display:none"></div>
   </div>
+</main>
 
-  <script>
-    (function(){
-      const qs = new URLSearchParams(location.search);
-      // Приймаємо різні назви параметрів на всяк випадок
-      const show = qs.get('show') || qs.get('slug') || qs.get('s');
+<footer class="footer">
+  <div class="footer-inner">
+    <div>© 2025 Ваш Адмін</div>
+    <div class="footer-links">
+      <a href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank">Facebook</a>
+      <a href="https://t.me/zahodiikvitki" target="_blank">Telegram</a>
+    </div>
+  </div>
+</footer>
 
-      const statusEl = document.getElementById('status');
-      const fallback = document.getElementById('fallback');
-      const metaRefresh = document.getElementById('meta-refresh');
+<script>
+(async function(){
+  const qp = new URLSearchParams(location.search);
+  const showSlug = qp.get('show'); // напр.: shevchenko/za-dvoma-zaytsiamy
 
-      if(!show){
-        statusEl.textContent = 'Помилка: не передано параметр ?show (або ?slug / ?s).';
-        return;
+  const els = {
+    loading: document.getElementById('loading'),
+    content: document.getElementById('content'),
+    error:   document.getElementById('error'),
+    title:   document.getElementById('title'),
+    poster:  document.getElementById('poster'),
+    when:    document.getElementById('when'),
+    where:   document.getElementById('where'),
+    city:    document.getElementById('city'),
+    desc:    document.getElementById('desc'),
+    toHall:  document.getElementById('toHall'),
+    pageTitle: document.getElementById('pageTitle'),
+  };
+
+  function showError(msg){
+    els.loading.style.display='none';
+    els.error.textContent = msg;
+    els.error.style.display = 'block';
+  }
+
+  if(!showSlug){
+    showError('Немає параметра ?show');
+    return;
+  }
+
+  // куди веде кнопка «Вибрати місця»
+  els.toHall.href = `spectacles/hall.html?show=${encodeURIComponent(showSlug)}`;
+
+  // спробуємо витягнути інформацію з detail JSON,
+  // якщо нема — підхопимо з afisha.json
+  let info = null;
+
+  // 1) detail JSON: data/shows/<slug>.json
+  try{
+    const url = `./data/shows/${showSlug}.json`;
+    const r = await fetch(url, {cache:'no-store'});
+    if (r.ok){
+      info = await r.json();
+    }
+  }catch(e){ /* ignore */ }
+
+  // 2) fallback: шукаємо в афіші
+  if(!info){
+    try{
+      const r = await fetch('./data/afisha.json', {cache:'no-store'});
+      if (r.ok){
+        const data = await r.json();
+        const arr = Array.isArray(data) ? data : (data ? [data] : []);
+        info = arr.find(x => x && x.show === showSlug) || null;
       }
+    }catch(e){ /* ignore */ }
+  }
 
-      const target = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
+  if(!info){
+    showError('Не вдалося знайти дані вистави.');
+    return;
+  }
 
-      // Показуємо запасне посилання
-      fallback.href = target;
-      fallback.style.display = 'inline-block';
+  // заповнюємо
+  els.title.textContent = info.title || showSlug.split('/').pop().replace(/-/g,' ');
+  els.pageTitle.textContent = (info.title||'Вистава') + ' — Ваш Адмін';
 
-      // Ставимо meta refresh як дубль до JS redirect (на 1 секунду)
-      metaRefresh.setAttribute('http-equiv', 'refresh');
-      metaRefresh.setAttribute('content', `1;url=${target}`);
+  const posterPath = info.poster ? './' + info.poster : (info.images && info.images.poster ? info.images.poster : '');
+  if (posterPath) els.poster.src = posterPath; else els.poster.style.display='none';
 
-      // Ініціюємо миттєвий redirect
-      statusEl.textContent = 'Відкриваємо схему залу…';
-      try {
-        location.replace(target);
-      } catch(e) {
-        // Якщо щось пішло не так — залишиться meta refresh + кнопка
-      }
-    })();
-  </script>
+  const when = [info.date, info.time].filter(Boolean).join(' • ');
+  const where = [info.theatre, info.stage ? (typeof info.stage==='string'?info.stage:'') : ''].filter(Boolean).join(' • ');
+
+  els.when.textContent = when || '';
+  els.where.textContent = where || '';
+  els.city.textContent  = info.city || '';
+
+  els.desc.textContent = info.description || 'Без опису.';
+
+  els.loading.style.display='none';
+  els.content.style.display='block';
+})();
+</script>
 </body>
 </html>
