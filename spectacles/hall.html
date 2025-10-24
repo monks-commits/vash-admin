@@ -34,8 +34,12 @@
 
     /* палітра під ціни */
     .p-200{background:#60a5fa}.p-190{background:#a78bfa}.p-180{background:#f59e0b}
-    .p-170{background:#fbbf24}.p-160{background:#a855f7}.p-140{background:#64748b}
-    .p-120{background:#22c55e}.p-100{background:#38bdf8}.p-70{background:#166534}
+    .p-170{background:#fbbf24}.p-160{background:#a855f7}.p-150{background:#93c5fd}
+    .p-140{background:#64748b}.p-130{background:#10b981}.p-120{background:#22c55e}
+    .p-100{background:#38bdf8}.p-90{background:#86efac}.p-80{background:#c4b5fd}.p-70{background:#166534}
+
+    .error{padding:12px;border:1px solid #fecaca;background:#fee2e2;border-radius:10px;color:#7f1d1d;display:none;margin-top:10px}
+    .section-title{margin:14px 0 6px;color:#374151;font-weight:700}
   </style>
 </head>
 <body>
@@ -58,8 +62,7 @@
     <div id="hall" class="hall" aria-label="Схема залу"></div>
   </div>
 
-  <div id="errorBox" class="error" style="display:none;margin-top:10px;
-    padding:12px;border:1px solid #fecaca;background:#fee2e2;border-radius:10px;color:#7f1d1d"></div>
+  <div id="err" class="error"></div>
 
   <div style="margin-top:12px">
     <span>Вибрано місць: <strong id="count">0</strong></span> •
@@ -68,6 +71,8 @@
       <button id="toCheckout" class="btn" disabled>Перейти до оплати</button>
     </div>
   </div>
+
+  <div id="lodgeContainer"></div>
 </main>
 
 <footer class="footer">
@@ -75,177 +80,230 @@
 </footer>
 
 <script>
-const qp = new URLSearchParams(location.search);
-const showSlug = qp.get('show');             // напр. shevchenko/za-dvoma-zaytsiamy
-const stageName = s => s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
-const hall = document.getElementById('hall');
-const wrap = document.querySelector('.hall-wrap');
-const zoomValEl = document.getElementById('zoomVal');
-const legendEl = document.getElementById('legend');
+(function(){
+  const qp = new URLSearchParams(location.search);
+  const showSlug = qp.get('show'); // напр.: shevchenko/za-dvoma-zaytsiamy
+  const stageName = s => s==='big'?'Велика сцена':(s==='small'?'Мала сцена':'');
+  const hall = document.getElementById('hall');
+  const wrap = document.querySelector('.hall-wrap');
+  const zoomValEl = document.getElementById('zoomVal');
+  const legendEl = document.getElementById('legend');
+  const errEl = document.getElementById('err');
+  const lodgeContainer = document.getElementById('lodgeContainer');
 
-if(!showSlug){
-  fail('Відсутній параметр ?show.');
-} else {
+  if(!showSlug){
+    return fail('Відсутній параметр ?show.');
+  }
   document.getElementById('back').href = `../show.html?show=${encodeURIComponent(showSlug)}`;
-  loadShow();
-}
 
-function fail(msg){
-  document.getElementById('errorBox').style.display = 'block';
-  document.getElementById('errorBox').textContent = msg;
-}
-
-function getSeatPx(){
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--seat').trim();
-  return parseInt(v.replace('px','') || '30', 10);
-}
-function setSeatPx(px){
-  const clamped = Math.max(16, Math.min(px, 56));
-  document.documentElement.style.setProperty('--seat', clamped+'px');
-  zoomValEl.textContent = Math.round(clamped/30*100) + '%';
-  hall.style.transform = 'scale(1)';
-}
-document.getElementById('zoomIn').addEventListener('click', ()=>{ setSeatPx(getSeatPx()+4); });
-document.getElementById('zoomOut').addEventListener('click', ()=>{ setSeatPx(getSeatPx()-4); });
-document.getElementById('fitWidth').addEventListener('click', fitWidth);
-
-function fitWidth(){
-  const cols = +getComputedStyle(hall).getPropertyValue('--cols');
-  if(!cols) return;
-  const padding = 28;
-  const seat = Math.floor((wrap.clientWidth - padding)/cols);
-  if (seat >= 16) setSeatPx(seat);
-  requestAnimationFrame(()=>{
-    const need = wrap.clientWidth - 16;
-    const current = hall.scrollWidth;
-    const scale = current>0 ? Math.min(1, need/current) : 1;
-    hall.style.transform = `scale(${scale})`;
-    zoomValEl.textContent = Math.round(getSeatPx()/30*100*scale)+'%';
-    wrap.scrollTop = wrap.scrollLeft = 0;
-  });
-}
-
-async function loadShow(){
-  try{
-    const url = `../data/shows/${showSlug}.json`; // від spectacles/ → ../data/...
-    const r = await fetch(url, {cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const show = await r.json();
-
-    document.getElementById('title').textContent =
-      `Вибір місць — «${show.title||''}» ${show.stage?('('+stageName(show.stage)+')'):''}`;
-
-    renderLegend(show);
-    renderHall(show);
-    fitWidth();
-    setTimeout(fitWidth, 120);
-  }catch(e){
-    console.error(e);
-    fail('Не вдалося завантажити схему. Перевірте шлях: data/shows/'+showSlug+'.json');
+  // масштаб
+  function getSeatPx(){
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--seat').trim();
+    return parseInt(v.replace('px','') || '30', 10);
   }
-}
+  function setSeatPx(px){
+    const clamped = Math.max(16, Math.min(px, 56));
+    document.documentElement.style.setProperty('--seat', clamped+'px');
+    zoomValEl.textContent = Math.round(clamped/30*100) + '%';
+    hall.style.transform = 'scale(1)';
+  }
+  document.getElementById('zoomIn').addEventListener('click', ()=> setSeatPx(getSeatPx()+4));
+  document.getElementById('zoomOut').addEventListener('click', ()=> setSeatPx(getSeatPx()-4));
+  document.getElementById('fitWidth').addEventListener('click', fitWidth);
 
-function renderLegend(show){
-  const rows = (show.rows||[]).filter(r=>r.enabled!==false && (r.section||'parter')!=='balcony');
-  const prices = Array.from(new Set(rows.map(r=>r.price).filter(p=>typeof p==='number'))).sort((a,b)=>b-a);
-  legendEl.innerHTML = prices.map(p=>(
-    `<div class="item"><span class="swatch p-${p}"></span><span>${p} грн</span></div>`
-  )).join('');
-}
-
-function renderHall(show){
-  hall.innerHTML = '';
-  const rows = (show.rows||[]).filter(r=>r.enabled!==false && (r.section||'parter')!=='balcony');
-  if(!rows.length){ fail('Немає активних рядів у файлі схеми.'); return; }
-
-  // обчислюємо максимальну ширину сітки з урахуванням проходів
-  const cols = Math.max(...rows.map(r => (r.aisles ? r.seats + r.aisles.length : r.seats)));
-  hall.style.setProperty('--cols', cols);
-
-  const reserved = new Set(show.reserved||[]);
-  const selected = [];
-  const byKey = k => selected.findIndex(x=>x.key===k);
-
-  rows.forEach(cfg=>{
-    const aisles = (cfg.aisles||[]).slice().sort((a,b)=>a-b);
-    let nextA = 0;
-    for(let s=1; s<=cfg.seats; s++){
-      while(nextA<aisles.length && (s===aisles[nextA]+1)){
-        hall.appendChild(spacer()); nextA++;
-      }
-      const key = `${cfg.row}-${s}`;
-      const el = document.createElement('div');
-      el.className = 'seat';
-      el.textContent = s;
-      el.dataset.key = key;
-      el.dataset.row = cfg.row;
-      el.dataset.seat = s;
-      el.dataset.price = cfg.price;
-      if(reserved.has(key)){ el.classList.add('reserved'); }
-      else { el.classList.add('available', `p-${cfg.price}`); el.addEventListener('click',()=>toggle(el)); }
-      el.title = `Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
-      hall.appendChild(el);
-    }
-    while(nextA<(cfg.aisles||[]).length){ hall.appendChild(spacer()); nextA++; }
-    const rl = document.createElement('div'); rl.className='rowlabel';
-    rl.textContent = `Ряд ${cfg.row} • ${cfg.price} грн`;
-    hall.appendChild(rl);
-  });
-
-  // ЛІВА та ПРАВА ЛОЖІ (якщо в JSON передані — відобразяться)
-  ['lodge_left','lodge_right'].forEach(lodge=>{
-    const block = (show[lodge]||[]);
-    if(!block.length) return;
-    const colsLodge = Math.max(...block.map(r => r.seats));
-    // робимо окрему сітку праворуч/ліворуч додатково
-    const wrapL = document.createElement('div');
-    wrapL.style.marginTop = '18px';
-    wrapL.innerHTML = `<div class="meta" style="margin:4px 0">${lodge==='lodge_left'?'Ложа А':'Ложа Б'}</div>`;
-    const box = document.createElement('div');
-    box.className = 'hall';
-    box.style.setProperty('--cols', colsLodge);
-    block.forEach(cfg=>{
-      for(let s=1; s<=cfg.seats; s++){
-        const key = `${cfg.row}-${s}`;
-        const el = document.createElement('div');
-        el.className = 'seat available';
-        el.textContent = s;
-        el.dataset.key = key;
-        el.dataset.row = cfg.row;
-        el.dataset.seat = s;
-        el.dataset.price = cfg.price;
-        el.classList.add(`p-${cfg.price}`);
-        el.addEventListener('click',()=>toggle(el));
-        box.appendChild(el);
-      }
-      const rl = document.createElement('div'); rl.className='rowlabel';
-      rl.textContent = `Ряд ${cfg.row} • ${cfg.price} грн`;
-      box.appendChild(rl);
+  function fitWidth(){
+    const cols = +getComputedStyle(hall).getPropertyValue('--cols');
+    if(!cols) return;
+    const padding = 28;
+    const seat = Math.floor((wrap.clientWidth - padding)/cols);
+    if (seat >= 16) setSeatPx(seat);
+    requestAnimationFrame(()=>{
+      const need = wrap.clientWidth - 16;
+      const current = hall.scrollWidth;
+      const scale = current>0 ? Math.min(1, need/current) : 1;
+      hall.style.transform = `scale(${scale})`;
+      zoomValEl.textContent = Math.round(getSeatPx()/30*100*scale)+'%';
+      wrap.scrollTop = wrap.scrollLeft = 0;
     });
-    hall.parentElement.appendChild(wrapL);
-    wrapL.appendChild(box);
-  });
-
-  function spacer(){ const sp = document.createElement('div'); sp.className='spacer'; return sp; }
-
-  function toggle(el){
-    const i = byKey(el.dataset.key);
-    if(i!==-1){ selected.splice(i,1); el.classList.remove('selected'); }
-    else { selected.push({ key: el.dataset.key, row:+el.dataset.row, seat:+el.dataset.seat, price:+el.dataset.price }); el.classList.add('selected'); }
-    update();
   }
-  function update(){
-    const total = selected.reduce((a,b)=>a+b.price,0);
-    document.getElementById('count').textContent = selected.length;
-    document.getElementById('sum').textContent = total;
-    document.getElementById('toCheckout').disabled = selected.length===0;
+
+  function fail(msg){
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
   }
-  document.getElementById('toCheckout').onclick = ()=>{
-    const seats = selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
-    const total = selected.reduce((a,b)=>a+b.price,0);
-    location.href = `../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
-  };
-}
+
+  // === загрузка JSON ===
+  fetch(`../data/shows/${showSlug}.json`, {cache:'no-store'})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(show=>{
+      document.getElementById('title').textContent =
+        `Вибір місць — «${show.title||''}» ${show.stage?('('+stageName(show.stage)+')'):''}`;
+
+      // --- 1) Партeр з підтримкою розбитих рядів (ліва/права частина) ---
+      const allRows = (show.rows||[]).filter(r => r.enabled!==false);
+      const parterRows = allRows.filter(r => (r.section||'parter')==='parter');
+
+      // групуємо за номером ряду
+      const groups = new Map();
+      parterRows.forEach(r=>{
+        const key = String(r.row);
+        if(!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      });
+
+      // для кожного ряду — відсортуємо сегменти (side/segment/index)
+      function segOrder(a){
+        // ліві частини хай будуть попереду
+        const s = (a.side||a.segment||'').toString().toLowerCase();
+        if (s.includes('left') || s.includes('ліва')) return 0;
+        if (s.includes('right')|| s.includes('права')) return 2;
+        // якщо не вказано, нехай буде середина
+        return 1;
+      }
+
+      // порахувати максимально можливу ширину (колонки) з урахуванням внутрішніх проходів + міжсегментних
+      let maxCols = 0;
+      groups.forEach(segs=>{
+        const sorted = segs.slice().sort((a,b)=> segOrder(a)-segOrder(b));
+        // ширина одного сегмента: seats + (кількість internal aisles)
+        const segWidths = sorted.map(cfg => cfg.seats + (cfg.aisles ? cfg.aisles.length : 0));
+        // між сегментами робимо по 1 "spacer"-колонці
+        const inter = Math.max(0, sorted.length - 1);
+        const total = segWidths.reduce((a,b)=>a+b,0) + inter;
+        maxCols = Math.max(maxCols, total);
+      });
+      if (!maxCols){
+        fail('Немає активних рядів партера для відображення.');
+        return;
+      }
+      hall.style.setProperty('--cols', maxCols);
+
+      // легенда по цінах (по партеру)
+      const prices = Array.from(new Set(parterRows.map(r=>r.price).filter(p=>typeof p==='number'))).sort((a,b)=>b-a);
+      legendEl.innerHTML = prices.map(p=>(
+        `<div class="item"><span class="swatch p-${p}"></span><span>${p} грн</span></div>`
+      )).join('');
+
+      // вибір місць
+      const reserved = new Set(show.reserved||[]);
+      const selected = [];
+      const idx = key => selected.findIndex(x=>x.key===key);
+
+      // рендер одного сегмента
+      function renderSegment(cfg){
+        const aisles = (cfg.aisles||[]).slice().sort((a,b)=>a-b);
+        let nextA = 0;
+        for (let s=1; s<=cfg.seats; s++){
+          while(nextA<aisles.length && (s===aisles[nextA]+1)){
+            hall.appendChild(spacer());
+            nextA++;
+          }
+          const key = `${cfg.row}-${s}`;
+          const el = document.createElement('div');
+          el.className = 'seat';
+          el.textContent = s;
+          el.dataset.key = key;
+          el.dataset.row = cfg.row;
+          el.dataset.seat = s;
+          el.dataset.price = cfg.price;
+          el.title = `Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
+          if (reserved.has(key)) el.classList.add('reserved');
+          else {
+            el.classList.add('available', `p-${cfg.price}`);
+            el.addEventListener('click', ()=>toggle(el));
+          }
+          hall.appendChild(el);
+        }
+        // дотягнути залишкові internal spacers (якщо aisles в кінці)
+        while(nextA<(cfg.aisles||[]).length){ hall.appendChild(spacer()); nextA++; }
+      }
+
+      // рендер усього партеру
+      Array.from(groups.keys()).sort((a,b)=> (+a)-(+b)).forEach(rowNum=>{
+        const segs = groups.get(rowNum).slice().sort((a,b)=> segOrder(a)-segOrder(b));
+        segs.forEach((cfg, i)=>{
+          renderSegment(cfg);
+          if (i < segs.length-1) hall.appendChild(spacer()); // головний центральний прохід між сегментами
+        });
+        const rl = document.createElement('div'); rl.className='rowlabel';
+        // ціну покажемо діапазоном, якщо сегменти різні
+        const rowPrices = Array.from(new Set(segs.map(s=>s.price))).sort((a,b)=>a-b);
+        rl.textContent = rowPrices.length===1 ? `Ряд ${rowNum} • ${rowPrices[0]} грн`
+                                              : `Ряд ${rowNum} • ${rowPrices[0]}–${rowPrices[rowPrices.length-1]} грн`;
+        hall.appendChild(rl);
+      });
+
+      // --- 2) Ложі (показуємо нижнім блоком, щоб точно були видимі) ---
+      const lodgeLeftRows  = (show.lodge_left && Array.isArray(show.lodge_left)) ? show.lodge_left
+                             : allRows.filter(r => r.section==='lodge_left');
+      const lodgeRightRows = (show.lodge_right && Array.isArray(show.lodge_right)) ? show.lodge_right
+                             : allRows.filter(r => r.section==='lodge_right');
+
+      function renderLodgeBlock(title, rows){
+        if (!rows.length) return;
+        const box = document.createElement('div');
+        box.className = 'hall';
+        const cols = Math.max(...rows.map(r => r.seats + (r.aisles ? r.aisles.length : 0)));
+        box.style.setProperty('--cols', cols);
+        rows.forEach(cfg=>{
+          const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
+          let nextA=0;
+          for(let s=1;s<=cfg.seats;s++){
+            while(nextA<aisles.length && (s===aisles[nextA]+1)){
+              const sp=spacer(); box.appendChild(sp); nextA++;
+            }
+            const key = `L${title}-${cfg.row}-${s}`;
+            const el = document.createElement('div');
+            el.className='seat available';
+            el.textContent=s;
+            el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
+            el.classList.add(`p-${cfg.price}`);
+            el.addEventListener('click',()=>toggle(el));
+            box.appendChild(el);
+          }
+          while(nextA<(cfg.aisles||[]).length){ box.appendChild(spacer()); nextA++; }
+          const rl=document.createElement('div'); rl.className='rowlabel';
+          rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; box.appendChild(rl);
+        });
+        const titleEl = document.createElement('div');
+        titleEl.className='section-title';
+        titleEl.textContent = title;
+        lodgeContainer.appendChild(titleEl);
+        lodgeContainer.appendChild(box);
+      }
+
+      renderLodgeBlock('Ложа А', lodgeLeftRows);
+      renderLodgeBlock('Ложа Б', lodgeRightRows);
+
+      // --- 3) вибір і перехід ---
+      function spacer(){ const sp=document.createElement('div'); sp.className='spacer'; return sp; }
+      function toggle(el){
+        const key = el.dataset.key;
+        const i = idx(key);
+        if (i !== -1){ selected.splice(i,1); el.classList.remove('selected'); }
+        else { selected.push({ key, row:+el.dataset.row, seat:+el.dataset.seat, price:+el.dataset.price }); el.classList.add('selected'); }
+        update();
+      }
+      function update(){
+        const total = selected.reduce((a,b)=>a+b.price,0);
+        document.getElementById('count').textContent = selected.length;
+        document.getElementById('sum').textContent = total;
+        document.getElementById('toCheckout').disabled = selected.length===0;
+      }
+      document.getElementById('toCheckout').addEventListener('click', ()=>{
+        const seats = selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
+        const total = selected.reduce((a,b)=>a+b.price,0);
+        location.href = `../checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
+      });
+
+      // авто-підгон після рендеру
+      fitWidth(); setTimeout(fitWidth, 120);
+    })
+    .catch(e=>{
+      console.error(e);
+      fail('Не вдалося завантажити схему. Перевірте шлях: data/shows/'+showSlug+'.json');
+    });
+})();
 </script>
 </body>
 </html>
