@@ -11,6 +11,7 @@
     .poster{width:100%;max-width:280px;height:380px;object-fit:cover;border-radius:12px;background:#eee}
     .meta{color:#6b7280;margin:6px 0}
     .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
+    pre.desc{white-space:pre-wrap;line-height:1.5}
   </style>
 </head>
 <body>
@@ -36,7 +37,9 @@
           <div class="meta" id="when"></div>
           <div class="meta" id="where"></div>
           <div class="meta" id="city"></div>
-          <p id="desc" style="margin:14px 0 0"></p>
+
+          <pre id="desc" class="desc" style="margin:14px 0 0"></pre>
+
           <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
             <a id="toHall" class="btn">Вибрати місця</a>
             <a href="afisha.html" class="btn secondary">До афіші</a>
@@ -61,7 +64,7 @@
 <script>
 (async function(){
   const qp = new URLSearchParams(location.search);
-  const showSlug = qp.get('show'); // напр.: shevchenko/za-dvoma-zaytsiamy
+  const showSlug = qp.get('show');
 
   const els = {
     loading: document.getElementById('loading'),
@@ -82,57 +85,65 @@
     els.error.textContent = msg;
     els.error.style.display = 'block';
   }
+  function normPath(p){
+    if (!p) return '';
+    if (/^https?:\/\//.test(p)) return p;
+    if (p.startsWith('./') || p.startsWith('/')) return p;
+    return './' + p;
+  }
 
   if(!showSlug){
     showError('Немає параметра ?show');
     return;
   }
-
   els.toHall.href = `spectacles/hall.html?show=${encodeURIComponent(showSlug)}`;
 
-  // 1) Пытаемся взять detail JSON
   let info = null;
+  // detail json (опис/постер/рядки)
   try{
     const r = await fetch(`./data/shows/${showSlug}.json`, {cache:'no-store'});
     if (r.ok) info = await r.json();
   }catch(e){}
 
-  // 2) Fallback — ищем запись в афише
-  if(!info){
-    try{
-      const r = await fetch('./data/afisha.json', {cache:'no-store'});
-      if (r.ok){
-        const data = await r.json();
-        const arr = Array.isArray(data) ? data : (data ? [data] : []);
-        info = arr.find(x => x && x.show === showSlug) || null;
-      }
-    }catch(e){}
-  }
+  // афиша fallback (постер/мета)
+  let fromAfisha = null;
+  try{
+    const r = await fetch('./data/afisha.json', {cache:'no-store'});
+    if (r.ok){
+      const arr = await r.json();
+      const list = Array.isArray(arr)? arr : (arr?[arr]:[]);
+      fromAfisha = list.find(x=>x && x.show === showSlug) || null;
+    }
+  }catch(e){}
 
-  if(!info){
+  if (!info && !fromAfisha){
     showError('Не вдалося знайти дані вистави.');
     return;
   }
 
-  // Заголовок/тайтл
-  const title = info.title || showSlug.split('/').pop().replace(/-/g,' ');
+  const title = (info && info.title) || (fromAfisha && fromAfisha.title) || showSlug.split('/').pop().replace(/-/g,' ');
   els.title.textContent = title;
   els.pageTitle.textContent = title + ' — Ваш Адмін';
 
-  // Постер: сначала detail.poster, иначе poster из афиши, иначе прячем
-  const posterPath = (info.poster ? ('./'+info.poster) :
-                      (info.images && info.images.poster ? info.images.poster : ''));
+  // постер: priority info.poster → info.images.poster → fromAfisha.poster
+  const posterPath = normPath(
+    (info && (info.poster || (info.images && info.images.poster))) ||
+    (fromAfisha && fromAfisha.poster) || ''
+  );
   if (posterPath) els.poster.src = posterPath; else els.poster.style.display='none';
 
-  // Метаданные
-  const when = [info.date, info.time].filter(Boolean).join(' • ');
-  const where = [info.theatre, typeof info.stage==='string'?info.stage:''].filter(Boolean).join(' • ');
-  els.when.textContent = when || '';
-  els.where.textContent = where || '';
-  els.city.textContent  = info.city || '';
+  // мета
+  const date = (fromAfisha && fromAfisha.date) || (info && info.date) || '';
+  const time = (fromAfisha && fromAfisha.time) || (info && info.time) || '';
+  const theatre = (fromAfisha && fromAfisha.theatre) || (info && info.theatre) || '';
+  const stage = (fromAfisha && fromAfisha.stage) || (info && info.stage) || '';
+  const city  = (fromAfisha && fromAfisha.city) || (info && info.city) || '';
 
-  // Описание
-  els.desc.textContent = info.description || 'Без опису.';
+  els.when.textContent = [date,time].filter(Boolean).join(' • ');
+  els.where.textContent = [theatre, typeof stage==='string'?stage:''].filter(Boolean).join(' • ');
+  els.city.textContent  = city;
+
+  els.desc.textContent = (info && info.description) ? info.description : 'Без опису.';
 
   els.loading.style.display='none';
   els.content.style.display='block';
