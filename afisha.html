@@ -53,19 +53,26 @@
 
 <script>
 (async function(){
-  const grid = document.getElementById('grid');
-  const empty = document.getElementById('empty');
-  const pills = [...document.querySelectorAll('.pill')];
+  const listEl  = document.getElementById('list');
+  const errEl   = document.getElementById('error');
+  const btns    = document.querySelectorAll('.filters .btn');
 
-  let items = [];
-  try{
-    const r = await fetch('./data/afisha.json', {cache:'no-store'});
-    items = await r.json();
-    if (!Array.isArray(items)) items = items ? [items] : [];
-  }catch(e){
-    console.error(e);
-    items = [];
+  let all = [];
+  let currentCity = 'all';
+
+  // >>> ДОБАВЛЕНО: старт из query
+  const qps = new URLSearchParams(location.search);
+  const qCity = qps.get('city');
+  if (qCity) currentCity = qCity;
+
+  function setActive(city){
+    btns.forEach(b=>{
+      if ((b.dataset.city||'all')===city){ b.classList.remove('secondary'); }
+      else { b.classList.add('secondary'); }
+    });
   }
+  ...
+
 
   function cardHTML(s){
     const poster = s.poster ? './' + s.poster : '';
