@@ -7,11 +7,8 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .wrap{display:grid;gap:16px}
-    @media (min-width:900px){
-      .wrap{grid-template-columns: 280px 1fr}
-    }
-    .poster{width:100%; max-width:280px; height:380px; object-fit:cover;
-            border-radius:12px; background:#eee}
+    @media (min-width:900px){ .wrap{grid-template-columns:280px 1fr} }
+    .poster{width:100%;max-width:280px;height:380px;object-fit:cover;border-radius:12px;background:#eee}
     .meta{color:#6b7280;margin:6px 0}
     .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
   </style>
@@ -91,23 +88,16 @@
     return;
   }
 
-  // куди веде кнопка «Вибрати місця»
   els.toHall.href = `spectacles/hall.html?show=${encodeURIComponent(showSlug)}`;
 
-  // спробуємо витягнути інформацію з detail JSON,
-  // якщо нема — підхопимо з afisha.json
+  // 1) Пытаемся взять detail JSON
   let info = null;
-
-  // 1) detail JSON: data/shows/<slug>.json
   try{
-    const url = `./data/shows/${showSlug}.json`;
-    const r = await fetch(url, {cache:'no-store'});
-    if (r.ok){
-      info = await r.json();
-    }
-  }catch(e){ /* ignore */ }
+    const r = await fetch(`./data/shows/${showSlug}.json`, {cache:'no-store'});
+    if (r.ok) info = await r.json();
+  }catch(e){}
 
-  // 2) fallback: шукаємо в афіші
+  // 2) Fallback — ищем запись в афише
   if(!info){
     try{
       const r = await fetch('./data/afisha.json', {cache:'no-store'});
@@ -116,7 +106,7 @@
         const arr = Array.isArray(data) ? data : (data ? [data] : []);
         info = arr.find(x => x && x.show === showSlug) || null;
       }
-    }catch(e){ /* ignore */ }
+    }catch(e){}
   }
 
   if(!info){
@@ -124,20 +114,24 @@
     return;
   }
 
-  // заповнюємо
-  els.title.textContent = info.title || showSlug.split('/').pop().replace(/-/g,' ');
-  els.pageTitle.textContent = (info.title||'Вистава') + ' — Ваш Адмін';
+  // Заголовок/тайтл
+  const title = info.title || showSlug.split('/').pop().replace(/-/g,' ');
+  els.title.textContent = title;
+  els.pageTitle.textContent = title + ' — Ваш Адмін';
 
-  const posterPath = info.poster ? './' + info.poster : (info.images && info.images.poster ? info.images.poster : '');
+  // Постер: сначала detail.poster, иначе poster из афиши, иначе прячем
+  const posterPath = (info.poster ? ('./'+info.poster) :
+                      (info.images && info.images.poster ? info.images.poster : ''));
   if (posterPath) els.poster.src = posterPath; else els.poster.style.display='none';
 
+  // Метаданные
   const when = [info.date, info.time].filter(Boolean).join(' • ');
-  const where = [info.theatre, info.stage ? (typeof info.stage==='string'?info.stage:'') : ''].filter(Boolean).join(' • ');
-
+  const where = [info.theatre, typeof info.stage==='string'?info.stage:''].filter(Boolean).join(' • ');
   els.when.textContent = when || '';
   els.where.textContent = where || '';
   els.city.textContent  = info.city || '';
 
+  // Описание
   els.desc.textContent = info.description || 'Без опису.';
 
   els.loading.style.display='none';
