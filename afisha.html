@@ -16,8 +16,18 @@
     .meta{color:#6b7280;font-size:14px}
   </style>
 </head>
+
 <body>
-  <div id="header"></div>
+  <header class="header">
+    <a href="index.html" class="logo">Ваш Адмін</a>
+    <nav class="nav">
+      <a href="index.html">Головна</a>
+      <a href="afisha.html" class="active">Афіша</a>
+      <a href="theatres.html">Театри</a>
+      <a href="about.html">Про нас</a>
+      <a href="contacts.html">Контакти</a>
+    </nav>
+  </header>
 
   <main class="container">
     <h1>Афіша</h1>
@@ -33,19 +43,17 @@
     <div id="error" class="meta" style="display:none;color:#b91c1c"></div>
   </main>
 
-  <div id="footer"></div>
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>© 2025 Ваш Адмін</div>
+      <div class="footer-links">
+        <a href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank" rel="noopener noreferrer">Facebook</a>
+        <a href="https://t.me/zahodiikvitki" target="_blank" rel="noopener noreferrer">Telegram</a>
+      </div>
+    </div>
+  </footer>
 
   <script>
-    // Підключаємо універсальні header/footer
-    Promise.all([
-      fetch('header.html').then(r => r.text()),
-      fetch('footer.html').then(r => r.text())
-    ]).then(([h, f]) => {
-      document.getElementById('header').innerHTML = h;
-      document.getElementById('footer').innerHTML = f;
-    });
-
-    // ====== Афіша ======
     (async function(){
       const grid  = document.getElementById('grid');
       const empty = document.getElementById('empty');
@@ -55,7 +63,6 @@
       let items = [];
       let current = 'all';
 
-      // Пробуємо старт із ?city=
       const qps = new URLSearchParams(location.search);
       const qCity = qps.get('city');
       if (qCity) current = qCity;
@@ -65,8 +72,8 @@
       }
 
       function cardHTML(s){
-        const poster = s.poster ? (s.poster.startsWith('http') ? s.poster : (s.poster.startsWith('/') ? s.poster.slice(1) : s.poster)) : '';
-        const show   = encodeURIComponent(s.show); // наприклад "shevchenko/za-dvoma-zaytsiamy"
+        const poster = s.poster ? s.poster : '';
+        const show   = encodeURIComponent(s.show);
         const title  = s.title || '';
         const when   = [s.date, s.time].filter(Boolean).join(' • ');
         const where  = [s.theatre, s.stage].filter(Boolean).join(' • ');
@@ -87,26 +94,15 @@
       }
 
       function render(city='all'){
-        const data = city==='all'
-          ? items
-          : items.filter(x => (x.city||'').toLowerCase() === city.toLowerCase());
+        const data = city==='all' ? items : items.filter(x => (x.city||'').toLowerCase() === city.toLowerCase());
         grid.innerHTML = data.map(cardHTML).join('');
         empty.style.display = data.length ? 'none' : 'block';
       }
 
-      // Завантажуємо афішу
       try{
         const resp = await fetch('data/afisha.json', { cache:'no-store' });
         if (!resp.ok) throw new Error('HTTP '+resp.status);
         items = await resp.json();
-
-        // Приводимо відносні шляхи постерів до стандартного вигляду
-        // (рекомендується: images/posters/<театр>/<файл>.jpg)
-        items = items.map(x => ({
-          ...x,
-          poster: x.poster || ''
-        }));
-
         setActive(current);
         render(current);
       }catch(e){
