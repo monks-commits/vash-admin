@@ -96,6 +96,45 @@ body{
 .stage{grid-column:1/-1;background:#ddd;color:#333;font-weight:700;text-align:center;padding:10px;border-radius:8px;margin-bottom:8px}
 .rowgap{grid-column:1/-1;height:calc(var(--seat)*1.2)}
 
+/* Forms (contacts/checkout) */
+.form .row{display:grid; gap:12px}
+.form .row.two{grid-template-columns:1fr 1fr}
+@media (max-width:720px){.form .row.two{grid-template-columns:1fr}}
+.field{display:flex; flex-direction:column; gap:6px; font-weight:600}
+.field input, .field textarea{
+  height:42px; padding:0 12px; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+.field textarea{height:auto; padding:10px 12px; resize:vertical; min-height:120px}
+
+/* Inline alerts */
+.ok{background:#ecfdf5;border:1px solid #10b981;color:#065f46;border-radius:10px;padding:12px}
+.err{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d;border-radius:10px;padding:12px}
+
+/* Utility */
+h1,h2,h3{margin:0 0 .4em}
+.footer a, .header a.nav-link, .nav a{color:inherit; text-decoration:none}
+.footer a:hover, .nav a:hover{ text-decoration:underline }
+
+/* Global containers/grid (универсальный патч) */
+.container{
+  max-width:1100px;
+  margin:16px auto;
+  padding:0 16px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:16px;
+}
+.card .btn{display:inline-block}
+.card img{
+  width:100%;
+  height:auto;
+  border-radius:10px;
+  background:#e9edf3;
+  display:block;
+}
+
 /* Responsive */
 @media (max-width:640px){
   .brand h1{font-size:16px}
