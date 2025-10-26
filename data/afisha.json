@@ -18,5 +18,45 @@
     "theatre": "Дніпровський театр опери та балету",
     "stage": "Велика сцена",
     "poster": "images/posters/opera/carmina-burana.jpg"
+  },
+{
+    "show": "shevchenko/kolobok",
+    "title": "Колобок",
+    "city": "Дніпро",
+    "theatre": "Театр ім. Т.Г. Шевченка",
+    "stage": "Мала сцена",
+    "date": "2025-11-10",
+    "time": "12:00",
+    "poster": "images/posters/shevchenko/kolobok.jpg"
+  },
+  {
+    "show": "opera/carmina-burana",
+    "title": "Карміна Бурана",
+    "city": "Дніпро",
+    "theatre": "Дніпровський театр опери та балету",
+    "stage": "Велика сцена",
+    "date": "2025-11-07",
+    "time": "19:00",
+    "poster": "images/posters/opera/carmina-burana.jpg"
+  },
+  {
+    "show": "filarmonia/symphonic-rock",
+    "title": "Symphonic Rock",
+    "city": "Дніпро",
+    "theatre": "Філармонія ім. Л. Когана",
+    "stage": "Велика зала",
+    "date": "2025-11-12",
+    "time": "19:00",
+    "poster": "images/posters/filarmonia/symphonic-rock.jpg"
+  },
+  {
+    "show": "academia/rukh-u-prostori",
+    "title": "Рух у просторі",
+    "city": "Кривий Ріг",
+    "theatre": "Академія Руху",
+    "stage": "Мала сцена",
+    "date": "2025-11-14",
+    "time": "18:30",
+    "poster": "images/posters/academia/rukh-u-prostori.jpg"
   }
 ]
