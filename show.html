@@ -3,151 +3,126 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title id="pageTitle">Вистава — Ваш Адмін</title>
+  <title>Вистава — Ваш Адмін</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .wrap{display:grid;gap:16px}
-    @media (min-width:900px){ .wrap{grid-template-columns:280px 1fr} }
-    .poster{width:100%;max-width:280px;height:380px;object-fit:cover;border-radius:12px;background:#eee}
-    .meta{color:#6b7280;margin:6px 0}
-    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
-    pre.desc{white-space:pre-wrap;line-height:1.5}
+    .show-wrap{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    @media (max-width:900px){.show-wrap{grid-template-columns:1fr}}
+    .poster-lg{width:100%;height:440px;object-fit:cover;border-radius:12px;background:#eee}
+    .show-meta{color:#6b7280;font-size:14px}
   </style>
 </head>
 <body>
-<header class="header">
-  <a href="index.html" class="logo">Ваш Адмін</a>
-  <nav class="nav">
-    <a href="index.html" class="nav-link">Головна</a>
-    <a href="afisha.html" class="nav-link">Афіша</a>
-    <a href="theatres.html" class="nav-link">Театри</a>
-    <a href="about.html" class="nav-link">Про нас</a>
-    <a href="contacts.html" class="nav-link">Контакти</a>
-  </nav>
-</header>
+  <div id="header"></div>
 
-<main class="container">
-  <div id="box" class="card">
-    <div id="loading">Завантаження…</div>
-    <div id="content" style="display:none">
-      <div class="wrap">
-        <img id="poster" class="poster" alt="Постер" onerror="this.style.display='none'"/>
+  <main class="container">
+    <a class="btn secondary" href="afisha.html" style="margin:16px 0 8px;display:inline-block">← Повернутися до афіші</a>
+
+    <section class="section">
+      <div id="showBox" class="show-wrap">
+        <img id="poster" class="poster-lg" src="" alt="" onerror="this.style.display='none'">
         <div>
-          <h1 id="title" style="margin:0 0 8px">Вистава</h1>
-          <div class="meta" id="when"></div>
-          <div class="meta" id="where"></div>
-          <div class="meta" id="city"></div>
+          <h1 id="title" style="margin-bottom:6px">Вистава</h1>
+          <div class="show-meta" id="meta"></div>
 
-          <pre id="desc" class="desc" style="margin:14px 0 0"></pre>
+          <div id="desc" style="margin-top:12px;line-height:1.7"></div>
 
-          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
-            <a id="toHall" class="btn">Вибрати місця</a>
-            <a href="afisha.html" class="btn secondary">До афіші</a>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+            <a id="toHall" class="btn" href="#">Вибрати місця</a>
+            <a class="btn secondary" href="afisha.html">Інші події</a>
           </div>
         </div>
       </div>
-    </div>
-    <div id="error" class="meta" style="color:#b91c1c; display:none"></div>
-  </div>
-</main>
+    </section>
+  </main>
 
-<footer class="footer">
-  <div class="footer-inner">
-    <div>© 2025 Ваш Адмін</div>
-    <div class="footer-links">
-      <a href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank">Facebook</a>
-      <a href="https://t.me/zahodiikvitki" target="_blank">Telegram</a>
-    </div>
-  </div>
-</footer>
+  <div id="footer"></div>
 
-<script>
-(async function(){
-  const qp = new URLSearchParams(location.search);
-  const showSlug = qp.get('show');
+  <script>
+    // Подключаем общий header/footer
+    Promise.all([
+      fetch('header.html').then(r => r.text()),
+      fetch('footer.html').then(r => r.text())
+    ]).then(([h, f]) => {
+      document.getElementById('header').innerHTML = h;
+      document.getElementById('footer').innerHTML = f;
 
-  const els = {
-    loading: document.getElementById('loading'),
-    content: document.getElementById('content'),
-    error:   document.getElementById('error'),
-    title:   document.getElementById('title'),
-    poster:  document.getElementById('poster'),
-    when:    document.getElementById('when'),
-    where:   document.getElementById('where'),
-    city:    document.getElementById('city'),
-    desc:    document.getElementById('desc'),
-    toHall:  document.getElementById('toHall'),
-    pageTitle: document.getElementById('pageTitle'),
-  };
+      // активная вкладка
+      const path = location.pathname.split('/').pop() || 'index.html';
+      document.querySelectorAll('.nav a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href === path) a.classList.add('active');
+      });
+    });
 
-  function showError(msg){
-    els.loading.style.display='none';
-    els.error.textContent = msg;
-    els.error.style.display = 'block';
-  }
-  function normPath(p){
-    if (!p) return '';
-    if (/^https?:\/\//.test(p)) return p;
-    if (p.startsWith('./') || p.startsWith('/')) return p;
-    return './' + p;
-  }
+    // ====== Логика страницы спектакля ======
+    (async function(){
+      const qp   = new URLSearchParams(location.search);
+      const slug = qp.get('show'); // напр. "shevchenko/za-dvoma-zaytsiamy"
 
-  if(!showSlug){
-    showError('Немає параметра ?show');
-    return;
-  }
-  els.toHall.href = `spectacles/hall.html?show=${encodeURIComponent(showSlug)}`;
+      const els = {
+        title:  document.getElementById('title'),
+        meta:   document.getElementById('meta'),
+        poster: document.getElementById('poster'),
+        desc:   document.getElementById('desc'),
+        toHall: document.getElementById('toHall')
+      };
 
-  let info = null;
-  // detail json (опис/постер/рядки)
-  try{
-    const r = await fetch(`./data/shows/${showSlug}.json`, {cache:'no-store'});
-    if (r.ok) info = await r.json();
-  }catch(e){}
+      if (!slug){
+        els.title.textContent = 'Помилка: не передано параметр ?show';
+        return;
+      }
 
-  // афиша fallback (постер/мета)
-  let fromAfisha = null;
-  try{
-    const r = await fetch('./data/afisha.json', {cache:'no-store'});
-    if (r.ok){
-      const arr = await r.json();
-      const list = Array.isArray(arr)? arr : (arr?[arr]:[]);
-      fromAfisha = list.find(x=>x && x.show === showSlug) || null;
-    }
-  }catch(e){}
+      // Постер: images/posters/<slug>.jpg
+      const posterPath = 'images/posters/' + slug + '.jpg';
+      els.poster.src   = posterPath;
+      els.poster.alt   = slug.split('/').pop().replace(/-/g,' ');
 
-  if (!info && !fromAfisha){
-    showError('Не вдалося знайти дані вистави.');
-    return;
-  }
+      // Загружаем файл шоу: data/shows/<slug>.json (если есть)
+      // Например: data/shows/shevchenko/za-dvoma-zaytsiamy.json
+      let showData = null;
+      try{
+        const resp = await fetch('data/shows/' + slug + '.json', { cache:'no-store' });
+        if (resp.ok) showData = await resp.json();
+      }catch(e){ /* пропускаем, будет fallback */ }
 
-  const title = (info && info.title) || (fromAfisha && fromAfisha.title) || showSlug.split('/').pop().replace(/-/g,' ');
-  els.title.textContent = title;
-  els.pageTitle.textContent = title + ' — Ваш Адмін';
+      // Заголовок
+      const niceTitle = (showData?.title) || els.poster.alt;
+      els.title.textContent = niceTitle;
 
-  // постер: priority info.poster → info.images.poster → fromAfisha.poster
-  const posterPath = normPath(
-    (info && (info.poster || (info.images && info.images.poster))) ||
-    (fromAfisha && fromAfisha.poster) || ''
-  );
-  if (posterPath) els.poster.src = posterPath; else els.poster.style.display='none';
+      // Метаданные
+      const theatreFromSlug = slug.split('/')[0];
+      const theatreNameMap = {
+        'shevchenko': 'Театр ім. Т.Г. Шевченка',
+        'opera': 'Дніпровський театр опери та балету',
+        'filarmonia': 'Дніпропетровська філармонія',
+        'academia': 'Академія Руху'
+      };
+      const stageMap = { big:'Велика сцена', small:'Мала сцена' };
+      const theatre = theatreNameMap[theatreFromSlug] || '';
+      const stage   = showData?.stage ? (stageMap[showData.stage] || showData.stage) : '';
 
-  // мета
-  const date = (fromAfisha && fromAfisha.date) || (info && info.date) || '';
-  const time = (fromAfisha && fromAfisha.time) || (info && info.time) || '';
-  const theatre = (fromAfisha && fromAfisha.theatre) || (info && info.theatre) || '';
-  const stage = (fromAfisha && fromAfisha.stage) || (info && info.stage) || '';
-  const city  = (fromAfisha && fromAfisha.city) || (info && info.city) || '';
+      els.meta.textContent = [theatre, stage].filter(Boolean).join(' • ');
 
-  els.when.textContent = [date,time].filter(Boolean).join(' • ');
-  els.where.textContent = [theatre, typeof stage==='string'?stage:''].filter(Boolean).join(' • ');
-  els.city.textContent  = city;
+      // Описание:
+      // 1) если есть в JSON: showData.description
+      // 2) иначе — для "За двома зайцями" даём твой текст как fallback
+      let description = showData?.description || '';
+      const isZaDvoma = slug.endsWith('za-dvoma-zaytsiamy');
+      if (!description && isZaDvoma){
+        description = `
+          <p><strong>«За двома зайцями»</strong></p>
+          <p>Хореографічна композиція за однойменною п’єсою М. Старицького</p>
+          <p>Режисер і балетмейстер-постановник — заслужена артистка України Т. Брисіна</p>
+          <p>Тривалість — 70 хвилин</p>
+          <p>Усім відомі любовні пригоди київського цирульника Свирида Голохвостого — хвалька, піжона і невдахи. П’єса М. Старицького мала численні режисерські версії в театрі і кіно. Переказати улюблений сюжет мовою пластики, рухів наважилася головний балетмейстер нашого театру заслужена артистка України Тетяна Брисіна. І комедія заграла новими фарбами! Відвідайте виставу і переконайтеся!</p>
+        `;
+      }
+      els.desc.innerHTML = description || '<p class="meta">Описання буде додано найближчим часом.</p>';
 
-  els.desc.textContent = (info && info.description) ? info.description : 'Без опису.';
-
-  els.loading.style.display='none';
-  els.content.style.display='block';
-})();
-</script>
+      // Кнопка "Вибрати місця"
+      els.toHall.href = 'spectacles/hall.html?show=' + encodeURIComponent(slug);
+    })();
+  </script>
 </body>
 </html>
