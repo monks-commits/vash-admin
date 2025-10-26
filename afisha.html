@@ -4,138 +4,135 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Афіша — Ваш Адмін</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="images/favicon.png">
+  <link rel="stylesheet" href="/styles.css" />
   <style>
-    .filters{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 16px}
-    .pill{padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:#f3f4f6;cursor:pointer}
-    .pill.active{background:#2563eb;color:#fff;border-color:#2563eb}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-    .card{display:grid;gap:10px}
+    .grid{display:grid;gap:16px}
+    @media (min-width:900px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:12px;display:grid;gap:12px}
     .poster{width:100%;height:260px;object-fit:cover;border-radius:10px;background:#eee}
-    .meta{color:#6b7280;font-size:13px}
+    .meta{color:#6b7280;font-size:14px}
+    .filters{display:flex;gap:10px;margin:12px 0 16px;flex-wrap:wrap}
+    .pill{padding:8px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
+    .pill.active{background:#2563eb;color:#fff;border-color:#2563eb}
   </style>
 </head>
 <body>
-  <!-- Спільний хедер -->
-  <div id="header"></div>
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
+      <div>
+        <h1>Ваш Адмін</h1>
+        <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="https://vash-admin.com/" class="nav-link">Головна</a>
+      <a href="https://vash-admin.com/afisha.html" class="nav-link active">Афіша</a>
+      <a href="https://vash-admin.com/theatres.html" class="nav-link">Театри</a>
+      <a href="https://vash-admin.com/about.html" class="nav-link">Про нас</a>
+      <a href="https://vash-admin.com/contacts.html" class="nav-link">Контакти</a>
+    </nav>
+  </div>
+</header>
 
-  <main class="container">
-    <h1>Афіша</h1>
+<main class="container">
+  <h1>Афіша</h1>
 
-    <!-- Фільтри за містом (будуються динамічно) -->
-    <div id="filters" class="filters"></div>
+  <div class="filters">
+    <button class="pill active" data-city="all">Всі міста</button>
+    <button class="pill" data-city="Дніпро">Дніпро</button>
+    <button class="pill" data-city="Кривий Ріг">Кривий Ріг</button>
+  </div>
 
-    <!-- Сітка карток -->
-    <div id="grid" class="grid"></div>
-    <div id="empty" class="meta" style="display:none">Подій за вибраним фільтром поки немає.</div>
-    <div id="error" class="err" style="display:none;margin-top:12px"></div>
-  </main>
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="meta" style="display:none">Подій за вибраним фільтром поки немає.</div>
+</main>
 
-  <!-- Спільний футер -->
-  <div id="footer"></div>
+<footer class="footer">
+  <div class="footer-inner">
+    <div>© 2025 Ваш Адмін</div>
+    <div class="social-icons">
+      <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank">f</a>
+      <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank">tg</a>
+      <a class="icon fb" href="https://www.facebook.com/admin.teatra.kr/" target="_blank">fb KR</a>
+      <a class="icon tg" href="https://t.me/krdramikom" target="_blank">tg KR</a>
+    </div>
+  </div>
+</footer>
 
-  <script>
-    // Підключаємо header/footer
-    Promise.all([
-      fetch('header.html').then(r => r.text()),
-      fetch('footer.html').then(r => r.text())
-    ]).then(([h, f]) => {
-      document.getElementById('header').innerHTML = h;
-      document.getElementById('footer').innerHTML = f;
+<script>
+(async function(){
+  const grid  = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const pills = document.querySelectorAll('.pill');
 
-      // підсвітка активної вкладки
-      const path = location.pathname.split('/').pop() || 'index.html';
-      document.querySelectorAll('.nav a').forEach(a => {
-        const href = a.getAttribute('href');
-        if (href === path) a.classList.add('active');
-      });
+  let items = [];
+  let currentCity = 'all';
+
+  // подхват стартового фильтра ?city=
+  const qps = new URLSearchParams(location.search);
+  const qCity = qps.get('city');
+  if (qCity) currentCity = qCity;
+
+  function posterPath(s){
+    // если в данных указано поле poster — используем его; иначе, пробуем угадать по show
+    if (s.poster) return '/' + s.poster.replace(/^\/+/, '');
+    if (s.show){
+      const parts = s.show.split('/');
+      // пример: shevchenko/ledi -> images/posters/shevchenko/ledi.jpg
+      return `/images/posters/${parts.join('/')}.jpg`;
+    }
+    return '';
+  }
+
+  function cardHTML(s){
+    const poster = posterPath(s);
+    const show = encodeURIComponent(s.show);
+    return `
+      <article class="card">
+        <img class="poster" src="${poster}" alt="${s.title||''}" onerror="this.style.display='none'">
+        <div><strong>${s.title||''}</strong></div>
+        <div class="meta">${[s.date,s.time].filter(Boolean).join(' • ')}</div>
+        <div class="meta">${[s.theatre,s.stage].filter(Boolean).join(' • ')}</div>
+        <div class="meta">${s.city||''}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <a class="btn secondary" href="https://vash-admin.com/show.html?show=${show}">Детальніше</a>
+          <a class="btn" href="https://vash-admin.com/spectacles/hall.html?show=${show}">Вибрати місця</a>
+        </div>
+      </article>
+    `;
+  }
+
+  function render(city='all'){
+    const data = city==='all' ? items : items.filter(x => (x.city||'').toLowerCase() === city.toLowerCase());
+    grid.innerHTML = data.map(cardHTML).join('');
+    empty.style.display = data.length ? 'none' : 'block';
+  }
+
+  pills.forEach(p=>{
+    if ((p.dataset.city||'all') === currentCity) p.classList.add('active');
+    p.addEventListener('click', ()=>{
+      pills.forEach(x=>x.classList.remove('active'));
+      p.classList.add('active');
+      currentCity = p.dataset.city;
+      render(currentCity);
     });
+  });
 
-    // ===== Логіка афіші =====
-    (async function(){
-      const filtersEl = document.getElementById('filters');
-      const gridEl    = document.getElementById('grid');
-      const emptyEl   = document.getElementById('empty');
-      const errEl     = document.getElementById('error');
+  // грузим листинг на месяц (можешь заменить имя файла при необходимости)
+  try{
+    const r = await fetch('/data/schedule/2025-11.json', {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    items = await r.json();
+  }catch(e){
+    // если нет файла — рендерим пусто (без краша)
+    items = [];
+  }
 
-      let items = [];
-      let currentCity = 'all';
-
-      // Підтримка старту з ?city=
-      const qps   = new URLSearchParams(location.search);
-      const qCity = qps.get('city');
-      if (qCity) currentCity = qCity;
-
-      try{
-        const resp = await fetch('data/afisha.json', { cache:'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        items = await resp.json();
-      }catch(e){
-        errEl.textContent = 'Не вдалося завантажити афішу: ' + (e.message || e);
-        errEl.style.display = 'block';
-        return;
-      }
-
-      // Зібрати унікальні міста
-      const cities = Array.from(new Set(items.map(x => (x.city || '').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'uk'));
-      const allCities = ['all', ...cities];
-
-      // Побудувати кнопки-фільтри
-      filtersEl.innerHTML = allCities.map(city => (
-        `<button class="pill ${city === currentCity ? 'active':''}" data-city="${city}">
-           ${city === 'all' ? 'Всі міста' : city}
-         </button>`
-      )).join('');
-
-      // Обробник кліку по фільтрам
-      filtersEl.querySelectorAll('.pill').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          filtersEl.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
-          btn.classList.add('active');
-          currentCity = btn.dataset.city;
-          render();
-        });
-      });
-
-      function safe(str){ return String(str||''); }
-
-      function cardHTML(s){
-        const poster = safe(s.poster);
-        const title  = safe(s.title);
-        const date   = safe(s.date);
-        const time   = safe(s.time);
-        const theatre= safe(s.theatre);
-        const stage  = safe(s.stage);
-        const city   = safe(s.city);
-        const show   = encodeURIComponent(s.show); // slug для show.html / hall.html
-
-        return `
-          <article class="card">
-            <img class="poster" src="${poster}" alt="${title}" onerror="this.style.display='none'">
-            <div><strong>${title}</strong></div>
-            <div class="meta">${[date, time].filter(Boolean).join(' • ')}</div>
-            <div class="meta">${[theatre, stage].filter(Boolean).join(' • ')}</div>
-            <div class="meta">${city}</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-              <a class="btn secondary" href="show.html?show=${show}">Детальніше</a>
-              <a class="btn" href="spectacles/hall.html?show=${show}">Вибрати місця</a>
-            </div>
-          </article>
-        `;
-      }
-
-      function render(){
-        const data = currentCity === 'all'
-          ? items
-          : items.filter(x => (x.city || '').toLowerCase() === currentCity.toLowerCase());
-
-        gridEl.innerHTML = data.map(cardHTML).join('');
-        emptyEl.style.display = data.length ? 'none' : 'block';
-      }
-
-      render();
-    })();
-  </script>
+  // если спросили город в query — применим
+  render(currentCity);
+})();
+</script>
 </body>
 </html>
