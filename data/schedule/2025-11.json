@@ -1,19 +1,32 @@
 [
   {
-    "theatre": "shevchenko",
-    "stage": "big",
-    "show": "za-dvoma-zaytsiamy",
-    "show_title": "За двома зайцями (Велика сцена)",
+    "show": "shevchenko/za-dvoma-zaytsiamy",
+    "title": "За двома зайцями",
     "date": "2025-11-05",
     "time": "17:00",
-    "venue": "Театр Шевченка (Велика сцена)",
-    "poster": "../images/posters/shevchenko/za-dvoma-zaytsiamy.jpg"
+    "city": "Кривий Ріг",
+    "theatre": "Театр ім. Т.Г. Шевченка",
+    "stage": "Велика сцена",
+    "poster": "images/posters/shevchenko/za-dvoma-zaytsiamy.jpg"
+  },
+  {
+    "show": "shevchenko/ledi",
+    "title": "Моя чарівна леді",
+    "date": "2025-11-12",
+    "time": "17:00",
+    "city": "Кривий Ріг",
+    "theatre": "Театр ім. Т.Г. Шевченка",
+    "stage": "Велика сцена",
+    "poster": "images/posters/shevchenko/ledi.jpg"
+  },
+  {
+    "show": "shevchenko/maugli",
+    "title": "Мауглі",
+    "date": "2025-11-16",
+    "time": "11:00",
+    "city": "Кривий Ріг",
+    "theatre": "Театр ім. Т.Г. Шевченка",
+    "stage": "Велика сцена",
+    "poster": "images/posters/shevchenko/maugli.jpg"
   }
 ]
-
-
-
-
-
-
-
