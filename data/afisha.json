@@ -1,10 +1,22 @@
-{
-  "show": "shevchenko/za-dvoma-zaytsiamy",
-  "title": "За двома зайцями",
-  "city": "Кривий Ріг",
-  "theatre": "Театр ім. Т.Г. Шевченка",
-  "date": "2025-11-05",
-  "time": "17:00",
-  "stage": "Велика сцена",
-  "poster": "images/posters/shevchenko/za-dvoma-zaytsiamy.jpg"
-}
+[
+  {
+    "title": "За двома зайцями",
+    "show": "shevchenko/za-dvoma-zaytsiamy",
+    "date": "2025-11-05",
+    "time": "18:00",
+    "city": "Кривий Ріг",
+    "theatre": "Театр ім. Т.Г. Шевченка",
+    "stage": "Велика сцена",
+    "poster": "images/posters/shevchenko/za-dvoma-zaytsiamy.jpg"
+  },
+  {
+    "title": "Карміна Бурана",
+    "show": "opera/carmina-burana",
+    "date": "2025-11-12",
+    "time": "19:00",
+    "city": "Дніпро",
+    "theatre": "Дніпровський театр опери та балету",
+    "stage": "Велика сцена",
+    "poster": "images/posters/opera/carmina-burana.jpg"
+  }
+]
