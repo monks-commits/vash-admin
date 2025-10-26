@@ -4,132 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Контакти — Ваш Адмін</title>
-  <meta name="description" content="Зв'яжіться з сервісом «Ваш Адмін»: телефон, e-mail, форма звернення." />
-  <link rel="icon" href="images/favicon.png">
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="brand">
-        <img src="images/logo-placeholder.png" alt="Ваш Адмін" />
-        <div>
-          <h1>Ваш Адмін</h1>
-          <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
-        </div>
-      </div>
-
-      <nav class="nav">
-        <a href="index.html">Головна</a>
-        <a href="afisha.html">Афіша</a>
-        <a href="theatres.html">Театри</a>
-        <a href="about.html">Про нас</a>
-        <a href="contacts.html" class="active">Контакти</a>
-      </nav>
-
-      <div class="social-icons">
-        <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-facebook-f"></i></a>
-        <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i></a>
-        <a class="icon ig" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-instagram"></i></a>
-        <a class="icon tt" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-tiktok"></i></a>
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
+      <div>
+        <h1>Ваш Адмін</h1>
+        <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
       </div>
     </div>
-  </header>
+    <nav class="nav">
+      <a href="https://vash-admin.com/" class="nav-link">Головна</a>
+      <a href="https://vash-admin.com/afisha.html" class="nav-link">Афіша</a>
+      <a href="https://vash-admin.com/theatres.html" class="nav-link">Театри</a>
+      <a href="https://vash-admin.com/about.html" class="nav-link">Про нас</a>
+      <a href="https://vash-admin.com/contacts.html" class="nav-link active">Контакти</a>
+    </nav>
+  </div>
+</header>
 
-  <!-- Main -->
-  <main class="main">
-    <section class="section">
-      <h2 style="margin-bottom:10px">Зв'язатися з нами</h2>
-      <p class="meta">Виникли питання щодо замовлення, оплати або події? Напишіть нам — відповімо якнайшвидше.</p>
+<main class="main">
+  <section class="section">
+    <h1>Контакти</h1>
+    <p><strong>E-mail:</strong> admin@vash-admin.com</p>
+    <p><strong>Телефон:</strong> +380 ХХ ХХХ ХХ ХХ</p>
+    <p><strong>Facebook (Дніпро):</strong> <a href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank">/eventsandticketsdnepr/</a></p>
+    <p><strong>Telegram (Дніпро):</strong> <a href="https://t.me/zahodiikvitki" target="_blank">@zahodiikvitki</a></p>
+    <p><strong>Facebook (Кривий Ріг):</strong> <a href="https://www.facebook.com/admin.teatra.kr/" target="_blank">/admin.teatra.kr/</a></p>
+    <p><strong>Telegram (Кривий Ріг):</strong> <a href="https://t.me/krdramikom" target="_blank">@krdramikom</a></p>
+  </section>
+</main>
 
-      <form id="contactForm" class="form" style="margin-top:16px" novalidate>
-        <div class="row two">
-          <label class="field">
-            Ваше ім’я
-            <input type="text" id="name" placeholder="Ім’я" required />
-          </label>
-          <label class="field">
-            Телефон
-            <input type="tel" id="phone" placeholder="+380..." inputmode="tel" />
-          </label>
-        </div>
-
-        <label class="field" style="margin-top:10px">
-          E-mail
-          <input type="email" id="email" placeholder="example@gmail.com" required />
-        </label>
-
-        <label class="field" style="margin-top:10px">
-          Повідомлення
-          <textarea id="message" rows="5" placeholder="Коротко опишіть питання..." required></textarea>
-        </label>
-
-        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-          <button type="submit" class="btn">Надіслати</button>
-          <a class="btn secondary" href="mailto:alexandrryabov@ukr.net">Написати на e-mail</a>
-        </div>
-
-        <div id="ok" class="ok" style="display:none;margin-top:12px">✅ Повідомлення підготовлено у вашому e-mail клієнті.</div>
-        <div id="err" class="err" style="display:none;margin-top:12px">❌ Перевірте правильність заповнення полів.</div>
-      </form>
-    </section>
-
-    <section class="section" style="margin-top:16px">
-      <h2 style="margin-bottom:10px">Контакти</h2>
-      <p class="meta">
-        ФОП <strong>Рябов Олександр</strong><br>
-        Телефон: <a href="tel:+380685160102">+380 685160102</a><br>
-        E-mail: <a href="mailto:alexandrryabov@ukr.net">alexandrryabov@ukr.net</a><br>
-        Місто: Дніпро / Кривий Ріг, Україна
-      </p>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-inner">
-      <div>© 2025 Ваш Адмін</div>
-      <div class="footer-links">
-        <a href="offer.html">Публічна оферта</a> •
-        <a href="privacy.html">Політика конфіденційності</a> •
-        <a href="terms.html">Умови користування</a> •
-        <a href="refund.html">Політика повернення</a>
-      </div>
+<footer class="footer">
+  <div class="footer-inner">
+    <div>© 2025 Ваш Адмін</div>
+    <div class="social-icons">
+      <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank">f</a>
+      <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank">tg</a>
+      <a class="icon fb" href="https://www.facebook.com/admin.teatra.kr/" target="_blank">fb KR</a>
+      <a class="icon tg" href="https://t.me/krdramikom" target="_blank">tg KR</a>
     </div>
-  </footer>
-
-  <script>
-    // Легка "відправка": відкриваємо email-клієнт з готовим листом
-    const form = document.getElementById('contactForm');
-    const ok   = document.getElementById('ok');
-    const err  = document.getElementById('err');
-
-    function validEmail(v){ return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v); }
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      ok.style.display = 'none';
-      err.style.display = 'none';
-
-      const name  = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const msg   = document.getElementById('message').value.trim();
-
-      if (!name || !email || !msg || !validEmail(email)) {
-        err.style.display = 'block';
-        return;
-      }
-
-      const subject = encodeURIComponent('Запит з сайту «Ваш Адмін»');
-      const body = encodeURIComponent(
-        `Ім’я: ${name}\nТелефон: ${phone}\nE-mail: ${email}\n\nПовідомлення:\n${msg}`
-      );
-      window.location.href = `mailto:alexandrryabov@ukr.net?subject=${subject}&body=${body}`;
-      ok.style.display = 'block';
-    });
-  </script>
+  </div>
+</footer>
 </body>
 </html>
