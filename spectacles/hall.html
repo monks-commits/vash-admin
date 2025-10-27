@@ -1,32 +1,115 @@
-<!DOCTYPE html>
-<html lang="uk">
+<!DOCTYPE html><html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Схема залу — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Вибір місць — Ваш Адмін</title>
+  <link rel="stylesheet" href="/styles.css"/>
   <style>
-    /* ваш стиль зали остаётся */
-    :root{ --seat:30px; --gap:6px; }
-    .hall{display:grid;gap:var(--gap);justify-content:flex-start}
-    .seat{width:var(--seat);height:var(--seat);border-radius:6px;background:#e5e7eb;display:flex;align-items:center;justify-content:center}
-    .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    :root{--seat:28px;--gap:6px}
+    .hall{display:grid;gap:var(--gap);justify-content:flex-start;grid-template-columns:repeat(var(--cols,10),var(--seat))}
+    .seat{width:var(--seat);height:var(--seat);border-radius:6px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+    .spacer{width:var(--seat);height:var(--seat);opacity:0}
+    .available{background:#dbeafe;cursor:pointer}
+    .disabled{background:#cbd5e1;cursor:not-allowed}
+    .selected{outline:2px solid #10b981;box-shadow:0 0 0 2px #10b981 inset}
+    .rowlabel{grid-column:1/-1;text-align:center;color:#666;margin-top:4px;font-size:12px}
+    .scene{grid-column:1/-1;background:#ddd;color:#333;font-weight:700;text-align:center;padding:10px;border-radius:8px;margin-bottom:8px}
   </style>
 </head>
 <body>
-  <div id="site-header"></div>
+<div id="site-header"></div>
+<script type="module" src="/scripts/include.js"></script>
 
-  <main class="main">
-    <h1>Вибір місць</h1>
-    <!-- ваш существующий HTML/JS по отрисовке зала -->
-    <div id="app"></div>
-  </main>
+<main class="container">
+  <h1>Вибір місць</h1>
+  <div id="err" class="card" style="display:none;color:#b91c1c"></div>
 
-  <div id="site-footer"></div>
-  <script>
-  // Оставляем вашу логику (загрузка JSON из /data/shows/<slug>.json, рендер мест, переход на /checkout.html?seats=...&sum=...)
-  // Если нужна моя компактная версия — скажи, пришлю, но сейчас важно только, чтобы подтягивались шапка/футер.
-  </script>
-  <script type="module" src="/scripts/include.js"></script>
-</body>
-</html>
+  <div class="card" style="margin-top:12px">
+    <div class="scene">СЦЕНА</div>
+    <div id="hall" class="hall"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <div class="chip">Обрано: <strong id="count">0</strong></div>
+    <a id="pay" class="btn disabled" href="javascript:void(0)">Перейти до оплати</a>
+    <a class="btn secondary" href="/afisha.html">Назад</a>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+(function(){
+  const q=new URLSearchParams(location.search);
+  const slug=q.get('show');
+  const hall=document.getElementById('hall');
+  const err=document.getElementById('err');
+  const countEl=document.getElementById('count');
+  const pay=document.getElementById('pay');
+  let rows=[], cols=0, sellMode='only', available=new Set(), selected=new Set();
+
+  function spacer(){const d=document.createElement('div');d.className='spacer';return d;}
+  function updatePay(){
+    countEl.textContent=selected.size;
+    if(selected.size){
+      pay.classList.remove('disabled');
+      const seats=[...selected].sort().join(',');
+      const sum=[...selected].reduce((acc,k)=>{const [r]=k.split('-');const row=rows.find(x=>x.row==+r);return acc+(row?row.price:0)},0);
+      pay.href=`/checkout.html?show=${encodeURIComponent(slug)}&seats=${encodeURIComponent(seats)}&sum=${sum}`;
+    }else{
+      pay.classList.add('disabled'); pay.href='javascript:void(0)';
+    }
+  }
+  function fit(){
+    const container = hall.parentElement;
+    const seat = Math.floor((container.clientWidth-24)/cols);
+    document.documentElement.style.setProperty('--seat', Math.max(18, Math.min(48, seat))+'px');
+  }
+  function render(){
+    hall.innerHTML='';
+    cols=Math.max(...rows.map(r=>r.seats+((r.aisles&&r.aisles.length)||0)));
+    hall.style.setProperty('--cols', cols);
+    rows.sort((a,b)=>a.row-b.row).forEach(r=>{
+      const ais=(r.aisles||[]).slice().sort((a,b)=>a-b);
+      let ai=0;
+      for(let s=1;s<=r.seats;s++){
+        while(ai<ais.length && s===ais[ai]+1){ hall.appendChild(spacer()); ai++; }
+        const key=`${r.row}-${s}`;
+        const el=document.createElement('div');
+        const enabled = (sellMode==='only') ? available.has(key) : true;
+        el.className='seat '+(enabled?'available':'disabled');
+        if(selected.has(key)) el.classList.add('selected');
+        el.textContent=s;
+        if(enabled){
+          el.addEventListener('click',()=>{
+            if(selected.has(key)) selected.delete(key); else selected.add(key);
+            el.classList.toggle('selected');
+            updatePay();
+          });
+        }
+        hall.appendChild(el);
+      }
+      while(ai<ais.length){ hall.appendChild(spacer()); ai++; }
+      const rl=document.createElement('div'); rl.className='rowlabel'; rl.textContent=`Ряд ${r.row} • ${r.price} грн`; hall.appendChild(rl);
+    });
+    fit(); setTimeout(fit,120); addEventListener('resize',fit);
+  }
+
+  async function boot(){
+    if(!slug){ err.style.display='block'; err.textContent='Немає параметра show.'; return; }
+    try{
+      const r=await fetch(`/data/shows/${slug}.json`,{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const show=await r.json();
+      rows=(show.rows||[]).filter(x=>x.section!=='logeA'&&x.section!=='logeB'&&x.enabled!==false); // без лож
+      sellMode=(show.sell_mode||'only').toLowerCase()==='disable'?'disable':'only';
+      (show.available||show.sell||[]).forEach(k=>available.add(String(k)));
+      render();
+    }catch(e){
+      err.style.display='block'; err.textContent='Помилка завантаження схеми. Перевірте /data/shows/'+slug+'.json';
+      console.error(e);
+    }
+  }
+  boot();
+})();
+</script>
+</body></html>
