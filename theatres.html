@@ -6,79 +6,45 @@
   <title>Театри — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    .theaters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-    .theater-card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
-    .theater-image{width:100%;aspect-ratio:4/3;object-fit:cover;background:#eef1f6}
-    .theater-body{padding:12px;display:grid;gap:6px}
-    .theater-title{margin:0;font-size:18px}
-    .theater-meta{color:var(--muted);font-size:14px}
-    .theater-actions{padding:12px;display:flex;gap:8px;flex-wrap:wrap}
+    .grid{display:grid;gap:14px}
+    @media (min-width:860px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .card{display:grid;gap:10px;background:#fff;border:1px solid #eee;border-radius:12px;padding:12px}
+    .poster{width:100%;height:220px;object-fit:cover;border-radius:10px;background:#eee}
+    .meta{color:#6b7280;font-size:14px}
   </style>
 </head>
 <body>
-  <!-- header/footer подтягиваются динамически -->
   <div id="site-header"></div>
 
   <main class="main">
-    <section class="section">
-      <h1>Театри</h1>
+    <h1>Театри</h1>
+    <div class="grid">
+      <article class="card">
+        <img class="poster" src="/images/shevchenko.jpg" alt="Театр Шевченка" />
+        <div><strong>Театр ім. Т.Г. Шевченка</strong></div>
+        <div class="meta">Кривий Ріг • Велика/Мала сцена</div>
+        <div>
+          <a class="btn" href="/afisha.html?city=Кривий%20Ріг">Афіша</a>
+        </div>
+      </article>
 
-      <div class="theaters-grid">
-        <!-- Театр опери та балету -->
-        <article class="theater-card">
-          <img class="theater-image" src="/images/opera.jpg" alt="Дніпровський театр опери та балету" onerror="this.style.display='none'">
-          <div class="theater-body">
-            <h3 class="theater-title">Дніпровський театр опери та балету</h3>
-            <div class="theater-meta">Дніпро • класичні опери та балети</div>
-          </div>
-          <div class="theater-actions">
-            <a class="btn" href="/afisha.html?city=%D0%94%D0%BD%D1%96%D0%BF%D1%80%D0%BE">Афіша</a>
-          </div>
-        </article>
+      <article class="card">
+        <img class="poster" src="/images/opera.jpg" alt="Опера" />
+        <div><strong>Опера</strong></div>
+        <div class="meta">Дніпро</div>
+        <div><a class="btn" href="/afisha.html?city=Дніпро">Афіша</a></div>
+      </article>
 
-        <!-- Дніпропетровська філармонія -->
-        <article class="theater-card">
-          <img class="theater-image" src="/images/filarmonia.jpg" alt="Дніпропетровська філармонія" onerror="this.style.display='none'">
-          <div class="theater-body">
-            <h3 class="theater-title">Дніпропетровська філармонія</h3>
-            <div class="theater-meta">Дніпро • велика та мала сцени</div>
-          </div>
-          <div class="theater-actions">
-            <a class="btn" href="/afisha.html?city=%D0%94%D0%BD%D1%96%D0%BF%D1%80%D0%BE">Афіша</a>
-          </div>
-        </article>
-
-        <!-- Театр ім. Т.Г. Шевченка -->
-        <article class="theater-card">
-          <img class="theater-image" src="/images/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка" onerror="this.style.display='none'">
-          <div class="theater-body">
-            <h3 class="theater-title">Театр ім. Т.Г. Шевченка</h3>
-            <div class="theater-meta">Кривий Ріг • велика та мала сцени</div>
-          </div>
-          <div class="theater-actions">
-            <!-- у тебе вже є shevchenko.html, лишаю пряме посилання -->
-            <a class="btn" href="/shevchenko.html">Про театр</a>
-            <a class="btn secondary" href="/afisha.html?city=%D0%9A%D1%80%D0%B8%D0%B2%D0%B8%D0%B9%20%D0%A0%D1%96%D0%B3">Афіша</a>
-          </div>
-        </article>
-
-        <!-- Академія руху -->
-        <article class="theater-card">
-          <img class="theater-image" src="/images/akademia.jpg" alt="Академія руху" onerror="this.style.display='none'">
-          <div class="theater-body">
-            <h3 class="theater-title">Академія руху</h3>
-            <div class="theater-meta">Дніпро • сучасні постановки</div>
-          </div>
-          <div class="theater-actions">
-            <a class="btn" href="/afisha.html?city=%D0%94%D0%BD%D1%96%D0%BF%D1%80%D0%BE">Афіша</a>
-          </div>
-        </article>
-      </div>
-    </section>
+      <article class="card">
+        <img class="poster" src="/images/filarmonia.jpg" alt="Філармонія" />
+        <div><strong>Філармонія</strong></div>
+        <div class="meta">Дніпро</div>
+        <div><a class="btn" href="/afisha.html?city=Дніпро">Афіша</a></div>
+      </article>
+    </div>
   </main>
 
   <div id="site-footer"></div>
   <script type="module" src="/scripts/include.js"></script>
 </body>
 </html>
-
