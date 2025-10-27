@@ -18,155 +18,113 @@
   </style>
 </head>
 <body>
-<header class="header">
-  <div class="header-inner">
-    <div class="brand">
-      <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
-      <div>
-        <h1>Ваш Адмін</h1>
-        <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
+  <div id="site-header"></div>
+
+  <main class="main">
+    <div id="infoBox" class="card" style="margin-bottom:16px"></div>
+
+    <form id="payForm" class="card" novalidate>
+      <div class="row two">
+        <label>
+          Ім’я покупця
+          <input type="text" id="customerName" required placeholder="Ваше ім’я" autocomplete="name" />
+        </label>
+        <label>
+          Телефон
+          <input type="tel" id="customerPhone" required placeholder="+380..." inputmode="tel" autocomplete="tel" />
+          <span class="hint">Ми надішлемо SMS у разі змін</span>
+        </label>
       </div>
-    </div>
-    <nav class="nav">
-      <a href="https://vash-admin.com/" class="nav-link">Головна</a>
-      <a href="https://vash-admin.com/afisha.html" class="nav-link">Афіша</a>
-      <a href="https://vash-admin.com/theatres.html" class="nav-link">Театри</a>
-      <a href="https://vash-admin.com/about.html" class="nav-link">Про нас</a>
-      <a href="https://vash-admin.com/contacts.html" class="nav-link">Контакти</a>
-    </nav>
-  </div>
-</header>
+      <div class="row" style="margin-top:12px">
+        <label>
+          Електронна пошта для отримання квитків
+          <input type="email" id="customerEmail" required placeholder="example@gmail.com" autocomplete="email" />
+          <span class="hint">На цю адресу прийде електронний квиток</span>
+        </label>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="btn">Перейти до оплати</button>
+        <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
+      </div>
 
-<main class="container">
-  <a id="backLink" href="/afisha.html">← Назад</a>
-  <h2>Оплата квитків</h2>
+      <div id="ok" class="ok">✅ Бронювання збережено. Зараз перенаправимо на сторінку підтвердження.</div>
+      <div id="err" class="err"></div>
+    </form>
+  </main>
 
-  <!-- Підтвердження замовлення -->
-  <div id="infoBox" class="card" style="margin-bottom:16px"></div>
+  <div id="site-footer"></div>
+  <script src="/scripts/include.js" type="module"></script>
+  <script type="module">
+    import { supabase } from '/scripts/db.js';
 
-  <!-- Форма покупця -->
-  <form id="payForm" class="card" novalidate>
-    <div class="row two">
-      <label>
-        Ім’я покупця
-        <input type="text" id="customerName" required placeholder="Ваше ім’я" autocomplete="name" />
-      </label>
-      <label>
-        Телефон
-        <input type="tel" id="customerPhone" required placeholder="+380..." inputmode="tel" autocomplete="tel" />
-        <span class="hint">Ми надішлемо SMS у разі змін</span>
-      </label>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <label>
-        Електронна пошта для отримання квитків
-        <input type="email" id="customerEmail" required placeholder="example@gmail.com" autocomplete="email" />
-        <span class="hint">На цю адресу прийде електронний квиток</span>
-      </label>
-    </div>
-    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-      <button type="submit" class="btn">Перейти до оплати</button>
-      <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
-    </div>
+    const qp   = new URLSearchParams(location.search);
+    const show = qp.get('show');
+    const seats= qp.get('seats'); // "Р2-М3,Р3-М3"
+    const sum  = qp.get('sum');
 
-    <div id="ok" class="ok">✅ Бронювання збережено. Далі — оплата через LiqPay.</div>
-    <div id="err" class="err"></div>
-  </form>
-</main>
+    const infoBox   = document.getElementById('infoBox');
+    const form      = document.getElementById('payForm');
+    const okBox     = document.getElementById('ok');
+    const errBox    = document.getElementById('err');
+    const backToHall= document.getElementById('backToHall');
 
-<footer class="footer">
-  <div class="footer-inner"><div>© 2025 Ваш Адмін</div></div>
-</footer>
-
-<script type="module">
-  import { supabase } from '/scripts/db.js';
-
-  const qp   = new URLSearchParams(location.search);
-  const show = qp.get('show');    // напр. shevchenko/ledi
-  const seats= qp.get('seats');   // "Р2-М3,Р3-М3" або "2-5,2-6"
-  const sum  = qp.get('sum');
-
-  const infoBox   = document.getElementById('infoBox');
-  const form      = document.getElementById('payForm');
-  const okBox     = document.getElementById('ok');
-  const errBox    = document.getElementById('err');
-  const backToHall= document.getElementById('backToHall');
-  const backLink  = document.getElementById('backLink');
-
-  // Рендер інформації про замовлення
-  if (!show || !seats || !sum) {
-    infoBox.innerHTML = '<p>❌ Помилка: неповні дані для оплати.</p>';
-    form.style.display = 'none';
-  } else {
-    (async ()=>{
-      // Підтягнемо заголовок вистави для краси
-      let title = show;
-      try{
-        const r = await fetch(`/data/shows/${show}.json`, {cache:'no-store'});
-        if (r.ok){ const js = await r.json(); if (js.title) title = js.title; }
-      }catch(_){}
-      document.title = `Оплата — ${title} — Ваш Адмін`;
-
-      const prettyShow = title;
+    if (!show || !seats || !sum) {
+      infoBox.innerHTML = '<p>❌ Помилка: неповні дані для оплати.</p>';
+      form.style.display = 'none';
+    } else {
+      const prettyShow = show.split('/').join(' / ').replace(/-/g,' ');
       infoBox.innerHTML = `
-        <h3 style="margin:0 0 8px">Підтвердження замовлення</h3>
+        <h2 style="margin:0 0 8px">Підтвердження замовлення</h2>
         <p style="margin:0 0 4px"><strong>Вистава:</strong> ${prettyShow}</p>
         <p style="margin:0 0 4px"><strong>Місця:</strong> ${seats}</p>
         <p style="margin:0"><strong>Сума:</strong> ${sum} грн</p>
       `;
       backToHall.href = `/spectacles/hall.html?show=${encodeURIComponent(show)}`;
-      backLink.href   = `/show.html?show=${encodeURIComponent(show)}`;
-    })();
-  }
-
-  function validEmail(v){
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errBox.style.display = 'none';
-    okBox.style.display  = 'none';
-
-    const name  = document.getElementById('customerName').value.trim();
-    const phone = document.getElementById('customerPhone').value.trim();
-    const email = document.getElementById('customerEmail').value.trim();
-
-    if (!name || !phone || !email) {
-      errBox.textContent = 'Заповніть, будь ласка, усі поля.';
-      errBox.style.display = 'block';
-      return;
-    }
-    if (!validEmail(email)) {
-      errBox.textContent = 'Невірний формат e-mail.';
-      errBox.style.display = 'block';
-      return;
     }
 
-    // Зберігаємо бронювання у Supabase
-    try {
-      const payload = {
-        seat_ids: seats.split(',').map(s => s.trim()),
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email,
-        show_slug: show,
-        amount: Number(sum) || 0
-      };
+    function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 
-      const { error } = await supabase.from('bookings').insert([payload]);
-      if (error) throw error;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      okBox.style.display  = 'none';
 
-      okBox.style.display = 'block';
+      const name  = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      const email = document.getElementById('customerEmail').value.trim();
 
-      // Далі — інтеграція з LiqPay (коли додамо Edge Function)
-      alert('Бронювання збережено. Далі — оплата через LiqPay.');
-      // window.location.href = '/thanks.html'; // коли буде готово
-    } catch (err) {
-      errBox.textContent = 'Помилка при збереженні бронювання: ' + (err.message || err);
-      errBox.style.display = 'block';
-    }
-  });
-</script>
+      if (!name || !phone || !email) {
+        errBox.textContent = 'Заповніть, будь ласка, усі поля.';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (!validEmail(email)) {
+        errBox.textContent = 'Невірний формат e-mail.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const payload = {
+          seat_ids: seats.split(',').map(s => s.trim()),
+          customer_name: name,
+          customer_phone: phone,
+          customer_email: email,
+          show_slug: show,
+          amount: Number(sum) || 0
+        };
+        const { error } = await supabase.from('bookings').insert([payload]);
+        if (error) throw error;
+
+        okBox.style.display = 'block';
+        setTimeout(() => {
+          location.href = `/thanks.html?show=${encodeURIComponent(show)}&sum=${encodeURIComponent(sum)}&email=${encodeURIComponent(email)}`;
+        }, 900);
+      } catch (err) {
+        errBox.textContent = 'Помилка при збереженні бронювання: ' + (err.message || err);
+        errBox.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>
