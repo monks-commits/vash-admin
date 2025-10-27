@@ -1,59 +1,71 @@
-<!DOCTYPE html><html lang="uk">
+<!DOCTYPE html>
+<html lang="uk">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Театри — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css"/>
-  <style>
-    .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start}
-    .card{background:#fff;border:1px solid #eee;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-    .poster{width:100%;height:240px;object-fit:cover;border-radius:10px;background:#eee}
-    .meta{color:#6b7280;font-size:14px}
-    .titlelink{color:inherit;text-decoration:none}
-    .titlelink:hover{color:#2563eb}
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- include header -->
   <div id="site-header"></div>
-  <script type="module" src="/scripts/include.js"></script>
 
   <main class="main">
     <h1>Театри</h1>
 
-    <div class="grid">
-      <!-- Шевченка -->
+    <section class="afisha-grid">
+      <!-- Шевченко -->
       <article class="card">
-        <img class="poster" src="/images/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка"/>
-        <div><a class="titlelink" href="/shevchenko.html"><strong>Театр ім. Т.Г. Шевченка</strong></a></div>
-        <div class="meta">Кривий Ріг • Велика/Мала сцена</div>
-        <a class="btn" href="/afisha.html?city=Кривий Ріг">Афіша</a>
+        <img src="images/shevchenko.jpg" alt="Театр ім. Т. Г. Шевченка" class="poster" style="height:220px" />
+        <div style="display:grid;gap:6px">
+          <strong>Театр ім. Т.Г. Шевченка</strong>
+          <div class="meta">Кривий Ріг • Велика/Мала сцена</div>
+          <div>
+            <a class="btn" href="theatre_shevchenko.html">Афіша</a>
+          </div>
+        </div>
       </article>
 
       <!-- Опера -->
       <article class="card">
-        <img class="poster" src="/images/opera.jpg" alt="Опера"/>
-        <div><a class="titlelink" href="/opera.html"><strong>Опера</strong></a></div>
-        <div class="meta">Дніпро</div>
-        <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
+        <img src="images/opera.jpg" alt="Опера" class="poster" style="height:220px" />
+        <div style="display:grid;gap:6px">
+          <strong>Опера</strong>
+          <div class="meta">Дніпро</div>
+          <div>
+            <a class="btn" href="theatre_opera.html">Афіша</a>
+          </div>
+        </div>
       </article>
 
       <!-- Філармонія -->
       <article class="card">
-        <img class="poster" src="/images/filarmonia.jpg" alt="Філармонія"/>
-        <div><a class="titlelink" href="/filarmonia.html"><strong>Філармонія</strong></a></div>
-        <div class="meta">Дніпро</div>
-        <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
+        <img src="images/filarmonia.jpg" alt="Філармонія" class="poster" style="height:220px" />
+        <div style="display:grid;gap:6px">
+          <strong>Філармонія</strong>
+          <div class="meta">Дніпро</div>
+          <div>
+            <a class="btn" href="theatre_filarmonia.html">Афіша</a>
+          </div>
+        </div>
       </article>
 
       <!-- Академія Руху -->
       <article class="card">
-        <img class="poster" src="/images/akademia.jpg" alt="Академія Руху"/>
-        <div><a class="titlelink" href="/akademia.html"><strong>Академія Руху</strong></a></div>
-        <div class="meta">Кривий Ріг</div>
-        <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
+        <img src="images/akademia.jpg" alt="Академія Руху" class="poster" style="height:220px" />
+        <div style="display:grid;gap:6px">
+          <strong>Академія Руху</strong>
+          <div class="meta">Дніпро</div>
+          <div>
+            <a class="btn" href="theatre_akademia.html">Афіша</a>
+          </div>
+        </div>
       </article>
-    </div>
+    </section>
   </main>
 
+  <!-- include footer -->
   <div id="site-footer"></div>
-</body></html>
+  <script type="module" src="scripts/include.js"></script>
+</body>
+</html>
