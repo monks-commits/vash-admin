@@ -3,81 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title id="page-title">Схема зала — Ваш Адмін</title>
+  <title>Схема зала — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    :root { --seat: 32px; --gap: 6px; }
+    :root { --seat: 28px; --gap: 6px; }
     @media (max-width: 640px){ :root { --seat: 22px; --gap: 4px; } }
 
-    .controls {
-      position: sticky; top: 0; z-index: 5;
-      background: #fff; padding: 8px 0; margin: -8px 0 8px;
-      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-      border-bottom: 1px solid #eee;
-    }
-    .controls .btn { padding: 6px 10px; font-size: 14px; }
-    .controls .meta { font-size: 13px; color: #666; }
+    .controls{position:sticky;top:0;z-index:5;background:#fff;padding:8px 0;margin:-8px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #eee}
+    .controls .btn{padding:6px 10px;font-size:14px}
+    .controls .meta{font-size:13px;color:#666}
 
-    .hall-wrap{
-      overflow: auto;
-      border:1px dashed #ddd; border-radius:12px; padding: 12px;
-      max-height: 72vh;
-      background: #fff;
-      width: 100%;
-    }
-    .hall{
-      display:grid; gap: var(--gap);
-      justify-content:flex-start;
-      grid-template-columns: repeat(var(--cols, 10), var(--seat));
-      transform-origin: top left;
-    }
-
-    .seat{
-      width: var(--seat); height: var(--seat);
-      border-radius:6px; display:flex; align-items:center; justify-content:center;
-      cursor:pointer; font-weight:700; font-size: 12px; user-select: none;
-      background:#e5e7eb; /* по умолчанию серые (не в квоте) */
-    }
-    .seat.quota{ background:#fde68a; }        /* квота (доступные нам) */
-    .seat.selected{ outline:2px solid #10b981; box-shadow:0 0 0 2px #10b981 inset; }
-    .seat.reserved{ background:#ef4444; color:#fff; cursor:not-allowed } /* забронированные/проданные */
-    .seat.disabled{ opacity:0.45; cursor:not-allowed } /* не кликабельные (когда режим disable) */
-
-    .spacer{ width: var(--seat); height: var(--seat); opacity:0; pointer-events:none }
-    .rowlabel{ grid-column:1/-1; text-align:center; color:#666; margin-top:4px; font-size:12px }
-
-    .legend { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
-    .legend .item { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid #eee; border-radius:8px; font-size:13px; }
-    .legend .swatch { width:16px; height:16px; border-radius:4px; border:1px solid #ddd; }
-
+    .hall-wrap{overflow:auto;border:1px dashed #ddd;border-radius:12px;padding:12px;max-height:72vh;background:#fff;width:100%}
+    .hall{display:grid;gap:var(--gap);justify-content:flex-start;grid-template-columns: repeat(var(--cols, 10), var(--seat));transform-origin:top left}
+    .seat{width:var(--seat);height:var(--seat);border-radius:6px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;font-size:12px;user-select:none}
+    .seat.selected{background:#4caf50;color:#fff}
+    .seat.reserved{background:#9e9e9e;color:#fff;cursor:not-allowed}
+    .seat.disabled{background:#f3f4f6;color:#999;cursor:not-allowed} /* показано, але клік заборонено */
+    .quota{background:#fde68a} /* місця квоти */
+    .spacer{width:var(--seat);height:var(--seat);opacity:0;pointer-events:none}
+    .rowlabel{grid-column:1/-1;text-align:center;color:#666;margin-top:4px;font-size:12px}
     .stage{grid-column:1/-1;background:#ddd;color:#333;font-weight:700;text-align:center;padding:10px;border-radius:8px;margin-bottom:8px}
-
-    .error { padding: 12px; border:1px solid #fca5a5; background:#fee2e2; color:#7f1d1d; border-radius:10px; margin: 10px 0; }
+    .error{padding:12px;border:1px solid #fca5a5;background:#fee2e2;color:#7f1d1d;border-radius:10px;margin:10px 0}
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="header-inner">
-      <div class="brand">
-        <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
-        <div>
-          <h1>Ваш Адмін</h1>
-          <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
-        </div>
-      </div>
-      <nav class="nav">
-        <a href="https://vash-admin.com/" class="nav-link">Головна</a>
-        <a href="https://vash-admin.com/afisha.html" class="nav-link">Афіша</a>
-        <a href="https://vash-admin.com/theatres.html" class="nav-link">Театри</a>
-        <a href="https://vash-admin.com/about.html" class="nav-link">Про нас</a>
-        <a href="https://vash-admin.com/contacts.html" class="nav-link">Контакти</a>
-      </nav>
-    </div>
-  </header>
+  <div id="site-header"></div>
 
-  <main class="container">
-    <a id="back" href="https://vash-admin.com/afisha.html">← Назад</a>
-    <h2 id="title" style="margin-top:8px">Вибір місць</h2>
+  <main class="main">
+    <a class="meta" href="/afisha.html">← Повернутись до афіші</a>
 
     <div class="controls">
       <button id="zoomOut" class="btn secondary">−</button>
@@ -86,14 +39,11 @@
       <span id="zoomInfo" class="meta">Масштаб: <strong id="zoomVal">100%</strong></span>
     </div>
 
-    <div class="legend" id="legend">
-      <div class="item"><span class="swatch" style="background:#fde68a"></span><span>Квота до продажу</span></div>
-      <div class="item"><span class="swatch" style="background:#e5e7eb"></span><span>Інші місця (не продаємо)</span></div>
-      <div class="item"><span class="swatch" style="background:#ef4444"></span><span>Зайнято</span></div>
-    </div>
-
     <div class="hall-wrap">
-      <div class="hall" id="hall" aria-label="Схема залу"></div>
+      <div class="hall">
+        <div class="stage">СЦЕНА</div>
+        <div id="hall" class="hall" aria-label="Схема залу"></div>
+      </div>
     </div>
 
     <div id="errorBox" class="error" style="display:none"></div>
@@ -101,93 +51,50 @@
     <div style="margin-top:12px">
       <span>Вибрано місць: <strong id="count">0</strong></span> •
       <span>Сума: <strong id="sum">0</strong> грн</span>
-      <div style="margin-top:8px">
-        <button id="toCheckout" class="btn" disabled>Перейти до оплати</button>
-      </div>
+      <div><button id="toCheckout" class="btn" disabled>Перейти до оплати</button></div>
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="footer-inner"><div>© 2025 Ваш Адмін</div></div>
-  </footer>
-
+  <div id="site-footer"></div>
+  <script src="/scripts/include.js" type="module"></script>
   <script>
-  (function(){
     const qp=new URLSearchParams(location.search);
     const showSlug=qp.get('show');
-    if(!showSlug){document.body.innerHTML='Помилка: немає параметра ?show'; return;}
+    if(!showSlug){ document.body.innerHTML='Помилка: немає параметра ?show'; throw new Error('no show'); }
 
     const rootStyle = document.documentElement.style;
-    const hall = document.getElementById('hall');
-    const wrap = document.querySelector('.hall-wrap');
     const zoomValEl = document.getElementById('zoomVal');
+    function getSeatPx(){ const v=getComputedStyle(document.documentElement).getPropertyValue('--seat').trim(); return parseInt(v.replace('px','')||'28',10); }
+    function setSeatPx(px){ const c=Math.max(16, Math.min(px, 54)); rootStyle.setProperty('--seat', c+'px'); zoomValEl.textContent=Math.round(c/28*100)+'%'; document.getElementById('hall').style.transform='scale(1)'; }
 
-    function getSeatPx(){
-      const v = getComputedStyle(document.documentElement).getPropertyValue('--seat').trim();
-      return parseInt(v.replace('px','')||'32',10);
-    }
-    function setSeatPx(px){
-      const clamped = Math.max(16, Math.min(px, 56));
-      rootStyle.setProperty('--seat', clamped+'px');
-      zoomValEl.textContent = Math.round(clamped/32*100)+'%';
-      hall.style.transform = 'scale(1)';
-    }
-    function showError(msg){
-      const box = document.getElementById('errorBox');
-      box.style.display = 'block';
-      box.textContent = msg;
-    }
-    function stageName(s){ return s==='big'?'Велика сцена':(s==='small'?'Мала сцена':''); }
+    function showError(msg){ const box=document.getElementById('errorBox'); box.style.display='block'; box.textContent=msg; }
 
-    let selected=[];      // {key,row,seat,price}
-    let layoutCols=10;
-    let sellMode='disable';   // 'only' | 'disable'
-    let availableSet=new Set(); // «ряд-місце» в квоті
-    let reservedSet=new Set();  // «ряд-місце» зайняті
-
-    function toggle(el){
-      const key=el.dataset.key;
-      if (el.classList.contains('reserved') || el.classList.contains('disabled')) return;
-      const i=selected.findIndex(x=>x.key===key);
-      if(i!==-1){ selected.splice(i,1); el.classList.remove('selected'); }
-      else{
-        selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price});
-        el.classList.add('selected');
-      }
-      updateTotals();
-    }
-    function updateTotals(){
-      const total=selected.reduce((a,b)=>a+b.price,0);
-      document.getElementById('count').textContent=selected.length;
-      document.getElementById('sum').textContent=total;
-      document.getElementById('toCheckout').disabled=selected.length===0;
-    }
-
-    function spacer(){ const d=document.createElement('div'); d.className='spacer'; return d; }
-
-    function renderRows(show){
-      hall.innerHTML='';
+    fetch(`/data/shows/${showSlug}.json`, {cache:'no-store'}).then(r=>{
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    }).then(show=>{
       const allRows=(show.rows||[]).filter(r=>r.enabled!==false);
-      const rowsToRender=allRows.filter(r=>(r.section||'parter')==='parter'); // рендеримо тільки партер
-      if (!rowsToRender.length){ showError('Немає активних рядів для відображення.'); return; }
+      const parter=allRows.filter(r=>(r.section||'parter')==='parter' && r.row>=1 && r.row<=18);
+      if(!parter.length){ showError('Немає рядів партера 1–18.'); return; }
 
-      // ширина сетки
-      layoutCols = show.layout?.cols || Math.max(...rowsToRender.map(r=>(r.aisles ? (r.seats + r.aisles.length) : r.seats)));
+      const hall=document.getElementById('hall');
+      const wrap=document.querySelector('.hall-wrap');
+      const reserved=new Set(show.reserved||[]);
+      const sellMode=(show.sell_mode||'only').toLowerCase(); // "only"|"disable"
+      const quota=new Set((show.available||[]).map(String));
+
+      const layoutCols=show.layout?.cols || Math.max(...parter.map(r=>(r.aisles ? (r.seats + r.aisles.length) : r.seats)));
       hall.style.setProperty('--cols', layoutCols);
 
-      // «СЦЕНА»
-      const stage = document.createElement('div');
-      stage.className='stage';
-      stage.textContent='СЦЕНА';
-      hall.appendChild(stage);
+      let selected=[];
 
-      rowsToRender.sort((a,b)=>a.row-b.row).forEach(cfg=>{
+      function spacer(){ const d=document.createElement('div'); d.className='spacer'; return d; }
+
+      parter.sort((a,b)=>a.row-b.row).forEach(cfg=>{
         const aisles=(cfg.aisles||[]).slice().sort((a,b)=>a-b);
         let nextA=0;
         for(let s=1;s<=cfg.seats;s++){
-          while(nextA<aisles.length && (s===aisles[nextA]+1)){
-            hall.appendChild(spacer()); nextA++;
-          }
+          while(nextA<aisles.length && (s===aisles[nextA]+1)){ hall.appendChild(spacer()); nextA++; }
           const key=`${cfg.row}-${s}`;
           const el=document.createElement('div');
           el.className='seat';
@@ -195,75 +102,64 @@
           el.dataset.key=key; el.dataset.row=cfg.row; el.dataset.seat=s; el.dataset.price=cfg.price;
           el.title=`Ряд ${cfg.row}, Місце ${s} — ${cfg.price} грн`;
 
-          if (reservedSet.has(key)){
-            el.classList.add('reserved');
-          } else if (availableSet.has(key)){
-            el.classList.add('quota');
-            el.addEventListener('click',()=>toggle(el));
-          } else {
-            // не в квоте
-            if (sellMode==='only'){
-              // показываем, но как «не продаем»
-              el.classList.add('disabled');
-            } else { // 'disable' — видим всё, кликается только квота
-              el.classList.add('disabled');
-            }
+          const isReserved = reserved.has(key);
+          const inQuota = quota.has(key);
+          if(isReserved){ el.classList.add('reserved'); }
+          else if(sellMode==='only'){
+            if(inQuota){ el.classList.add('quota'); el.addEventListener('click',()=>toggle(el)); }
+            else { el.classList.add('disabled'); } // показано, але не клікається
+          }else{ // disable: все видно, клікається лише квота
+            if(inQuota){ el.classList.add('quota'); el.addEventListener('click',()=>toggle(el)); }
+            else { el.classList.add('disabled'); }
           }
           hall.appendChild(el);
         }
         while(nextA<(cfg.aisles||[]).length){ hall.appendChild(spacer()); nextA++; }
-
-        const rl=document.createElement('div'); rl.className='rowlabel';
-        rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`;
-        hall.appendChild(rl);
+        const rl=document.createElement('div'); rl.className='rowlabel'; rl.textContent=`Ряд ${cfg.row} • ${cfg.price} грн`; hall.appendChild(rl);
       });
-    }
 
-    function fitWidth(){
-      const padding = 32;
-      const seat = Math.floor((wrap.clientWidth - padding) / layoutCols);
-      if (seat >= 16) setSeatPx(seat);
-      requestAnimationFrame(()=>{
-        const need = wrap.clientWidth - 20;
+      function fitWidth(){
+        const need = wrap.clientWidth - 24;
         const current = hall.scrollWidth;
-        const scale = current > 0 ? Math.min(1, need / current) : 1;
-        hall.style.transform = `scale(${scale})`;
-        zoomValEl.textContent = Math.round(getSeatPx()/32*100*scale)+'%';
-        wrap.scrollTop = 0; wrap.scrollLeft = 0;
+        if(current>need){
+          const scale = Math.max(0.6, need/current);
+          hall.style.transform = `scale(${scale})`;
+          zoomValEl.textContent = Math.round(getSeatPx()/28*100*scale)+'%';
+        } else {
+          hall.style.transform='scale(1)';
+          zoomValEl.textContent = '100%';
+        }
+      }
+      document.getElementById('zoomIn').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()+4); fitWidth(); });
+      document.getElementById('zoomOut').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()-4); fitWidth(); });
+      document.getElementById('fitWidth').addEventListener('click', fitWidth);
+
+      fitWidth(); setTimeout(fitWidth, 80); addEventListener('resize', fitWidth);
+
+      function toggle(el){
+        const key=el.dataset.key;
+        const i=selected.findIndex(x=>x.key===key);
+        if(i!==-1){ selected.splice(i,1); el.classList.remove('selected'); }
+        else { selected.push({key,row:+el.dataset.row,seat:+el.dataset.seat,price:+el.dataset.price}); el.classList.add('selected'); }
+        update();
+      }
+      function update(){
+        const total=selected.reduce((a,b)=>a+b.price,0);
+        document.getElementById('count').textContent=selected.length;
+        document.getElementById('sum').textContent=total;
+        document.getElementById('toCheckout').disabled=selected.length===0;
+      }
+      document.getElementById('toCheckout').addEventListener('click',()=>{
+        const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
+        const total=selected.reduce((a,b)=>a+b.price,0);
+        location.href=`/checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
       });
-    }
 
-    document.getElementById('zoomIn').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()+4); });
-    document.getElementById('zoomOut').addEventListener('click',()=>{ hall.style.transform='scale(1)'; setSeatPx(getSeatPx()-4); });
-    document.getElementById('fitWidth').addEventListener('click', fitWidth);
-
-    document.getElementById('toCheckout').addEventListener('click',()=>{
-      const seats=selected.map(s=>`Р${s.row}-М${s.seat}`).join(',');
-      const total=selected.reduce((a,b)=>a+b.price,0);
-      location.href=`/checkout.html?show=${encodeURIComponent(showSlug)}&seats=${encodeURIComponent(seats)}&sum=${encodeURIComponent(total)}`;
+    }).catch(e=>{
+      console.error(e);
+      showError('Не вдалося завантажити схему. Перевірте, чи існує файл: '+
+        `/data/shows/${showSlug}.json`);
     });
-
-    fetch(`/data/shows/${showSlug}.json`, {cache:'no-store'})
-      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(show=>{
-        document.getElementById('page-title').textContent='Схема — '+(show.title||'');
-        document.getElementById('title').textContent='Вибір місць — «'+(show.title||'')+'» '+(show.stage?('('+stageName(show.stage)+')'):'');
-        document.getElementById('back').href=`/show.html?show=${encodeURIComponent(showSlug)}`;
-
-        sellMode = (show.sell_mode||'disable').toLowerCase()==='only' ? 'only' : 'disable';
-
-        availableSet = new Set((show.available||show.sell||[]).map(String));
-        reservedSet  = new Set((show.reserved||[]).map(String).map(x=>{
-          // допустим оба формата: "Р2-М5" или "2-5"
-          const m = x.match(/(\d+)[^\d]+(\d+)/); return m ? `${m[1]}-${m[2]}` : x;
-        }));
-
-        renderRows(show);
-        fitWidth(); setTimeout(fitWidth, 100);
-        window.addEventListener('resize', fitWidth);
-      })
-      .catch(e=>{ console.error(e); showError('Не вдалося завантажити схему. Перевірте файл: /data/shows/'+showSlug+'.json'); });
-  })();
   </script>
 </body>
 </html>
