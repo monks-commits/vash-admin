@@ -1,50 +1,67 @@
-<!DOCTYPE html>
-<html lang="uk">
+<!DOCTYPE html><html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Театри — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css" />
-  <style>
-    .grid{display:grid;gap:14px}
-    @media (min-width:860px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    .card{display:grid;gap:10px;background:#fff;border:1px solid #eee;border-radius:12px;padding:12px}
-    .poster{width:100%;height:220px;object-fit:cover;border-radius:10px;background:#eee}
-    .meta{color:#6b7280;font-size:14px}
-  </style>
+  <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
   <div id="site-header"></div>
+  <script type="module" src="/scripts/include.js"></script>
 
   <main class="main">
     <h1>Театри</h1>
-    <div class="grid">
-      <article class="card">
-        <img class="poster" src="/images/shevchenko.jpg" alt="Театр Шевченка" />
-        <div><strong>Театр ім. Т.Г. Шевченка</strong></div>
-        <div class="meta">Кривий Ріг • Велика/Мала сцена</div>
+
+    <div class="afisha-grid">
+      <!-- ШЕВЧЕНКА -->
+      <article class="card afisha-card">
+        <img src="/images/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка">
         <div>
-          <a class="btn" href="/afisha.html?city=Кривий%20Ріг">Афіша</a>
+          <div><strong>Театр ім. Т.Г. Шевченка</strong></div>
+          <div class="meta">Кривий Ріг • Велика/Мала сцена</div>
+          <p style="margin-top:8px">
+            <a class="btn" href="/afisha.html?city=Кривий Ріг">Афіша</a>
+          </p>
         </div>
       </article>
 
-      <article class="card">
-        <img class="poster" src="/images/opera.jpg" alt="Опера" />
-        <div><strong>Опера</strong></div>
-        <div class="meta">Дніпро</div>
-        <div><a class="btn" href="/afisha.html?city=Дніпро">Афіша</a></div>
+      <!-- ОПЕРА -->
+      <article class="card afisha-card">
+        <img src="/images/opera.jpg" alt="Опера">
+        <div>
+          <div><strong>Опера</strong></div>
+          <div class="meta">Дніпро</div>
+          <p style="margin-top:8px">
+            <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
+          </p>
+        </div>
       </article>
 
-      <article class="card">
-        <img class="poster" src="/images/filarmonia.jpg" alt="Філармонія" />
-        <div><strong>Філармонія</strong></div>
-        <div class="meta">Дніпро</div>
-        <div><a class="btn" href="/afisha.html?city=Дніпро">Афіша</a></div>
+      <!-- ФІЛАРМОНІЯ -->
+      <article class="card afisha-card">
+        <img src="/images/filarmonia.jpg" alt="Філармонія">
+        <div>
+          <div><strong>Філармонія</strong></div>
+          <div class="meta">Дніпро</div>
+          <p style="margin-top:8px">
+            <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
+          </p>
+        </div>
+      </article>
+
+      <!-- АКАДЕМІЯ РУХУ — ДОБАВЛЕНО -->
+      <article class="card afisha-card">
+        <img src="/images/akademia.jpg" alt="Академія Руху">
+        <div>
+          <div><strong>Академія Руху</strong></div>
+          <div class="meta">Дніпро</div>
+          <p style="margin-top:8px">
+            <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
+          </p>
+        </div>
       </article>
     </div>
   </main>
 
   <div id="site-footer"></div>
-  <script type="module" src="/scripts/include.js"></script>
-</body>
-</html>
+</body></html>
