@@ -1,96 +1,66 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Деталі вистави — Ваш Адмін</title>
+  <title>Вистава — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    .details{display:grid;gap:16px}
-    @media (min-width:900px){.details{grid-template-columns:280px 1fr}}
-    .poster{width:100%;height:360px;object-fit:cover;border-radius:10px;background:#eee}
-    .meta{color:#6b7280}
+    .wrap{display:grid;gap:16px;grid-template-columns:280px 1fr}
+    @media (max-width:840px){.wrap{grid-template-columns:1fr}}
+    .poster{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#eef2f6}
+    .meta{color:#6b7280;font-size:13px}
   </style>
 </head>
 <body>
-<header class="header">
-  <div class="header-inner">
-    <div class="brand">
-      <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
-      <div>
-        <h1>Ваш Адмін</h1>
-        <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
-      </div>
+  <div id="site-header"></div>
+
+  <main class="main">
+    <a class="meta" href="/afisha.html">← Повернутись до афіші</a>
+    <div id="content" class="section">
+      Завантаження...
     </div>
-    <nav class="nav">
-      <a href="https://vash-admin.com/" class="nav-link">Головна</a>
-      <a href="https://vash-admin.com/afisha.html" class="nav-link">Афіша</a>
-      <a href="https://vash-admin.com/theatres.html" class="nav-link">Театри</a>
-      <a href="https://vash-admin.com/about.html" class="nav-link">Про нас</a>
-      <a href="https://vash-admin.com/contacts.html" class="nav-link">Контакти</a>
-    </nav>
-  </div>
-</header>
+  </main>
 
-<main class="container">
-  <a href="https://vash-admin.com/afisha.html">← Назад до афіші</a>
-  <div class="section details">
-    <img id="poster" class="poster" alt="">
-    <div>
-      <h1 id="title">Вистава</h1>
-      <div class="meta" style="margin:6px 0" id="meta"></div>
-      <div id="desc" style="margin-top:10px"></div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <a id="toHall" class="btn" href="#">Вибрати місця</a>
-      </div>
-    </div>
-  </div>
-</main>
+  <div id="site-footer"></div>
+  <script src="/scripts/include.js" type="module"></script>
+  <script>
+    (async function(){
+      const box = document.getElementById('content');
+      const q = new URLSearchParams(location.search);
+      const slug = q.get('show');
+      if (!slug){ box.innerHTML = '<div class="meta">Помилка: немає параметра show.</div>'; return; }
 
-<footer class="footer">
-  <div class="footer-inner">
-    <div>© 2025 Ваш Адмін</div>
-    <div class="social-icons">
-      <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank">f</a>
-      <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank">tg</a>
-      <a class="icon fb" href="https://www.facebook.com/admin.teatra.kr/" target="_blank">fb KR</a>
-      <a class="icon tg" href="https://t.me/krdramikom" target="_blank">tg KR</a>
-    </div>
-  </div>
-</footer>
+      try{
+        const r = await fetch('/data/shows/'+slug+'.json', {cache:'no-store'});
+        if (!r.ok) throw new Error('HTTP '+r.status);
+        const s = await r.json();
 
-<script>
-(async function(){
-  const qp = new URLSearchParams(location.search);
-  const slug = qp.get('show'); // напр. shevchenko/ledi
-  if (!slug){ document.getElementById('title').textContent='Помилка: немає параметра show'; return; }
+        const poster = s.poster ? ('/'+s.poster.replace(/^\/+/,'') ) : '';
+        const title  = s.title || 'Вистава';
+        const metaLine = [s.city, s.theatre, s.stage].filter(Boolean).join(' • ');
+        const desc = s.description || '';
 
-  try{
-    const r = await fetch(`/data/shows/${slug}.json`, {cache:'no-store'});
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    const show = await r.json();
-
-    document.title = `${show.title||'Вистава'} — Ваш Адмін`;
-
-    const poster = (show.poster ? '/'+show.poster.replace(/^\/+/,'') : `/images/posters/${slug}.jpg`);
-    document.getElementById('poster').src = poster;
-    document.getElementById('poster').alt = show.title || '';
-    document.getElementById('title').textContent = show.title || 'Вистава';
-
-    const meta = [
-      show.theatre, 
-      (show.stage==='big'?'Велика сцена':(show.stage==='small'?'Мала сцена':'')), 
-      show.city
-    ].filter(Boolean).join(' • ');
-    document.getElementById('meta').textContent = meta;
-
-    document.getElementById('desc').innerHTML = show.description || '';
-
-    document.getElementById('toHall').href = `https://vash-admin.com/spectacles/hall.html?show=${encodeURIComponent(slug)}`;
-  }catch(e){
-    document.getElementById('title').textContent = 'Не вдалося завантажити інформацію про виставу';
-  }
-})();
-</script>
+        box.innerHTML = `
+          <div class="wrap">
+            <div><img class="poster" src="${poster}" alt="${title}" onerror="this.style.display='none'"></div>
+            <div>
+              <h1 style="margin-top:0">${title}</h1>
+              ${metaLine ? `<div class="meta" style="margin-bottom:8px">${metaLine}</div>` : ``}
+              ${desc ? `<div class="meta" style="white-space:pre-wrap">${desc}</div>` : ``}
+              <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <a class="btn" href="/spectacles/hall.html?show=${encodeURIComponent(slug)}">Вибрати місця</a>
+                <a class="btn secondary" href="/afisha.html">Повернутись до афіші</a>
+              </div>
+            </div>
+          </div>
+        `;
+        document.title = title + ' — Ваш Адмін';
+      }catch(e){
+        console.error(e);
+        box.innerHTML = '<div class="meta">Не вдалося завантажити дані про виставу.</div>';
+      }
+    })();
+  </script>
 </body>
 </html>
