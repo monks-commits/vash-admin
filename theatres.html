@@ -5,30 +5,12 @@
   <title>Театри — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css"/>
   <style>
-    .grid {
-      display: grid;
-      gap: 20px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      align-items: start;
-    }
-    .card {
-      background: #fff;
-      border: 1px solid #eee;
-      border-radius: 14px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    }
-    .poster {
-      width: 100%;
-      height: 240px;
-      object-fit: cover;
-      border-radius: 10px;
-      background: #eee;
-    }
-    .meta { color: #6b7280; font-size: 14px; }
+    .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start}
+    .card{background:#fff;border:1px solid #eee;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .poster{width:100%;height:240px;object-fit:cover;border-radius:10px;background:#eee}
+    .meta{color:#6b7280;font-size:14px}
+    .titlelink{color:inherit;text-decoration:none}
+    .titlelink:hover{color:#2563eb}
   </style>
 </head>
 <body>
@@ -39,35 +21,35 @@
     <h1>Театри</h1>
 
     <div class="grid">
-      <!-- ШЕВЧЕНКА -->
+      <!-- Шевченка -->
       <article class="card">
-        <img class="poster" src="/images/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка" />
-        <div><strong>Театр ім. Т.Г. Шевченка</strong></div>
+        <img class="poster" src="/images/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка"/>
+        <div><a class="titlelink" href="/shevchenko.html"><strong>Театр ім. Т.Г. Шевченка</strong></a></div>
         <div class="meta">Кривий Ріг • Велика/Мала сцена</div>
         <a class="btn" href="/afisha.html?city=Кривий Ріг">Афіша</a>
       </article>
 
-      <!-- ОПЕРА -->
+      <!-- Опера -->
       <article class="card">
-        <img class="poster" src="/images/opera.jpg" alt="Опера" />
-        <div><strong>Опера</strong></div>
+        <img class="poster" src="/images/opera.jpg" alt="Опера"/>
+        <div><a class="titlelink" href="/opera.html"><strong>Опера</strong></a></div>
         <div class="meta">Дніпро</div>
         <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
       </article>
 
-      <!-- ФІЛАРМОНІЯ -->
+      <!-- Філармонія -->
       <article class="card">
-        <img class="poster" src="/images/filarmonia.jpg" alt="Філармонія" />
-        <div><strong>Філармонія</strong></div>
+        <img class="poster" src="/images/filarmonia.jpg" alt="Філармонія"/>
+        <div><a class="titlelink" href="/filarmonia.html"><strong>Філармонія</strong></a></div>
         <div class="meta">Дніпро</div>
         <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
       </article>
 
-      <!-- АКАДЕМІЯ РУХУ -->
+      <!-- Академія Руху -->
       <article class="card">
-        <img class="poster" src="/images/akademia.jpg" alt="Академія Руху" />
-        <div><strong>Академія Руху</strong></div>
-        <div class="meta">Дніпро</div>
+        <img class="poster" src="/images/akademia.jpg" alt="Академія Руху"/>
+        <div><a class="titlelink" href="/akademia.html"><strong>Академія Руху</strong></a></div>
+        <div class="meta">Кривий Ріг</div>
         <a class="btn" href="/afisha.html?city=Дніпро">Афіша</a>
       </article>
     </div>
