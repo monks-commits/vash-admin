@@ -1,9 +1,29 @@
 {
-  "title": "Мауглі — пластична поема",
-  "stage": "big",
+  "title": "Пластична поема «Мауглі»",
   "city": "Кривий Ріг",
   "theatre": "Театр ім. Т.Г. Шевченка",
   "poster": "images/posters/shevchenko/maugli.jpg",
-  "duration": "55 хвилин",
-  "description": "<p><strong>«Мауглі»</strong> — пластична поема на одну дію за мотивами Редьярда Кіплінга.</p><p><strong>Автор лібрето, режисер, балетмейстер-постановник:</strong> заслужена артистка України Тетяна Брисіна.</p><p>Хореографічна вистава переносить у світ джунглів. Танцювальна мова Балу, Акели, Багіри та інших поєднує класику з пластикою тваринного світу. Історія хлопчика, що виріс серед звірів, оживає на тлі об’ємних декорацій.</p><p><em>Квитки: 70–100 грн.</em></p>"
+  "description": "Балетна постановка за мотивами Р. Кіплінга. Режисер — Тетяна Брисіна.",
+  "sell_mode": "disable",
+  "available": [],
+  "rows": [
+    { "section": "parter", "row": 1,  "seats": 20, "aisles": [10], "price": 170 },
+    { "section": "parter", "row": 2,  "seats": 20, "aisles": [10], "price": 200 },
+    { "section": "parter", "row": 3,  "seats": 20, "aisles": [10], "price": 200 },
+    { "section": "parter", "row": 4,  "seats": 20, "aisles": [10], "price": 180 },
+    { "section": "parter", "row": 5,  "seats": 20, "aisles": [10], "price": 180 },
+    { "section": "parter", "row": 6,  "seats": 20, "aisles": [10], "price": 180 },
+    { "section": "parter", "row": 7,  "seats": 20, "aisles": [10], "price": 170 },
+    { "section": "parter", "row": 8,  "seats": 20, "aisles": [10], "price": 170 },
+    { "section": "parter", "row": 9,  "seats": 20, "aisles": [10], "price": 160 },
+    { "section": "parter", "row": 10, "seats": 20, "aisles": [10], "price": 160 },
+    { "section": "parter", "row": 11, "seats": 20, "aisles": [10], "price": 140 },
+    { "section": "parter", "row": 12, "seats": 20, "aisles": [10], "price": 140 },
+    { "section": "parter", "row": 13, "seats": 20, "aisles": [10], "price": 120 },
+    { "section": "parter", "row": 14, "seats": 20, "aisles": [10], "price": 120 },
+    { "section": "parter", "row": 15, "seats": 20, "aisles": [10], "price": 100 },
+    { "section": "parter", "row": 16, "seats": 20, "aisles": [10], "price": 100 },
+    { "section": "parter", "row": 17, "seats": 20, "aisles": [10], "price": 70 },
+    { "section": "parter", "row": 18, "seats": 20, "aisles": [10], "price": 70 }
+  ]
 }
