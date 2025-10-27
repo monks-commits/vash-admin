@@ -1,101 +1,48 @@
-<!DOCTYPE html>
-<html lang="uk">
+<!DOCTYPE html><html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Оплата квитків — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Оплата — Ваш Адмін</title>
+  <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
-  <div id="site-header"></div>
+<div id="site-header"></div>
+<script type="module" src="/scripts/include.js"></script>
 
-  <main class="main">
-    <h1>Оплата</h1>
-    <div id="info" class="section"></div>
+<main class="container">
+  <h1>Оплата</h1>
+  <div id="info" class="card" style="margin-bottom:12px"></div>
 
-    <form id="payForm" class="section" novalidate>
-      <div class="row two" style="display:grid;gap:12px;grid-template-columns:1fr 1fr">
-        <label>Ім’я покупця
-          <input type="text" id="customerName" required placeholder="Ваше ім’я"/>
-        </label>
-        <label>Телефон
-          <input type="tel" id="customerPhone" required placeholder="+380..." inputmode="tel"/>
-        </label>
-      </div>
-      <div style="margin-top:12px">
-        <label>Е-mail для отримання квитків
-          <input type="email" id="customerEmail" required placeholder="example@gmail.com" />
-        </label>
-      </div>
-      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-        <button type="submit" class="btn">Перейти до оплати</button>
-        <a id="back" class="btn secondary">Змінити місця</a>
-      </div>
-      <div id="ok" class="meta" style="color:#065f46;display:none;margin-top:8px">Бронювання збережено. Далі — оплата через LiqPay.</div>
-      <div id="err" class="meta" style="color:#b91c1c;display:none;margin-top:8px"></div>
-    </form>
-  </main>
+  <form id="form" class="card" novalidate>
+    <div class="row two">
+      <label>Ім’я<input id="name" required /></label>
+      <label>Телефон<input id="phone" required placeholder="+380..." /></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>Е-пошта для квитків<input type="email" id="email" required placeholder="example@gmail.com"/></label>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" type="submit">Перейти до оплати</button>
+      <a id="back" class="btn secondary" href="#">Змінити місця</a>
+    </div>
+  </form>
+</main>
 
-  <div id="site-footer"></div>
-  <script type="module">
-  import { supabase } from '/scripts/db.js';
+<div id="site-footer"></div>
 
-  const q = new URLSearchParams(location.search);
-  const show  = q.get('show');
-  const seats = q.get('seats');
-  const sum   = q.get('sum');
+<script>
+(function(){
+  const qp=new URLSearchParams(location.search);
+  const show=qp.get('show'), seats=qp.get('seats'), sum=qp.get('sum');
+  const info=document.getElementById('info'); const back=document.getElementById('back');
+  if(!show||!seats||!sum){ info.innerHTML='<p>❌ Неповні дані для оплати.</p>'; document.getElementById('form').style.display='none'; return; }
+  info.innerHTML=`<strong>Вистава:</strong> ${show.replace('/',' / ')}<br><strong>Місця:</strong> ${seats}<br><strong>Сума:</strong> ${sum} грн`;
+  back.href=`/spectacles/hall.html?show=${encodeURIComponent(show)}`;
 
-  const info = document.getElementById('info');
-  const back = document.getElementById('back');
-
-  if (!show || !seats || !sum){
-    info.innerHTML = '<p>❌ Неповні дані.</p>';
-  }else{
-    const pretty = show.split('/').join(' / ').replace(/-/g,' ');
-    info.innerHTML = `
-      <div><strong>Вистава:</strong> ${pretty}</div>
-      <div><strong>Місця:</strong> ${seats}</div>
-      <div><strong>Сума:</strong> ${sum} грн</div>`;
-    back.href = '/spectacles/hall.html?show='+encodeURIComponent(show);
-  }
-
-  const form = document.getElementById('payForm');
-  const ok = document.getElementById('ok');
-  const err = document.getElementById('err');
-
-  function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-
-  form.addEventListener('submit', async (e)=>{
+  document.getElementById('form').addEventListener('submit',e=>{
     e.preventDefault();
-    err.style.display='none'; ok.style.display='none';
-
-    const name  = document.getElementById('customerName').value.trim();
-    const phone = document.getElementById('customerPhone').value.trim();
-    const email = document.getElementById('customerEmail').value.trim();
-
-    if (!name || !phone || !email){ err.textContent='Заповніть усі поля.'; err.style.display='block'; return; }
-    if (!validEmail(email)){ err.textContent='Невірний e-mail.'; err.style.display='block'; return; }
-
-    try{
-      const payload = {
-        seat_ids: seats.split(',').map(s=>s.trim()),
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email,
-        show_slug: show,
-        amount: Number(sum)||0
-      };
-      const { error } = await supabase.from('bookings').insert([payload]);
-      if (error) throw error;
-      ok.style.display='block';
-
-      // TODO: редирект на LiqPay (после регистрации): window.location = '<liqpay url>';
-    }catch(e){
-      err.textContent = 'Помилка збереження: ' + (e.message||e);
-      err.style.display='block';
-    }
+    alert('Далі — інтеграція з LiqPay (готова сторінка, підставимо API ключі).');
+    // тут ініціалізуємо Edge Function liqpay-init → редірект на сторінку LiqPay
   });
-  </script>
-  <script type="module" src="/scripts/include.js"></script>
-</body>
-</html>
+})();
+</script>
+</body></html>
