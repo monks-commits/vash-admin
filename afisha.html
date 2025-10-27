@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="uk">
+<!DOCTYPE html><html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Афіша — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css"/>
   <style>
     .grid{display:grid;gap:16px}
     @media (min-width:850px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -17,76 +15,69 @@
   </style>
 </head>
 <body>
-  <div id="site-header"></div>
+<div id="site-header"></div>
+<script type="module" src="/scripts/include.js"></script>
 
-  <main class="main">
-    <h1>Афіша</h1>
+<main class="container">
+  <h1>Афіша</h1>
+  <div class="filters">
+    <button class="pill active" data-city="all">Всі міста</button>
+    <button class="pill" data-city="Дніпро">Дніпро</button>
+    <button class="pill" data-city="Кривий Ріг">Кривий Ріг</button>
+  </div>
 
-    <div class="filters">
-      <button class="pill active" data-city="all">Всі міста</button>
-      <button class="pill" data-city="Дніпро">Дніпро</button>
-      <button class="pill" data-city="Кривий Ріг">Кривий Ріг</button>
-    </div>
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="meta" style="display:none">Подій за вибраним фільтром поки немає.</div>
+</main>
 
-    <div id="grid" class="grid"></div>
-    <div id="empty" class="meta" style="display:none">Подій за вибраним фільтром поки немає.</div>
-  </main>
+<div id="site-footer"></div>
 
-  <div id="site-footer"></div>
-  <script>
-  (async function(){
-    const grid  = document.getElementById('grid');
-    const empty = document.getElementById('empty');
-    const pills = document.querySelectorAll('.pill');
-    let items = [];
+<script>
+(async()=>{
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const pills = document.querySelectorAll('.pill');
 
-    try{
-      const r = await fetch('/data/afisha.json', {cache:'no-store'});
-      items = await r.json();
-    }catch(e){ console.error(e); items = []; }
+  // загружаем афишу
+  const res = await fetch('/data/afisha.json', {cache:'no-store'});
+  const items = res.ok ? await res.json() : [];
 
-    function cardHTML(s){
-      const poster = s.poster ? '/' + s.poster.replace(/^\/+/,'') : '';
-      const show = encodeURIComponent(s.show);
-      return `
-        <article class="card">
-          <img class="poster" src="${poster}" alt="${s.title||''}" onerror="this.style.display='none'">
-          <div><strong>${s.title||''}</strong></div>
-          <div class="meta">${[s.date,s.time].filter(Boolean).join(' • ')}</div>
-          <div class="meta">${[s.theatre,s.stage].filter(Boolean).join(' • ')}</div>
-          <div class="meta">${s.city||''}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-            <a class="btn secondary" href="/show.html?show=${show}">Детальніше</a>
-            <a class="btn" href="/spectacles/hall.html?show=${show}">Вибрати місця</a>
-          </div>
-        </article>`;
-    }
+  function cardHTML(s){
+    const poster = s.poster ? `/${s.poster.replace(/^\/+/,'')}` : '';
+    const show = encodeURIComponent(s.show);
+    return `
+      <article class="card">
+        <img class="poster" src="${poster}" alt="${s.title||''}" onerror="this.style.display='none'">
+        <div><strong>${s.title||''}</strong></div>
+        <div class="meta">${[s.date,s.time].filter(Boolean).join(' • ')}</div>
+        <div class="meta">${[s.theatre,s.stage].filter(Boolean).join(' • ')}</div>
+        <div class="meta">${s.city||''}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <a class="btn secondary" href="/show.html?show=${show}">Детальніше</a>
+          <a class="btn" href="/spectacles/hall.html?show=${show}">Вибрати місця</a>
+        </div>
+      </article>`;
+  }
 
-    function render(city='all'){
-      const data = city==='all' ? items : items.filter(x => (x.city||'').toLowerCase()===city.toLowerCase());
-      grid.innerHTML = data.map(cardHTML).join('');
-      empty.style.display = data.length ? 'none':'block';
-    }
+  function render(city='all'){
+    const data = city==='all' ? items : items.filter(x => (x.city||'').toLowerCase()===city.toLowerCase());
+    grid.innerHTML = data.map(cardHTML).join('');
+    empty.style.display = data.length ? 'none' : 'block';
+  }
 
-    pills.forEach(p=>{
-      p.addEventListener('click', ()=>{
-        pills.forEach(x=>x.classList.remove('active'));
-        p.classList.add('active');
-        render(p.dataset.city);
-      });
+  pills.forEach(p=>{
+    p.addEventListener('click', ()=>{
+      pills.forEach(x=>x.classList.remove('active'));
+      p.classList.add('active');
+      render(p.dataset.city);
     });
+  });
 
-    // старт с query ?city=...
-    const q = new URLSearchParams(location.search);
-    const c = q.get('city');
-    if (c){
-      pills.forEach(p=>p.classList.toggle('active', p.dataset.city===c));
-      render(c);
-    }else{
-      render('all');
-    }
-  })();
-  </script>
-  <script type="module" src="/scripts/include.js"></script>
-</body>
-</html>
+  // если пришли ?city=…
+  const q = new URLSearchParams(location.search);
+  const c = q.get('city');
+  if (c){ pills.forEach(p=>p.classList.toggle('active', p.dataset.city===c)); render(c); }
+  else render('all');
+})();
+</script>
+</body></html>
