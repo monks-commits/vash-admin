@@ -1,43 +1,23 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Дякуємо за замовлення — Ваш Адмін</title>
+  <title>Дякуємо — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
-  <style>
-    .center{max-width:640px;margin:0 auto;text-align:center}
-    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
-  </style>
 </head>
 <body>
   <div id="site-header"></div>
 
   <main class="main">
-    <div class="center card" id="box">
-      Завантаження...
-    </div>
+    <section class="section" style="text-align:center">
+      <h2>Дякуємо за покупку!</h2>
+      <p class="meta">Електронний квиток надіслано на вашу електронну пошту.</p>
+      <p style="margin-top:12px"><a class="btn" href="/afisha.html">Повернутися до афіші</a></p>
+    </section>
   </main>
 
   <div id="site-footer"></div>
-  <script src="/scripts/include.js" type="module"></script>
-  <script>
-    (function(){
-      const q = new URLSearchParams(location.search);
-      const show = (q.get('show')||'').split('/').join(' / ');
-      const sum  = q.get('sum') || '0';
-      const email= q.get('email') || '';
-
-      const box = document.getElementById('box');
-      box.innerHTML = `
-        <h1 style="margin:6px 0 10px">Дякуємо за замовлення!</h1>
-        <p>Ваше бронювання прийнято.${show ? `<br>Вистава: <strong>${show.replace(/-/g,' ')}</strong>.` : ''} Сума: <strong>${sum} грн</strong>.</p>
-        ${email ? `<p>Е-квиток буде надіслано на e-mail: <strong>${email}</strong> після підтвердження оплати.</p>` : ``}
-        <p style="margin-top:12px">
-          <a class="btn" href="/afisha.html">Повернутись до афіші</a>
-        </p>
-      `;
-    })();
-  </script>
+  <script type="module" src="/scripts/include.js"></script>
 </body>
 </html>
