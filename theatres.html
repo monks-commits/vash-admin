@@ -1,94 +1,68 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Театри — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css" />
   <style>
-    .theaters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-    .theater-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
-    .theater-image img{width:100%;height:180px;object-fit:cover;background:#f3f4f6}
-    .theater-info{padding:12px}
-    .theater-info h3{margin:0 0 8px}
-    .theater-description{color:#6b7280}
+    .theaters{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+    .t-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:var(--shadow);padding:12px;display:grid;gap:10px}
+    .cover{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#eef2f6}
+    .cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .meta{color:#6b7280;font-size:13px}
   </style>
 </head>
 <body>
-<header class="header">
-  <div class="header-inner">
-    <div class="brand">
-      <img src="/images/logo-placeholder.png" alt="Ваш Адмін">
-      <div>
-        <h1>Ваш Адмін</h1>
-        <p class="tagline">Квитки без комісій</p>
-      </div>
-    </div>
-    <nav class="nav">
-      <a href="/index.html">Головна</a>
-      <a href="/afisha.html">Афіша</a>
-      <a href="/theatres.html" class="active">Театри</a>
-      <a href="/about.html">Про нас</a>
-      <a href="/contacts.html">Контакти</a>
-    </nav>
-  </div>
-</header>
+  <div id="site-header"></div>
 
-<main class="container">
-  <h2>Театри</h2>
-  <div class="theaters-grid">
-    <div class="theater-card">
-      <div class="theater-image">
-        <img src="/images/opera.jpg" alt="Театр опери та балету" onerror="this.style.display='none'">
-      </div>
-      <div class="theater-info">
-        <h3>Театр опери та балету</h3>
-        <p class="theater-location">Дніпро</p>
-        <p class="theater-description">Класичні опери та балети в історичному театрі.</p>
-        <a href="/afisha.html?city=Дніпро" class="btn">Детальніше</a>
-      </div>
-    </div>
+  <main class="main">
+    <h1>Театри</h1>
+    <div class="theaters">
+      <article class="t-card">
+        <div class="cover"><img src="/images/theatres/opera.jpg" alt="Театр опери та балету" onerror="this.style.display='none'"></div>
+        <h3 style="margin:0">Дніпровський театр опери та балету</h3>
+        <div class="meta">Дніпро • 200–700 грн</div>
+        <p class="meta">Класичні опери та балети у великому історичному залі.</p>
+        <div>
+          <a class="btn" href="/afisha.html?city=Дніпро&theatre=опера">Афіша</a>
+        </div>
+      </article>
 
-    <div class="theater-card">
-      <div class="theater-image">
-        <img src="/images/filarmonia.jpg" alt="Філармонія" onerror="this.style.display='none'">
-      </div>
-      <div class="theater-info">
-        <h3>Дніпропетровська філармонія</h3>
-        <p class="theater-location">Дніпро</p>
-        <p class="theater-description">Симфонічні концерти, камерна музика тощо.</p>
-        <a href="/afisha.html?city=Дніпро" class="btn">Детальніше</a>
-      </div>
-    </div>
+      <article class="t-card">
+        <div class="cover"><img src="/images/theatres/filarmonia.jpg" alt="Дніпропетровська філармонія" onerror="this.style.display='none'"></div>
+        <h3 style="margin:0">Дніпропетровська філармонія</h3>
+        <div class="meta">Дніпро • 200–500 грн</div>
+        <p class="meta">Симфонічні концерти, камерна музика, зіркові солісти.</p>
+        <div>
+          <a class="btn" href="/afisha.html?city=Дніпро&theatre=філармон">Афіша</a>
+        </div>
+      </article>
 
-    <div class="theater-card">
-      <div class="theater-image">
-        <img src="/images/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка" onerror="this.style.display='none'">
-      </div>
-      <div class="theater-info">
-        <h3>Театр ім. Т.Г. Шевченка</h3>
-        <p class="theater-location">Кривий Ріг</p>
-        <p class="theater-description">Драматичні вистави, комедії та класика.</p>
-        <a href="/shevchenko.html" class="btn">Репертуар</a>
-      </div>
-    </div>
+      <article class="t-card">
+        <div class="cover"><img src="/images/theatres/shevchenko.jpg" alt="Театр ім. Т.Г. Шевченка" onerror="this.style.display='none'"></div>
+        <h3 style="margin:0">Театр ім. Т.Г. Шевченка</h3>
+        <div class="meta">Кривий Ріг • 70–200 грн</div>
+        <p class="meta">Драматичні вистави, комедії та класика.</p>
+        <div>
+          <a class="btn" href="/afisha.html?city=Кривий Ріг&theatre=шевченк">Афіша</a>
+        </div>
+      </article>
 
-    <div class="theater-card">
-      <div class="theater-image">
-        <img src="/images/akademia.jpg" alt="Академія руху" onerror="this.style.display='none'">
-      </div>
-      <div class="theater-info">
-        <h3>Академія руху</h3>
-        <p class="theater-location">Дніпро</p>
-        <p class="theater-description">Сучасний танцювальний театр.</p>
-        <a href="/afisha.html?city=Дніпро" class="btn">Детальніше</a>
-      </div>
+      <article class="t-card">
+        <div class="cover"><img src="/images/theatres/akademia.jpg" alt="Академія руху" onerror="this.style.display='none'"></div>
+        <h3 style="margin:0">Академія руху</h3>
+        <div class="meta">Дніпро • 120–200 грн</div>
+        <p class="meta">Сучасний танцювальний театр, експериментальні постановки.</p>
+        <div>
+          <a class="btn" href="/afisha.html?city=Дніпро&theatre=академ">Афіша</a>
+        </div>
+      </article>
     </div>
-  </div>
-</main>
+  </main>
 
-<footer class="footer">
-  <div class="footer-inner"><div>© 2025 Ваш Адмін</div></div>
-</footer>
+  <div id="site-footer"></div>
+  <script src="/scripts/include.js" type="module"></script>
 </body>
 </html>
+
