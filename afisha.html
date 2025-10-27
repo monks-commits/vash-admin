@@ -1,154 +1,110 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Афіша — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    .grid{display:grid;gap:16px}
-    @media (min-width:850px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-
-    /* одинаковая высота карточек */
-    .card{
-      background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:var(--shadow);
-      display:flex;flex-direction:column;min-height:520px;padding:12px;
-    }
-    .poster{width:100%;height:260px;object-fit:cover;border-radius:10px;background:#eee}
-    .meta{color:#6b7280;font-size:14px}
-    .filters{display:flex;gap:10px;margin:12px 0 16px;flex-wrap:wrap}
-    .pill{padding:8px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:var(--shadow);padding:12px;display:grid;gap:10px}
+    .poster-wrap{position:relative;width:100%;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#eef2f6}
+    .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .meta{color:#6b7280;font-size:13px}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+    .pill{padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
     .pill.active{background:#2563eb;color:#fff;border-color:#2563eb}
-
-    .info{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
   </style>
 </head>
 <body>
-<header class="header">
-  <div class="header-inner">
-    <div class="brand">
-      <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
-      <div>
-        <h1>Ваш Адмін</h1>
-        <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
-      </div>
+  <div id="site-header"></div>
+
+  <main class="main">
+    <h1>Афіша</h1>
+
+    <div class="filters">
+      <button class="pill active" data-city="all">Всі міста</button>
+      <button class="pill" data-city="Дніпро">Дніпро</button>
+      <button class="pill" data-city="Кривий Ріг">Кривий Ріг</button>
     </div>
-    <nav class="nav">
-      <a href="/index.html">Головна</a>
-      <a href="/afisha.html" class="active">Афіша</a>
-      <a href="/theatres.html">Театри</a>
-      <a href="/about.html">Про нас</a>
-      <a href="/contacts.html">Контакти</a>
-    </nav>
-  </div>
-</header>
 
-<main class="container">
-  <h1>Афіша</h1>
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="meta" style="display:none">Подій за вибраним фільтром поки немає.</div>
+  </main>
 
-  <div class="filters">
-    <button class="pill active" data-city="all">Всі міста</button>
-    <button class="pill" data-city="Дніпро">Дніпро</button>
-    <button class="pill" data-city="Кривий Ріг">Кривий Ріг</button>
-  </div>
+  <div id="site-footer"></div>
+  <script src="/scripts/include.js" type="module"></script>
+  <script>
+    (async function(){
+      const grid = document.getElementById('grid');
+      const empty = document.getElementById('empty');
+      const pills = document.querySelectorAll('.pill');
 
-  <div id="grid" class="grid"></div>
-  <div id="empty" class="meta" style="display:none">Подій за вибраним фільтром поки немає.</div>
-</main>
+      // 1) тягнемо розклад листопада (заміните файл пізніше)
+      let items = [];
+      try {
+        const r = await fetch('/data/schedule/2025-11.json', {cache:'no-store'});
+        if (!r.ok) throw new Error('HTTP '+r.status);
+        items = await r.json();
+      } catch(e){
+        console.error(e);
+        grid.innerHTML = '<div class="meta">Наразі розклад не доступний.</div>';
+        return;
+      }
 
-<footer class="footer">
-  <div class="footer-inner">
-    <div>© 2025 Ваш Адмін</div>
-    <div class="social-icons">
-      <a class="icon fb" href="https://www.facebook.com/eventsandticketsdnepr/" target="_blank"><span>FB</span></a>
-      <a class="icon tg" href="https://t.me/zahodiikvitki" target="_blank"><span>TG</span></a>
-      <a class="icon fb" href="https://www.facebook.com/admin.teatra.kr/" target="_blank"><span>FB KR</span></a>
-      <a class="icon tg" href="https://t.me/krdramikom" target="_blank"><span>TG KR</span></a>
-    </div>
-  </div>
-</footer>
+      // дозволяємо фільтр за ?city= або ?theatre=
+      const q = new URLSearchParams(location.search);
+      const qCity = q.get('city') || 'all';
+      const qTheatre = q.get('theatre') || '';
 
-<script>
-(function(){
-  const grid  = document.getElementById('grid');
-  const empty = document.getElementById('empty');
-  const pills = document.querySelectorAll('.pill');
+      function cardHTML(s){
+        const poster = s.poster ? ('/'+s.poster.replace(/^\/+/,'') ) : '';
+        const show = encodeURIComponent(s.show);
+        const desc = s.description ? s.description : '';
+        return `
+          <article class="card">
+            <div class="poster-wrap">
+              <img class="poster" src="${poster}" alt="${s.title||''}" onerror="this.style.display='none'">
+            </div>
+            <div><strong>${s.title||''}</strong></div>
+            <div class="meta">${[s.date,s.time].filter(Boolean).join(' • ')}</div>
+            <div class="meta">${[s.theatre,s.stage].filter(Boolean).join(' • ')}</div>
+            <div class="meta">${s.city||''}</div>
+            ${desc ? `<div class="meta">${desc}</div>` : ``}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+              <a class="btn secondary" href="/show.html?show=${show}">Детальніше</a>
+              <a class="btn" href="/spectacles/hall.html?show=${show}">Вибрати місця</a>
+            </div>
+          </article>
+        `;
+      }
 
-  const qps   = new URLSearchParams(location.search);
-  let currentCity = (qps.get('city') || 'all');
+      function applyFilter(city='all', theatre=''){
+        let data = items;
+        if (city !== 'all') data = data.filter(x => (x.city||'').toLowerCase()===city.toLowerCase());
+        if (theatre) data = data.filter(x => (x.theatre||'').toLowerCase().includes(theatre.toLowerCase()));
+        grid.innerHTML = data.map(cardHTML).join('');
+        empty.style.display = data.length ? 'none' : 'block';
+      }
 
-  function normalizePoster(p){
-    if(!p) return '/images/posters/placeholder.jpg';
-    return p.startsWith('/') ? p : '/'+p.replace(/^\.?\//,'');
-  }
+      // активна пігулка міста
+      pills.forEach(p=>p.classList.toggle('active', (p.dataset.city||'all')===qCity));
+      pills.forEach(p=>{
+        p.addEventListener('click', ()=>{
+          pills.forEach(x=>x.classList.remove('active'));
+          p.classList.add('active');
+          applyFilter(p.dataset.city,'');
+          // оновимо URL, але без перезавантаження
+          const url = new URL(location.href);
+          if (p.dataset.city==='all') url.searchParams.delete('city');
+          else url.searchParams.set('city', p.dataset.city);
+          history.replaceState({}, '', url);
+        });
+      });
 
-  function cardHTML(s){
-    const poster = normalizePoster(s.poster);
-    const show   = encodeURIComponent(s.show);
-    const when   = [s.date, s.time].filter(Boolean).join(' • ');
-    const place  = [s.theatre, s.stage].filter(Boolean).join(' • ');
-    return `
-      <article class="card">
-        <img class="poster" src="${poster}" alt="${s.title||''}"
-             onerror="this.src='/images/posters/placeholder.jpg'">
-        <div class="info">
-          <div><strong>${s.title||s.show}</strong></div>
-          <div class="meta">${when}</div>
-          <div class="meta">${place}</div>
-          <div class="meta">${s.city||''}</div>
-        </div>
-        <div class="actions">
-          <a class="btn secondary" href="/show.html?show=${show}">Детальніше</a>
-          <a class="btn" href="/spectacles/hall.html?show=${show}">Вибрати місця</a>
-        </div>
-      </article>
-    `;
-  }
-
-  function render(items, city){
-    const data = (city==='all')
-      ? items
-      : items.filter(x => (x.city||'').toLowerCase() === city.toLowerCase());
-    grid.innerHTML = data.map(cardHTML).join('');
-    empty.style.display = data.length ? 'none' : 'block';
-  }
-
-  function setActive(city){
-    pills.forEach(p=>{
-      p.classList.toggle('active', p.dataset.city === city || (city==='all' && p.dataset.city==='all'));
-    });
-  }
-
-  pills.forEach(p=>{
-    p.addEventListener('click', ()=>{
-      currentCity = p.dataset.city;
-      setActive(currentCity);
-      render(window.__AFISHA || [], currentCity);
-      history.replaceState(null, '', '?city=' + encodeURIComponent(currentCity));
-    });
-  });
-
-  async function load(){
-    try{
-      const r = await fetch('/data/schedule/2025-11.json', {cache:'no-store'});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      const items = await r.json();
-      items.sort((a,b)=>(a.date||'').localeCompare(b.date||'') || (a.time||'').localeCompare(b.time||''));
-      window.__AFISHA = items;
-      setActive(currentCity);
-      render(items, currentCity);
-    }catch(e){
-      console.error(e);
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      empty.textContent = 'Не вдалося завантажити афішу.';
-    }
-  }
-
-  load();
-})();
-</script>
+      applyFilter(qCity, qTheatre);
+    })();
+  </script>
 </body>
 </html>
 
