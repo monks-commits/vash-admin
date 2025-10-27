@@ -5,126 +5,97 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Оплата квитків — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
-  <style>
-    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
-    .row{display:grid;gap:12px}
-    .row.two{grid-template-columns:1fr 1fr}
-    @media (max-width:720px){.row.two{grid-template-columns:1fr}}
-    label{display:flex;flex-direction:column;gap:6px;font-weight:600}
-    input{height:42px;border:1px solid #ddd;border-radius:10px;padding:0 12px}
-    .hint{font-size:12px;color:#6b7280}
-    .ok{background:#ecfdf5;border:1px solid #10b981;color:#065f46;border-radius:10px;padding:12px;margin-top:12px;display:none}
-    .err{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d;border-radius:10px;padding:12px;margin-top:12px;display:none}
-  </style>
 </head>
 <body>
   <div id="site-header"></div>
 
   <main class="main">
-    <div id="infoBox" class="card" style="margin-bottom:16px"></div>
+    <h1>Оплата</h1>
+    <div id="info" class="section"></div>
 
-    <form id="payForm" class="card" novalidate>
-      <div class="row two">
-        <label>
-          Ім’я покупця
-          <input type="text" id="customerName" required placeholder="Ваше ім’я" autocomplete="name" />
+    <form id="payForm" class="section" novalidate>
+      <div class="row two" style="display:grid;gap:12px;grid-template-columns:1fr 1fr">
+        <label>Ім’я покупця
+          <input type="text" id="customerName" required placeholder="Ваше ім’я"/>
         </label>
-        <label>
-          Телефон
-          <input type="tel" id="customerPhone" required placeholder="+380..." inputmode="tel" autocomplete="tel" />
-          <span class="hint">Ми надішлемо SMS у разі змін</span>
+        <label>Телефон
+          <input type="tel" id="customerPhone" required placeholder="+380..." inputmode="tel"/>
         </label>
       </div>
-      <div class="row" style="margin-top:12px">
-        <label>
-          Електронна пошта для отримання квитків
-          <input type="email" id="customerEmail" required placeholder="example@gmail.com" autocomplete="email" />
-          <span class="hint">На цю адресу прийде електронний квиток</span>
+      <div style="margin-top:12px">
+        <label>Е-mail для отримання квитків
+          <input type="email" id="customerEmail" required placeholder="example@gmail.com" />
         </label>
       </div>
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
         <button type="submit" class="btn">Перейти до оплати</button>
-        <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
+        <a id="back" class="btn secondary">Змінити місця</a>
       </div>
-
-      <div id="ok" class="ok">✅ Бронювання збережено. Зараз перенаправимо на сторінку підтвердження.</div>
-      <div id="err" class="err"></div>
+      <div id="ok" class="meta" style="color:#065f46;display:none;margin-top:8px">Бронювання збережено. Далі — оплата через LiqPay.</div>
+      <div id="err" class="meta" style="color:#b91c1c;display:none;margin-top:8px"></div>
     </form>
   </main>
 
   <div id="site-footer"></div>
-  <script src="/scripts/include.js" type="module"></script>
   <script type="module">
-    import { supabase } from '/scripts/db.js';
+  import { supabase } from '/scripts/db.js';
 
-    const qp   = new URLSearchParams(location.search);
-    const show = qp.get('show');
-    const seats= qp.get('seats'); // "Р2-М3,Р3-М3"
-    const sum  = qp.get('sum');
+  const q = new URLSearchParams(location.search);
+  const show  = q.get('show');
+  const seats = q.get('seats');
+  const sum   = q.get('sum');
 
-    const infoBox   = document.getElementById('infoBox');
-    const form      = document.getElementById('payForm');
-    const okBox     = document.getElementById('ok');
-    const errBox    = document.getElementById('err');
-    const backToHall= document.getElementById('backToHall');
+  const info = document.getElementById('info');
+  const back = document.getElementById('back');
 
-    if (!show || !seats || !sum) {
-      infoBox.innerHTML = '<p>❌ Помилка: неповні дані для оплати.</p>';
-      form.style.display = 'none';
-    } else {
-      const prettyShow = show.split('/').join(' / ').replace(/-/g,' ');
-      infoBox.innerHTML = `
-        <h2 style="margin:0 0 8px">Підтвердження замовлення</h2>
-        <p style="margin:0 0 4px"><strong>Вистава:</strong> ${prettyShow}</p>
-        <p style="margin:0 0 4px"><strong>Місця:</strong> ${seats}</p>
-        <p style="margin:0"><strong>Сума:</strong> ${sum} грн</p>
-      `;
-      backToHall.href = `/spectacles/hall.html?show=${encodeURIComponent(show)}`;
+  if (!show || !seats || !sum){
+    info.innerHTML = '<p>❌ Неповні дані.</p>';
+  }else{
+    const pretty = show.split('/').join(' / ').replace(/-/g,' ');
+    info.innerHTML = `
+      <div><strong>Вистава:</strong> ${pretty}</div>
+      <div><strong>Місця:</strong> ${seats}</div>
+      <div><strong>Сума:</strong> ${sum} грн</div>`;
+    back.href = '/spectacles/hall.html?show='+encodeURIComponent(show);
+  }
+
+  const form = document.getElementById('payForm');
+  const ok = document.getElementById('ok');
+  const err = document.getElementById('err');
+
+  function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    err.style.display='none'; ok.style.display='none';
+
+    const name  = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const email = document.getElementById('customerEmail').value.trim();
+
+    if (!name || !phone || !email){ err.textContent='Заповніть усі поля.'; err.style.display='block'; return; }
+    if (!validEmail(email)){ err.textContent='Невірний e-mail.'; err.style.display='block'; return; }
+
+    try{
+      const payload = {
+        seat_ids: seats.split(',').map(s=>s.trim()),
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email,
+        show_slug: show,
+        amount: Number(sum)||0
+      };
+      const { error } = await supabase.from('bookings').insert([payload]);
+      if (error) throw error;
+      ok.style.display='block';
+
+      // TODO: редирект на LiqPay (после регистрации): window.location = '<liqpay url>';
+    }catch(e){
+      err.textContent = 'Помилка збереження: ' + (e.message||e);
+      err.style.display='block';
     }
-
-    function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errBox.style.display = 'none';
-      okBox.style.display  = 'none';
-
-      const name  = document.getElementById('customerName').value.trim();
-      const phone = document.getElementById('customerPhone').value.trim();
-      const email = document.getElementById('customerEmail').value.trim();
-
-      if (!name || !phone || !email) {
-        errBox.textContent = 'Заповніть, будь ласка, усі поля.';
-        errBox.style.display = 'block';
-        return;
-      }
-      if (!validEmail(email)) {
-        errBox.textContent = 'Невірний формат e-mail.';
-        errBox.style.display = 'block';
-        return;
-      }
-
-      try {
-        const payload = {
-          seat_ids: seats.split(',').map(s => s.trim()),
-          customer_name: name,
-          customer_phone: phone,
-          customer_email: email,
-          show_slug: show,
-          amount: Number(sum) || 0
-        };
-        const { error } = await supabase.from('bookings').insert([payload]);
-        if (error) throw error;
-
-        okBox.style.display = 'block';
-        setTimeout(() => {
-          location.href = `/thanks.html?show=${encodeURIComponent(show)}&sum=${encodeURIComponent(sum)}&email=${encodeURIComponent(email)}`;
-        }, 900);
-      } catch (err) {
-        errBox.textContent = 'Помилка при збереженні бронювання: ' + (err.message || err);
-        errBox.style.display = 'block';
-      }
-    });
+  });
   </script>
+  <script type="module" src="/scripts/include.js"></script>
 </body>
 </html>
