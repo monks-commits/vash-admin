@@ -3,21 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Дякуємо — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <title>Дякуємо за оплату — Ваш Адмін</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div id="site-header"></div>
 
-  <main class="main">
-    <section class="section" style="text-align:center">
-      <h2>Дякуємо за покупку!</h2>
-      <p class="meta">Електронний квиток надіслано на вашу електронну пошту.</p>
-      <p style="margin-top:12px"><a class="btn" href="/afisha.html">Повернутися до афіші</a></p>
-    </section>
+  <main class="container">
+    <h1>Дякуємо!</h1>
+    <p class="meta" id="msg">Повернення з платіжної системи виконано.</p>
+
+    <div class="card" style="padding:16px;margin-top:12px">
+      <p class="meta">Якщо виникли питання — телефонуйте: <strong>+380 98 126 16 95</strong> або пишіть на <strong>alexandrryabov@ukr.net</strong>.</p>
+      <p class="meta">Ми обробимо замовлення та надішлемо підтвердження найближчим часом.</p>
+    </div>
   </main>
 
   <div id="site-footer"></div>
-  <script type="module" src="/scripts/include.js"></script>
+  <script type="module" src="scripts/include.js"></script>
+
+  <script>
+    const qp = new URLSearchParams(location.search);
+    const order = qp.get("order_id");
+    const el = document.getElementById("msg");
+    if (order) {
+      el.textContent = `Ваше замовлення № ${order} прийнято. Підтвердження надійде протягом кількох хвилин.`;
+    }
+  </script>
 </body>
 </html>
