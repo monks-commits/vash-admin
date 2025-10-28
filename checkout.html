@@ -1,113 +1,161 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Підготовка платежу… — Ваш Адмін</title>
+  <title>Підготовка платежу — Ваш Адмін</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- header -->
   <div id="site-header"></div>
 
-  <main class="container">
-    <h1>Підготовка платежу…</h1>
-    <div id="msg" class="card" style="padding:14px"></div>
+  <main class="main">
+    <section class="section">
+      <h1>Підготовка платежу…</h1>
+      <div id="status" class="card" style="margin-top:12px"></div>
+      <div id="debug" class="muted" style="margin-top:8px; display:none"></div>
+    </section>
   </main>
 
+  <!-- footer -->
   <div id="site-footer"></div>
+
+  <!-- include header/footer -->
   <script type="module" src="scripts/include.js"></script>
 
   <script>
-(async function () {
-  // 1) ВСТАВЬ свой endpoint функции ТОЧНО как в Supabase
-  const SIGN_ENDPOINT = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";  
+  // ==========================
+  // 1) ЗАМЕНІТЬ НА СВОЇ ДАНІ
+  // ==========================
+  const SUPABASE_URL      = 'https://hkeuabtiemsxadusmqlo.supabase.co';        // ← замініть
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE';                   // ← замініть
+  const SIGN_FN_URL       = SUPABASE_URL + '/functions/v1/liqpay-sign'; // Edge Function
+  const LIQPAY_CHECKOUT   = 'https://www.liqpay.ua/api/3/checkout';
 
-  // 2) ЕСЛИ в liqpay-sign включено "Verify JWT with legacy secret" — впиши anon key сюда.
-  // Если выключено — оставь пустым.
-  const SUPABASE_ANON = ""; // напр. "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...."
+  // Публічний ключ LiqPay (у вас: i69132711692)
+  const LIQPAY_PUBLIC_KEY = 'i69132711692';
 
-  const params = new URLSearchParams(location.search);
-  const show     = params.get("show") || "";
-  const seats    = params.get("seats") || "";
-  const amount   = Number(params.get("amount") || "0");
-  const order_id = params.get("order_id") || ("ORDER-" + Date.now());
+  // ==========================
+  // 2) ДОПОМОЖНІ ФУНКЦІЇ
+  // ==========================
+  const $status = document.getElementById('status');
+  const $debug  = document.getElementById('debug');
 
-  const box = document.getElementById("msg");
-  const say = (html, ok=false) => {
-    box.style.color = ok ? "#065f46" : "#991b1b";
-    box.innerHTML = html;
-  };
-
-  if (!amount || amount < 1) { say("Сума платежу невалідна."); return; }
-
-  const description = `Квитки: ${show} | місця: ${seats}`;
-  const result_url  = location.origin + "/thanks.html";
-  const server_url  = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-callback"; // опційно
-
-  say(`Готуємо запит до підпису…<br><small>Endpoint: <code>${SIGN_ENDPOINT}</code></small>`);
-
-  try {
-    const headers = { "Content-Type": "application/json" };
-    if (SUPABASE_ANON) headers.Authorization = "Bearer " + SUPABASE_ANON;
-
-    const payload = {
-      action: "pay",
-      version: 3,
-      amount,
-      currency: "UAH",
-      description,
-      order_id,
-      result_url,
-      server_url
-      // sandbox: 1, // якщо треба
-    };
-
-    const r = await fetch(SIGN_ENDPOINT, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      mode: "cors",
-      cache: "no-store"
-    });
-
-    const raw = await r.text();
-    let parsed = null;
-    try { parsed = JSON.parse(raw); } catch {}
-
-    if (!r.ok) {
-      say(`Підпис не отримано (HTTP ${r.status}).<br>
-           <b>Відповідь:</b> <code>${raw.replace(/</g,"&lt;")}</code><br>
-           <small>Перевір: URL функції, JWT toggle, CORS.</small>`);
-      return;
-    }
-
-    const { data, signature } = parsed || {};
-    if (!data || !signature) {
-      say(`Функція відповіла без data/signature.<br>
-           <b>Сирий JSON:</b> <code>${raw.replace(/</g,"&lt;")}</code>`);
-      return;
-    }
-
-    say("Переадресація до LiqPay…", true);
-
-    const form = document.createElement("form");
-    form.action = "https://www.liqpay.ua/api/3/checkout";
-    form.method = "POST";
-    form.style.display = "none";
-
-    const inpData = Object.assign(document.createElement("input"), {type:"hidden", name:"data", value:data});
-    const inpSign = Object.assign(document.createElement("input"), {type:"hidden", name:"signature", value:signature});
-
-    form.append(inpData, inpSign);
-    document.body.appendChild(form);
-    form.submit();
-
-  } catch (e) {
-    console.error(e);
-    say("Помилка ініціалізації оплати: " + String(e));
+  function showStatus(html, tone = 'info') {
+    const color = tone === 'error' ? '#b91c1c' : tone === 'ok' ? '#065f46' : '#374151';
+    $status.innerHTML = '<div style="color:'+color+'">'+html+'</div>';
   }
-})();
-</script>
+  function showDebug(obj) {
+    try {
+      $debug.style.display = 'block';
+      $debug.textContent = JSON.stringify(obj, null, 2);
+    } catch(_) {}
+  }
 
+  function qpGet(name, dft='') {
+    const v = new URLSearchParams(location.search).get(name);
+    return v == null ? dft : v;
+  }
+
+  // ==========================
+  // 3) ОСНОВНА ЛОГІКА
+  // ==========================
+  (async function init(){
+    try{
+      const show     = decodeURIComponent(qpGet('show','')).trim();   // shevchenko/ledi
+      const seatsStr = qpGet('seats','').trim();                      // напр. "1-8,1-9"
+      const amount   = Number(qpGet('amount','0'));
+      const orderId  = qpGet('order_id', ('ORDER-'+Date.now()));
+
+      if (!show || !seatsStr || !amount || amount <= 0) {
+        showStatus('Неповні параметри замовлення. Перевірте посилання та спробуйте ще раз.', 'error');
+        return;
+      }
+
+      showStatus('Готуємо платіж…');
+
+      // Що покажемо LiqPay як опис:
+      const description = `Квитки: ${show} • місця: ${seatsStr}`;
+
+      // Куди повертати покупця після сплати:
+      const resultUrl = location.origin + '/thanks.html?order_id=' + encodeURIComponent(orderId);
+      // Куди LiqPay надішле серверний callback (за бажанням):
+      const serverUrl = location.origin + '/thanks.html?server=1&order_id=' + encodeURIComponent(orderId);
+
+      // -------------------------------
+      // ВИКЛИК edge function liqpay-sign
+      // -------------------------------
+      const payload = {
+        public_key : LIQPAY_PUBLIC_KEY,
+        action     : 'pay',
+        version    : 3,
+        amount     : amount,
+        currency   : 'UAH',
+        description: description,
+        order_id   : orderId,
+        result_url : resultUrl,
+        server_url : serverUrl,
+        // sandbox: true  // для тесту можна розкоментувати
+      };
+
+      const res = await fetch(SIGN_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // КЛЮЧОВЕ: Authorization з Anon Key
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok){
+        const text = await res.text().catch(()=> '');
+        showStatus(
+          'Підпис не отримано (HTTP '+res.status+').<br><small>'+escapeHtml(text)+'</small>',
+          'error'
+        );
+        showDebug({status: res.status, body: text});
+        return;
+      }
+
+      const { data, signature, error } = await res.json();
+      if (error || !data || !signature){
+        showStatus('Помилка підготовки платежу. Перевірте налаштування LiqPay/Supabase.', 'error');
+        showDebug({error, data, signature});
+        return;
+      }
+
+      // -----------------------------------
+      // АВТО-ПЕРЕХІД НА СТОРІНКУ LIQPAY
+      // -----------------------------------
+      showStatus('Переходимо до LiqPay…', 'ok');
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = LIQPAY_CHECKOUT;
+
+      const iData = document.createElement('input');
+      iData.type = 'hidden'; iData.name = 'data'; iData.value = data;
+      const iSign = document.createElement('input');
+      iSign.type = 'hidden'; iSign.name = 'signature'; iSign.value = signature;
+
+      form.appendChild(iData);
+      form.appendChild(iSign);
+      document.body.appendChild(form);
+      form.submit();
+
+    } catch (e){
+      showStatus('Помилка ініціалізації оплати: ' + e, 'error');
+      showDebug({error: String(e)});
+    }
+  })();
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+  </script>
 </body>
 </html>
