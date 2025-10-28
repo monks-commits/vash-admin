@@ -1,48 +1,57 @@
-<!DOCTYPE html><html lang="uk">
+<!DOCTYPE html>
+<html lang="uk">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Оплата — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оплата квитків — Ваш Адмін</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- LiqPay JS -->
+  <script src="https://static.liqpay.ua/libjs/checkout.js"></script>
 </head>
 <body>
-<div id="site-header"></div>
-<script type="module" src="/scripts/include.js"></script>
+  <!-- header -->
+  <div id="site-header"></div>
 
-<main class="container">
-  <h1>Оплата</h1>
-  <div id="info" class="card" style="margin-bottom:12px"></div>
+  <main class="main">
+    <section class="section" style="max-width:860px;margin:0 auto">
+      <h2>Оплата квитків</h2>
+      <div id="orderInfo" class="card" style="margin-bottom:16px">Завантаження…</div>
 
-  <form id="form" class="card" novalidate>
-    <div class="row two">
-      <label>Ім’я<input id="name" required /></label>
-      <label>Телефон<input id="phone" required placeholder="+380..." /></label>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <label>Е-пошта для квитків<input type="email" id="email" required placeholder="example@gmail.com"/></label>
-    </div>
-    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn" type="submit">Перейти до оплати</button>
-      <a id="back" class="btn secondary" href="#">Змінити місця</a>
-    </div>
-  </form>
-</main>
+      <form id="payForm" class="card" novalidate>
+        <div class="row two">
+          <label>Ім’я покупця
+            <input type="text" id="buyer_name" required placeholder="Ваше ім’я" autocomplete="name" />
+          </label>
+          <label>Телефон
+            <input type="tel" id="buyer_phone" required placeholder="+380..." inputmode="tel" autocomplete="tel" />
+          </label>
+        </div>
 
-<div id="site-footer"></div>
+        <div class="row" style="margin-top:10px">
+          <label>Електронна пошта
+            <input type="email" id="buyer_email" required placeholder="example@gmail.com" autocomplete="email" />
+            <span class="meta">На цю адресу прийде електронний квиток</span>
+          </label>
+        </div>
 
-<script>
-(function(){
-  const qp=new URLSearchParams(location.search);
-  const show=qp.get('show'), seats=qp.get('seats'), sum=qp.get('sum');
-  const info=document.getElementById('info'); const back=document.getElementById('back');
-  if(!show||!seats||!sum){ info.innerHTML='<p>❌ Неповні дані для оплати.</p>'; document.getElementById('form').style.display='none'; return; }
-  info.innerHTML=`<strong>Вистава:</strong> ${show.replace('/',' / ')}<br><strong>Місця:</strong> ${seats}<br><strong>Сума:</strong> ${sum} грн`;
-  back.href=`/spectacles/hall.html?show=${encodeURIComponent(show)}`;
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button type="submit" class="btn">Оплатити через LiqPay</button>
+          <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
+        </div>
 
-  document.getElementById('form').addEventListener('submit',e=>{
-    e.preventDefault();
-    alert('Далі — інтеграція з LiqPay (готова сторінка, підставимо API ключі).');
-    // тут ініціалізуємо Edge Function liqpay-init → редірект на сторінку LiqPay
-  });
-})();
-</script>
-</body></html>
+        <div id="ok"  class="ok"  style="display:none">✅ Замовлення збережено. Відкриваємо LiqPay…</div>
+        <div id="err" class="err" style="display:none"></div>
+      </form>
+
+      <!-- контейнер віджета LiqPay -->
+      <div id="liqpay" style="margin-top:16px"></div>
+    </section>
+  </main>
+
+  <!-- footer -->
+  <div id="site-footer"></div>
+
+  <script type="module" src="scripts/include.js"></script>
+  <script type="module" src="scripts/liqpay.js"></script>
+</body>
+</html>
