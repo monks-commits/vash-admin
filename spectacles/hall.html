@@ -1,115 +1,157 @@
-<!DOCTYPE html><html lang="uk">
+<!DOCTYPE html>
+<html lang="uk">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Вибір місць — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css"/>
-  <style>
-    :root{--seat:28px;--gap:6px}
-    .hall{display:grid;gap:var(--gap);justify-content:flex-start;grid-template-columns:repeat(var(--cols,10),var(--seat))}
-    .seat{width:var(--seat);height:var(--seat);border-radius:6px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
-    .spacer{width:var(--seat);height:var(--seat);opacity:0}
-    .available{background:#dbeafe;cursor:pointer}
-    .disabled{background:#cbd5e1;cursor:not-allowed}
-    .selected{outline:2px solid #10b981;box-shadow:0 0 0 2px #10b981 inset}
-    .rowlabel{grid-column:1/-1;text-align:center;color:#666;margin-top:4px;font-size:12px}
-    .scene{grid-column:1/-1;background:#ddd;color:#333;font-weight:700;text-align:center;padding:10px;border-radius:8px;margin-bottom:8px}
-  </style>
+  <link rel="stylesheet" href="../styles.css" />
 </head>
 <body>
-<div id="site-header"></div>
-<script type="module" src="/scripts/include.js"></script>
+  <div id="site-header"></div>
 
-<main class="container">
-  <h1>Вибір місць</h1>
-  <div id="err" class="card" style="display:none;color:#b91c1c"></div>
+  <main class="container">
+    <h1 id="show-title">Вибір місць</h1>
+    <p id="show-info" class="meta"></p>
 
-  <div class="card" style="margin-top:12px">
-    <div class="scene">СЦЕНА</div>
-    <div id="hall" class="hall"></div>
-  </div>
+    <!-- Схема залу -->
+    <div id="hall-map" class="hall-container"></div>
 
-  <div class="card" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <div class="chip">Обрано: <strong id="count">0</strong></div>
-    <a id="pay" class="btn disabled" href="javascript:void(0)">Перейти до оплати</a>
-    <a class="btn secondary" href="/afisha.html">Назад</a>
-  </div>
-</main>
+    <!-- Підсумок -->
+    <div id="summary" class="summary">
+      <p>Обрано місць: <span id="seat-count">0</span></p>
+      <p>Сума: <span id="total-amount">0</span> грн</p>
+      <button id="payBtn" class="button-primary" disabled>Оплатити</button>
+    </div>
+  </main>
 
-<div id="site-footer"></div>
+  <div id="site-footer"></div>
+  <script type="module" src="../scripts/include.js"></script>
 
-<script>
-(function(){
-  const q=new URLSearchParams(location.search);
-  const slug=q.get('show');
-  const hall=document.getElementById('hall');
-  const err=document.getElementById('err');
-  const countEl=document.getElementById('count');
-  const pay=document.getElementById('pay');
-  let rows=[], cols=0, sellMode='only', available=new Set(), selected=new Set();
+  <script>
+  // === ДАНІ ПРО ПОКАЗ ===
+  const showSlug = new URLSearchParams(location.search).get("show") || "shevchenko/example";
+  const showTitle = document.getElementById("show-title");
+  const showInfo  = document.getElementById("show-info");
 
-  function spacer(){const d=document.createElement('div');d.className='spacer';return d;}
-  function updatePay(){
-    countEl.textContent=selected.size;
-    if(selected.size){
-      pay.classList.remove('disabled');
-      const seats=[...selected].sort().join(',');
-      const sum=[...selected].reduce((acc,k)=>{const [r]=k.split('-');const row=rows.find(x=>x.row==+r);return acc+(row?row.price:0)},0);
-      pay.href=`/checkout.html?show=${encodeURIComponent(slug)}&seats=${encodeURIComponent(seats)}&sum=${sum}`;
-    }else{
-      pay.classList.add('disabled'); pay.href='javascript:void(0)';
-    }
-  }
-  function fit(){
-    const container = hall.parentElement;
-    const seat = Math.floor((container.clientWidth-24)/cols);
-    document.documentElement.style.setProperty('--seat', Math.max(18, Math.min(48, seat))+'px');
-  }
-  function render(){
-    hall.innerHTML='';
-    cols=Math.max(...rows.map(r=>r.seats+((r.aisles&&r.aisles.length)||0)));
-    hall.style.setProperty('--cols', cols);
-    rows.sort((a,b)=>a.row-b.row).forEach(r=>{
-      const ais=(r.aisles||[]).slice().sort((a,b)=>a-b);
-      let ai=0;
-      for(let s=1;s<=r.seats;s++){
-        while(ai<ais.length && s===ais[ai]+1){ hall.appendChild(spacer()); ai++; }
-        const key=`${r.row}-${s}`;
-        const el=document.createElement('div');
-        const enabled = (sellMode==='only') ? available.has(key) : true;
-        el.className='seat '+(enabled?'available':'disabled');
-        if(selected.has(key)) el.classList.add('selected');
-        el.textContent=s;
-        if(enabled){
-          el.addEventListener('click',()=>{
-            if(selected.has(key)) selected.delete(key); else selected.add(key);
-            el.classList.toggle('selected');
-            updatePay();
-          });
-        }
-        hall.appendChild(el);
+  showTitle.textContent = "Вибір місць";
+  showInfo.textContent = "Спектакль: " + showSlug.replace("/", " — ");
+
+  // === МОДЕЛЬ ВИБОРУ ===
+  const hallMap     = document.getElementById("hall-map");
+  const seatCountEl = document.getElementById("seat-count");
+  const totalEl     = document.getElementById("total-amount");
+  const payBtn      = document.getElementById("payBtn");
+
+  // Демонстраційні дані — заміниш своїми з JSON
+  const seatsData = [
+    { id: "1-1", row: 1, place: 1, price: 200 },
+    { id: "1-2", row: 1, place: 2, price: 200 },
+    { id: "1-3", row: 1, place: 3, price: 250 },
+    { id: "1-4", row: 1, place: 4, price: 250 },
+  ];
+
+  const selectedSeats = new Set();
+
+  // Малюємо місця
+  seatsData.forEach(seat => {
+    const div = document.createElement("div");
+    div.className = "seat";
+    div.textContent = seat.place;
+    div.title = `Ряд ${seat.row}, Місце ${seat.place} (${seat.price} грн)`;
+
+    div.addEventListener("click", () => {
+      if (selectedSeats.has(seat.id)) {
+        selectedSeats.delete(seat.id);
+        div.classList.remove("selected");
+      } else {
+        selectedSeats.add(seat.id);
+        div.classList.add("selected");
       }
-      while(ai<ais.length){ hall.appendChild(spacer()); ai++; }
-      const rl=document.createElement('div'); rl.className='rowlabel'; rl.textContent=`Ряд ${r.row} • ${r.price} грн`; hall.appendChild(rl);
+      updateSummary();
     });
-    fit(); setTimeout(fit,120); addEventListener('resize',fit);
+
+    hallMap.appendChild(div);
+  });
+
+  // Підрахунок
+  function updateSummary() {
+    seatCountEl.textContent = selectedSeats.size;
+    const total = Array.from(selectedSeats)
+      .map(id => seatsData.find(s => s.id === id)?.price || 0)
+      .reduce((a, b) => a + b, 0);
+    totalEl.textContent = total.toString();
+    payBtn.disabled = selectedSeats.size === 0;
   }
 
-  async function boot(){
-    if(!slug){ err.style.display='block'; err.textContent='Немає параметра show.'; return; }
-    try{
-      const r=await fetch(`/data/shows/${slug}.json`,{cache:'no-store'});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      const show=await r.json();
-      rows=(show.rows||[]).filter(x=>x.section!=='logeA'&&x.section!=='logeB'&&x.enabled!==false); // без лож
-      sellMode=(show.sell_mode||'only').toLowerCase()==='disable'?'disable':'only';
-      (show.available||show.sell||[]).forEach(k=>available.add(String(k)));
-      render();
-    }catch(e){
-      err.style.display='block'; err.textContent='Помилка завантаження схеми. Перевірте /data/shows/'+slug+'.json';
-      console.error(e);
+  // === Перехід до оплати ===
+  payBtn.addEventListener("click", () => {
+    const total = Number(totalEl.textContent);
+    const seats = Array.from(selectedSeats).join(",");
+    const orderId = showSlug.split("/").pop().toUpperCase() + "-" + Date.now();
+
+    const url = new URL(location.origin + "/checkout.html");
+    url.searchParams.set("show", showSlug);
+    url.searchParams.set("seats", seats);
+    url.searchParams.set("amount", total);
+    url.searchParams.set("order_id", orderId);
+
+    location.href = url.toString();
+  });
+  </script>
+
+  <style>
+    .hall-container {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 20px 0;
     }
-  }
-  boot();
-})();
-</script>
-</body></html>
+    .seat {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #eee;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .seat:hover {
+      background: #ddd;
+    }
+    .seat.selected {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .summary {
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      max-width: 300px;
+      background: #fafafa;
+    }
+    .summary p {
+      margin: 4px 0;
+    }
+    .button-primary {
+      margin-top: 12px;
+      padding: 10px 20px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s;
+    }
+    .button-primary:hover {
+      background: #0056b3;
+    }
+    .button-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</body>
+</html>
