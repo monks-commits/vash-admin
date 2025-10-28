@@ -3,92 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Оплата — Ваш Адмін</title>
+  <title>Підготовка платежу… — Ваш Адмін</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- include header -->
   <div id="site-header"></div>
 
   <main class="container">
     <h1>Підготовка платежу…</h1>
-    <div id="paybox" class="card" style="padding:16px">
-      <div class="meta">Будь ласка, зачекайте кілька секунд. Ми перенаправимо вас до LiqPay.</div>
-    </div>
+    <div id="msg" class="card" style="padding:14px"></div>
   </main>
 
-  <!-- include footer -->
   <div id="site-footer"></div>
-
   <script type="module" src="scripts/include.js"></script>
 
   <script>
   (async function () {
-    // ====== ВАЖНО: ваши эндпоинты Supabase ======
-    const SIGN_URL     = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
-    const CALLBACK_URL = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-callback";
-    const RESULT_URL   = "https://vash-admin.com/thanks.html";
+    const SIGN_ENDPOINT =
+      "https://YOUR-PROJECT-REF.supabase.co/functions/v1/liqpay-sign"; // <<< ВСТАВЬ СВОЙ URL!
 
-    // Параметры из URL, которые передаём на эту страницу из схемы зала
-    const qp     = new URLSearchParams(location.search);
-    const amount = Number(qp.get("amount") || "0");
-    const order  = qp.get("order_id") || ("ORDER-" + Date.now());
-    const show   = qp.get("show") || "";
-    const seats  = qp.get("seats") || ""; // например: "1-5,1-6"
+    const params = new URLSearchParams(location.search);
+    const show     = params.get("show") || "";
+    const seats    = params.get("seats") || "";
+    const amount   = Number(params.get("amount") || "0");
+    const order_id = params.get("order_id") || ("ORDER-" + Date.now());
 
-    const description = `Квитки: ${show || "вистава"} • Місця: ${seats || "—"}`;
+    const msg = document.getElementById("msg");
 
-    const box = document.getElementById("paybox");
-    const say = (t)=> box && (box.innerHTML = `<p class="meta">${t}</p>`);
-
-    // Базовая валидация
-    if (!amount || amount <= 0) {
-      say("Сума платежу не передана. Поверніться на сторінку вибору місць.");
-      return;
+    function say(text, ok=false){
+      msg.style.color = ok ? "#065f46" : "#991b1b";
+      msg.textContent = text;
     }
 
+    // Простая валидация
+    if (!amount || amount < 1) { say("Сума платежу невалідна."); return; }
+
+    // Формуємо опис
+    const description = `Квитки: ${show} | місця: ${seats}`;
+
+    // Куди повертати клієнта після оплати
+    const result_url  = location.origin + "/thanks.html";
+    // Куди LiqPay надішле server-to-server нотифікацію
+    const server_url  = "https://YOUR-PROJECT-REF.supabase.co/functions/v1/liqpay-callback"; // опційно, якщо робимо S2S
+
+    say("Формуємо платіж…");
+
     try {
-      say("Готуємо платіж…");
-
-      // Тело для серверной подписи (приватный ключ хранится в Supabase Secrets)
       const payload = {
-        public_key: null,     // бекенд подставит из ENV, оставляем null
-        action:     "pay",
-        version:    3,
-        currency:   "UAH",
-        amount,
+        // public_key можна не передавати — Edge-функція підставить з ENV (або провалідить, якщо є)
+        action: "pay",
+        version: 3,
+        amount: amount,
+        currency: "UAH",
         description,
-        order_id:   order,
-        result_url: RESULT_URL + `?order_id=${encodeURIComponent(order)}`,
-        server_url: CALLBACK_URL,
-
-        // ВНИМАНИЕ: на тестах — 1; в проде убрать или поставить 0
-        sandbox:    1
+        order_id,
+        result_url,
+        server_url
+        // sandbox: 1 // якщо потрібно тестово — додай це поле, але в проді прибери
       };
 
-      const r = await fetch(SIGN_URL, {
+      const r = await fetch(SIGN_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        // Якщо в liqpay-sign увімкнено «Verify JWT with legacy secret», додай:
+        // headers: { "Content-Type":"application/json", "Authorization": "Bearer " + "<SUPABASE_ANON_KEY>" }
+        body: JSON.stringify(payload),
+        mode: "cors",
+        cache: "no-store",
       });
-      if (!r.ok) throw new Error("Sign API failed: " + r.status);
 
-      const { data, signature, error } = await r.json();
-      if (error || !data || !signature) {
-        throw new Error(error || "Bad response from sign API");
+      if (!r.ok) {
+        const t = await r.text().catch(()=> "");
+        throw new Error("sign HTTP " + r.status + (t ? (" — " + t) : ""));
       }
 
-      // Формируем и отправляем форму в LiqPay
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "https://www.liqpay.ua/api/3/checkout";
-      form.innerHTML = `
-        <input type="hidden" name="data" value="${data}">
-        <input type="hidden" name="signature" value="${signature}">
-      `;
-      document.body.appendChild(form);
+      const { data, signature } = await r.json();
+      if (!data || !signature) {
+        throw new Error("Відповідь підпису без полів data/signature");
+      }
 
-      say("Переходимо до LiqPay…");
+      // Готуємо форму для LiqPay
+      say("Переадресація до LiqPay…", true);
+
+      const form = document.createElement("form");
+      form.action = "https://www.liqpay.ua/api/3/checkout";
+      form.method = "POST";
+      form.style.display = "none";
+
+      const inpData = document.createElement("input");
+      inpData.type = "hidden";
+      inpData.name = "data";
+      inpData.value = data;
+
+      const inpSign = document.createElement("input");
+      inpSign.type = "hidden";
+      inpSign.name = "signature";
+      inpSign.value = signature;
+
+      form.appendChild(inpData);
+      form.appendChild(inpSign);
+      document.body.appendChild(form);
       form.submit();
 
     } catch (e) {
