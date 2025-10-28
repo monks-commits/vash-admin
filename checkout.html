@@ -18,98 +18,96 @@
   <script type="module" src="scripts/include.js"></script>
 
   <script>
-  (async function () {
-    const SIGN_ENDPOINT =
-      "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign"; // <<< ВСТАВЬ СВОЙ URL! 
+(async function () {
+  // 1) ВСТАВЬ свой endpoint функции ТОЧНО как в Supabase
+  const SIGN_ENDPOINT = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
 
-    const params = new URLSearchParams(location.search);
-    const show     = params.get("show") || "";
-    const seats    = params.get("seats") || "";
-    const amount   = Number(params.get("amount") || "0");
-    const order_id = params.get("order_id") || ("ORDER-" + Date.now());
+  // 2) ЕСЛИ в liqpay-sign включено "Verify JWT with legacy secret" — впиши anon key сюда.
+  // Если выключено — оставь пустым.
+  const SUPABASE_ANON = ""; // напр. "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...."
 
-    const msg = document.getElementById("msg");
+  const params = new URLSearchParams(location.search);
+  const show     = params.get("show") || "";
+  const seats    = params.get("seats") || "";
+  const amount   = Number(params.get("amount") || "0");
+  const order_id = params.get("order_id") || ("ORDER-" + Date.now());
 
-    function say(text, ok=false){
-      msg.style.color = ok ? "#065f46" : "#991b1b";
-      msg.textContent = text;
+  const box = document.getElementById("msg");
+  const say = (html, ok=false) => {
+    box.style.color = ok ? "#065f46" : "#991b1b";
+    box.innerHTML = html;
+  };
+
+  if (!amount || amount < 1) { say("Сума платежу невалідна."); return; }
+
+  const description = `Квитки: ${show} | місця: ${seats}`;
+  const result_url  = location.origin + "/thanks.html";
+  const server_url  = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-callback"; // опційно
+
+  say(`Готуємо запит до підпису…<br><small>Endpoint: <code>${SIGN_ENDPOINT}</code></small>`);
+
+  try {
+    const headers = { "Content-Type": "application/json" };
+    if (SUPABASE_ANON) headers.Authorization = "Bearer " + SUPABASE_ANON;
+
+    const payload = {
+      action: "pay",
+      version: 3,
+      amount,
+      currency: "UAH",
+      description,
+      order_id,
+      result_url,
+      server_url
+      // sandbox: 1, // якщо треба
+    };
+
+    const r = await fetch(SIGN_ENDPOINT, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      mode: "cors",
+      cache: "no-store"
+    });
+
+    const raw = await r.text();
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch {}
+
+    if (!r.ok) {
+      say(`Підпис не отримано (HTTP ${r.status}).<br>
+           <b>Відповідь:</b> <code>${raw.replace(/</g,"&lt;")}</code><br>
+           <small>Перевір: URL функції, JWT toggle, CORS.</small>`);
+      return;
     }
 
-    // Простая валидация
-    if (!amount || amount < 1) { say("Сума платежу невалідна."); return; }
-
-    // Формуємо опис
-    const description = `Квитки: ${show} | місця: ${seats}`;
-
-    // Куди повертати клієнта після оплати
-    const result_url  = location.origin + "/thanks.html";
-    // Куди LiqPay надішле server-to-server нотифікацію
-    const server_url  = "https://YOUR-PROJECT-REF.supabase.co/functions/v1/liqpay-callback"; // опційно, якщо робимо S2S
-
-    say("Формуємо платіж…");
-
-    try {
-      const payload = {
-        // public_key можна не передавати — Edge-функція підставить з ENV (або провалідить, якщо є)
-        action: "pay",
-        version: 3,
-        amount: amount,
-        currency: "UAH",
-        description,
-        order_id,
-        result_url,
-        server_url
-        // sandbox: 1 // якщо потрібно тестово — додай це поле, але в проді прибери
-      };
-
-      const r = await fetch(SIGN_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Якщо в liqpay-sign увімкнено «Verify JWT with legacy secret», додай:
-        // headers: { "Content-Type":"application/json", "Authorization": "Bearer " + "<SUPABASE_ANON_KEY>" }
-        body: JSON.stringify(payload),
-        mode: "cors",
-        cache: "no-store",
-      });
-
-      if (!r.ok) {
-        const t = await r.text().catch(()=> "");
-        throw new Error("sign HTTP " + r.status + (t ? (" — " + t) : ""));
-      }
-
-      const { data, signature } = await r.json();
-      if (!data || !signature) {
-        throw new Error("Відповідь підпису без полів data/signature");
-      }
-
-      // Готуємо форму для LiqPay
-      say("Переадресація до LiqPay…", true);
-
-      const form = document.createElement("form");
-      form.action = "https://www.liqpay.ua/api/3/checkout";
-      form.method = "POST";
-      form.style.display = "none";
-
-      const inpData = document.createElement("input");
-      inpData.type = "hidden";
-      inpData.name = "data";
-      inpData.value = data;
-
-      const inpSign = document.createElement("input");
-      inpSign.type = "hidden";
-      inpSign.name = "signature";
-      inpSign.value = signature;
-
-      form.appendChild(inpData);
-      form.appendChild(inpSign);
-      document.body.appendChild(form);
-      form.submit();
-
-    } catch (e) {
-      console.error(e);
-      say("Не вдалося ініціювати оплату. Спробуйте пізніше або зверніться в підтримку: +380981261695");
+    const { data, signature } = parsed || {};
+    if (!data || !signature) {
+      say(`Функція відповіла без data/signature.<br>
+           <b>Сирий JSON:</b> <code>${raw.replace(/</g,"&lt;")}</code>`);
+      return;
     }
-  })();
-  </script>
+
+    say("Переадресація до LiqPay…", true);
+
+    const form = document.createElement("form");
+    form.action = "https://www.liqpay.ua/api/3/checkout";
+    form.method = "POST";
+    form.style.display = "none";
+
+    const inpData = Object.assign(document.createElement("input"), {type:"hidden", name:"data", value:data});
+    const inpSign = Object.assign(document.createElement("input"), {type:"hidden", name:"signature", value:signature});
+
+    form.append(inpData, inpSign);
+    document.body.appendChild(form);
+    form.submit();
+
+  } catch (e) {
+    console.error(e);
+    say("Помилка ініціалізації оплати: " + String(e));
+  }
+})();
+</script>
+
 </body>
 </html>
