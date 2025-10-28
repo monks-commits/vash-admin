@@ -3,55 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Оплата квитків — Ваш Адмін</title>
+  <title>Оплата — Ваш Адмін</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- LiqPay JS -->
-  <script src="https://static.liqpay.ua/libjs/checkout.js"></script>
 </head>
 <body>
-  <!-- header -->
+  <!-- include header -->
   <div id="site-header"></div>
 
-  <main class="main">
-    <section class="section" style="max-width:860px;margin:0 auto">
-      <h2>Оплата квитків</h2>
-      <div id="orderInfo" class="card" style="margin-bottom:16px">Завантаження…</div>
-
-      <form id="payForm" class="card" novalidate>
-        <div class="row two">
-          <label>Ім’я покупця
-            <input type="text" id="buyer_name" required placeholder="Ваше ім’я" autocomplete="name" />
-          </label>
-          <label>Телефон
-            <input type="tel" id="buyer_phone" required placeholder="+380..." inputmode="tel" autocomplete="tel" />
-          </label>
-        </div>
-
-        <div class="row" style="margin-top:10px">
-          <label>Електронна пошта
-            <input type="email" id="buyer_email" required placeholder="example@gmail.com" autocomplete="email" />
-            <span class="meta">На цю адресу прийде електронний квиток</span>
-          </label>
-        </div>
-
-        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-          <button type="submit" class="btn">Оплатити через LiqPay</button>
-          <a class="btn secondary" id="backToHall" href="#">Змінити місця</a>
-        </div>
-
-        <div id="ok"  class="ok"  style="display:none">✅ Замовлення збережено. Відкриваємо LiqPay…</div>
-        <div id="err" class="err" style="display:none"></div>
-      </form>
-
-      <!-- контейнер віджета LiqPay -->
-      <div id="liqpay" style="margin-top:16px"></div>
-    </section>
+  <main class="container">
+    <h1>Підготовка платежу…</h1>
+    <div id="paybox" class="card" style="padding:16px">
+      <div class="meta">Будь ласка, зачекайте кілька секунд. Ми перенаправимо вас до LiqPay.</div>
+    </div>
   </main>
 
-  <!-- footer -->
+  <!-- include footer -->
   <div id="site-footer"></div>
 
   <script type="module" src="scripts/include.js"></script>
-  <script type="module" src="scripts/liqpay.js"></script>
+
+  <script>
+  (async function () {
+    // ====== ВАЖНО: ваши эндпоинты Supabase ======
+    const SIGN_URL     = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
+    const CALLBACK_URL = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-callback";
+    const RESULT_URL   = "https://vash-admin.com/thanks.html";
+
+    // Параметры из URL, которые передаём на эту страницу из схемы зала
+    const qp     = new URLSearchParams(location.search);
+    const amount = Number(qp.get("amount") || "0");
+    const order  = qp.get("order_id") || ("ORDER-" + Date.now());
+    const show   = qp.get("show") || "";
+    const seats  = qp.get("seats") || ""; // например: "1-5,1-6"
+
+    const description = `Квитки: ${show || "вистава"} • Місця: ${seats || "—"}`;
+
+    const box = document.getElementById("paybox");
+    const say = (t)=> box && (box.innerHTML = `<p class="meta">${t}</p>`);
+
+    // Базовая валидация
+    if (!amount || amount <= 0) {
+      say("Сума платежу не передана. Поверніться на сторінку вибору місць.");
+      return;
+    }
+
+    try {
+      say("Готуємо платіж…");
+
+      // Тело для серверной подписи (приватный ключ хранится в Supabase Secrets)
+      const payload = {
+        public_key: null,     // бекенд подставит из ENV, оставляем null
+        action:     "pay",
+        version:    3,
+        currency:   "UAH",
+        amount,
+        description,
+        order_id:   order,
+        result_url: RESULT_URL + `?order_id=${encodeURIComponent(order)}`,
+        server_url: CALLBACK_URL,
+
+        // ВНИМАНИЕ: на тестах — 1; в проде убрать или поставить 0
+        sandbox:    1
+      };
+
+      const r = await fetch(SIGN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok) throw new Error("Sign API failed: " + r.status);
+
+      const { data, signature, error } = await r.json();
+      if (error || !data || !signature) {
+        throw new Error(error || "Bad response from sign API");
+      }
+
+      // Формируем и отправляем форму в LiqPay
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://www.liqpay.ua/api/3/checkout";
+      form.innerHTML = `
+        <input type="hidden" name="data" value="${data}">
+        <input type="hidden" name="signature" value="${signature}">
+      `;
+      document.body.appendChild(form);
+
+      say("Переходимо до LiqPay…");
+      form.submit();
+
+    } catch (e) {
+      console.error(e);
+      say("Не вдалося ініціювати оплату. Спробуйте пізніше або зверніться в підтримку: +380981261695");
+    }
+  })();
+  </script>
 </body>
 </html>
