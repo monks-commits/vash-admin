@@ -50,118 +50,98 @@
   <script type="module" src="./scripts/include.js"></script>
 
   <script>
-  // ========= 1) НАСТРОЙКИ: УКАЖИТЕ СВОИ =========
-  // URL вашего проекта Supabase (из Settings → API)
-  const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co"; // ← ВАШ проект
-  // ANON KEY (из Settings → API)
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE";                  // ← ВСТАВИТЬ
+  // *** ваши константы ***
+  const SUPABASE_URL = 'https://yqhzekifwxotizsmaeaf.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc...'; // ваш anon key
+  const SIGN_FN_URL = SUPABASE_URL + '/functions/v1/liqpay-sign';
+  const LIQPAY_CHECKOUT = 'https://www.liqpay.ua/api/3/checkout';
 
-  const SIGN_URL = SUPABASE_URL + "/functions/v1/liqpay-sign";
+  // элементы со страницы подтверждения
+  const showTitleEl = document.getElementById('showTitle');
+  const orderIdEl   = document.getElementById('orderId');
+  const amountEl    = document.getElementById('amount');
+  // поля контактов
+  const nameInput   = document.getElementById('buyerName')  || document.getElementById('name')  || document.querySelector('input[name="name"]');
+  const emailInput  = document.getElementById('buyerEmail') || document.getElementById('email') || document.querySelector('input[type="email"]');
+  const phoneInput  = document.getElementById('buyerPhone') || document.getElementById('phone') || document.querySelector('input[type="tel"]');
 
-  // ========= 2) ЧТЕНИЕ ПАРАМЕТРОВ =========
-  const q = new URLSearchParams(location.search);
-  const show   = q.get("show")   || "";
-  const seats  = q.get("seats")  || "";
-  const amount = Number(q.get("amount") || 0);
-  const orderId= q.get("order_id") || ("ORDER-" + Date.now());
-  // предзаполним (если прилетело из формы под схемой)
-  const presetName  = decodeURIComponent(q.get("name")  || "").replace(/\+/g, " ");
-  const presetEmail = decodeURIComponent(q.get("email") || "").replace(/\+/g, " ");
-  const presetPhone = decodeURIComponent(q.get("phone") || "").replace(/\+/g, " ");
+  // кнопка «Оплатити через LiqPay»
+  const payBtn = document.getElementById('payLiqPay') || document.querySelector('button[data-pay]');
+  if (payBtn) payBtn.addEventListener('click', startPayment);
 
-  // ========= 3) РЕНДЕР =========
-  showEl("showTitle", show.replace("/", " — "));
-  showEl("seats", seats);
-  showEl("amount", String(amount));
-  showEl("orderId", orderId);
+  async function startPayment() {
+    payBtn.disabled = true;
+    clearError();
 
-  const nameInp  = document.getElementById("name");
-  const emailInp = document.getElementById("email");
-  const phoneInp = document.getElementById("phone");
-  if (presetName)  nameInp.value  = presetName;
-  if (presetEmail) emailInp.value = presetEmail;
-  if (presetPhone) phoneInp.value = presetPhone;
-
-  // «Змінити місця»
-  const edit = document.getElementById("editLink");
-  edit.href = `/spectacles/hall.html?show=${encodeURIComponent(show)}`;
-  
-  // ========= 4) КНОПКА ОПЛАТЫ =========
-  document.getElementById("payBtn").addEventListener("click", async () => {
-    hideError();
-
-    // простая валидация
-    if (!emailInp.value.trim() || !nameInp.value.trim()) {
-      return showError("Будь ласка, вкажіть ім’я та e-mail, щоб ми могли надіслати квитки.");
-    }
-    if (!amount || amount <= 0) {
-      return showError("Сума платежу некоректна.");
-    }
-
-    // payload для підпису
+    // собираем полезную нагрузку для подписи
     const payload = {
-      public_key:    "i69132711692",      // ← ваш публічний LiqPay key (ви вже вказували)
-      action:        "pay",
-      version:       3,
-      amount:        amount,
-      currency:      "UAH",
-      description:   `Оплата квитків: ${show} (${seats})`,
-      order_id:      orderId,
-      result_url:    location.origin + "/result.html", // можна змінити
-      server_url:    SUPABASE_URL + "/functions/v1/liqpay-callback",
-      // довідкова інформація (її не бачить LiqPay, лишається у нас):
-      meta: {
-        show, seats,
-        buyer: { name: nameInp.value.trim(), email: emailInp.value.trim(), phone: phoneInp.value.trim() }
-      }
+      // ОБЯЗАТЕЛЬНО:
+      amount:  Number((amountEl?.textContent || amountEl?.innerText || '0').replace(/[^\d.]/g, '')),
+      order_id: (orderIdEl?.textContent || orderIdEl?.innerText || '').trim(),
+
+      // желательные поля:
+      description: (showTitleEl?.textContent || 'Оплата квитків') + ' — vash-admin.com',
+      currency: 'UAH',
+      result_url: location.origin + '/thankyou.html',
+      server_url: SUPABASE_URL + '/functions/v1/liqpay-callback',
+
+      // для CRM / билетов:
+      name:  (nameInput?.value || '').trim(),
+      email: (emailInput?.value || '').trim(),
+      phone: (phoneInput?.value || '').trim()
     };
 
+    // простая валидация
+    if (!payload.amount || !payload.order_id) {
+      return showError('Не зібрані дані замовлення: amount / order_id.');
+    }
+
     try {
-      // важливо: авторизація ANON KEY і CORS
-      const r = await fetch(SIGN_URL, {
-        method: "POST",
-        mode: "cors",
+      const res = await fetch(SIGN_FN_URL, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + SUPABASE_ANON_KEY
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
         },
         body: JSON.stringify(payload)
       });
 
-      if (!r.ok) {
-        const t = await r.text().catch(()=>"");
-        throw new Error(`liqpay-sign HTTP ${r.status}. ${t}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`liqpay-sign ${res.status}: ${text}`);
       }
 
-      const { data, signature, error } = await r.json();
-      if (error) throw new Error(error);
-
-      // редирект на LiqPay checkout
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "https://www.liqpay.ua/api/3/checkout";
-      form.target = "_self";
-
-      const f1 = document.createElement("input");
-      f1.type = "hidden"; f1.name = "data"; f1.value = data;
-
-      const f2 = document.createElement("input");
-      f2.type = "hidden"; f2.name = "signature"; f2.value = signature;
-
-      form.appendChild(f1); form.appendChild(f2);
+      const { data, signature, checkoutUrl } = await res.json();
+      // сабмитим на liqpay
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = checkoutUrl || LIQPAY_CHECKOUT;
+      form.innerHTML = `
+        <input type="hidden" name="data" value="${data}">
+        <input type="hidden" name="signature" value="${signature}">
+      `;
       document.body.appendChild(form);
       form.submit();
     } catch (e) {
-      console.error("liqpay-sign error:", e);
-      showError(`Помилка підготовки оплати: ${e.message || e}`);
+      showError('Помилка підготовки оплати: ' + e.message);
+    } finally {
+      payBtn.disabled = false;
     }
-  });
+  }
 
-  // ========= helpers =========
-  function showEl(id, v){ const el = document.getElementById(id); if (el) el.textContent = v; }
-  function showError(msg){ const b = document.getElementById("error"); b.textContent = msg; b.style.display = "block"; }
-  function hideError(){ const b = document.getElementById("error"); b.style.display = "none"; }
-  </script>
+  function showError(msg) {
+    const box = document.querySelector('.error-box') || document.createElement('div');
+    box.className = 'error-box';
+    box.style.cssText = 'margin-top:16px;padding:12px;border-radius:8px;background:#fee2e2;color:#991b1b;';
+    box.textContent = msg;
+    const card = document.querySelector('.card') || document.querySelector('main') || document.body;
+    card.appendChild(box);
+    return false;
+  }
+  function clearError() {
+    document.querySelectorAll('.error-box').forEach(n => n.remove());
+  }
+</script>
 
   <style>
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin:16px 0;box-shadow:0 1px 6px rgba(0,0,0,.05)}
