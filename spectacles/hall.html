@@ -29,12 +29,15 @@
 
   <script>
   // === ДАНІ ПРО ПОКАЗ ===
-  const showSlug = new URLSearchParams(location.search).get("show") || "shevchenko/example";
-  const showTitle = document.getElementById("show-title");
-  const showInfo  = document.getElementById("show-info");
+  const qs = new URLSearchParams(location.search);
+  const showSlug = qs.get("show") || "shevchenko/example";
+  const titleFromUrl = qs.get("title"); // опціонально
+  const showTitleEl = document.getElementById("show-title");
+  const showInfoEl  = document.getElementById("show-info");
 
-  showTitle.textContent = "Вибір місць";
-  showInfo.textContent = "Спектакль: " + showSlug.replace("/", " — ");
+  const prettyShow = titleFromUrl || showSlug.replace("/", " — ");
+  showTitleEl.textContent = "Вибір місць";
+  showInfoEl.textContent = "Спектакль: " + prettyShow;
 
   // === МОДЕЛЬ ВИБОРУ ===
   const hallMap     = document.getElementById("hall-map");
@@ -58,6 +61,8 @@
     div.className = "seat";
     div.textContent = seat.place;
     div.title = `Ряд ${seat.row}, Місце ${seat.place} (${seat.price} грн)`;
+    div.dataset.price = String(seat.price);            // <— важливо: для підрахунку
+    div.dataset.id = seat.id;
 
     div.addEventListener("click", () => {
       if (selectedSeats.has(seat.id)) {
@@ -79,20 +84,23 @@
     const total = Array.from(selectedSeats)
       .map(id => seatsData.find(s => s.id === id)?.price || 0)
       .reduce((a, b) => a + b, 0);
-    totalEl.textContent = total.toString();
+    totalEl.textContent = String(total);
     payBtn.disabled = selectedSeats.size === 0;
   }
 
   // === Перехід до оплати ===
   payBtn.addEventListener("click", () => {
-    const total = Number(totalEl.textContent);
+    const total = Number(totalEl.textContent || 0);
     const seats = Array.from(selectedSeats).join(",");
+    // order_id: короткий код шоу + timestamp
     const orderId = showSlug.split("/").pop().toUpperCase() + "-" + Date.now();
 
+    // checkout в КОРЕНІ сайту
     const url = new URL(location.origin + "/checkout.html");
     url.searchParams.set("show", showSlug);
+    url.searchParams.set("title", prettyShow);
     url.searchParams.set("seats", seats);
-    url.searchParams.set("amount", total);
+    url.searchParams.set("amount", String(total));
     url.searchParams.set("order_id", orderId);
 
     location.href = url.toString();
@@ -116,6 +124,7 @@
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
+      user-select: none;
     }
     .seat:hover {
       background: #ddd;
@@ -128,7 +137,7 @@
       padding: 16px;
       border: 1px solid #ddd;
       border-radius: 10px;
-      max-width: 300px;
+      max-width: 320px;
       background: #fafafa;
     }
     .summary p {
