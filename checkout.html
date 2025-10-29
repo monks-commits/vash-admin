@@ -3,166 +3,152 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Оплата квитків — Ваш Адмін</title>
+  <title>Оплата — Ваш Адмін</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
+    .row{display:grid;gap:12px}
+    .row.two{grid-template-columns:1fr 1fr}
+    @media (max-width:720px){.row.two{grid-template-columns:1fr}}
+    .muted{color:#6b7280}
+    .err{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d;border-radius:10px;padding:12px;margin-top:12px;display:none}
+  </style>
 </head>
 <body>
   <div id="site-header"></div>
 
   <main class="container">
-    <h1>Оплата квитків</h1>
+    <h2>Підтвердження та оплата</h2>
 
-    <div id="orderBox" class="card" style="margin-bottom:12px"></div>
+    <div id="orderBox" class="card" style="margin-bottom:16px"></div>
 
-    <form id="custForm" class="card" novalidate>
+    <div class="card">
+      <h3 style="margin:0 0 8px">Ваші контакти</h3>
       <div class="row two">
-        <label>Ім’я покупця
-          <input id="name" type="text" required placeholder="Ваше ім’я" autocomplete="name" />
-        </label>
-        <label>Телефон
-          <input id="phone" type="tel" required placeholder="+380..." autocomplete="tel" />
-          <span class="hint">Телефон для звʼязку у разі змін</span>
-        </label>
+        <div>
+          <div class="muted">Ім’я та прізвище</div>
+          <div id="f_name" style="font-weight:600"></div>
+        </div>
+        <div>
+          <div class="muted">Телефон</div>
+          <div id="f_phone" style="font-weight:600"></div>
+        </div>
       </div>
-      <div class="row" style="margin-top:12px">
-        <label>Електронна пошта (куди надійде квиток)
-          <input id="email" type="email" required placeholder="example@gmail.com" autocomplete="email" />
-        </label>
-      </div>
-
-      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
-        <button id="payBtn" type="submit" class="btn">Перейти до LiqPay</button>
-        <a id="backLink" class="btn secondary" href="#">Змінити місця</a>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <div class="muted">Е-mail для отримання квитків</div>
+          <div id="f_email" style="font-weight:600"></div>
+        </div>
       </div>
 
-      <div id="ok" class="ok" style="display:none">✅ Бронювання збережено. Зараз відкриється LiqPay…</div>
-      <div id="err" class="err" style="display:none"></div>
-    </form>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="payBtn" class="btn">Оплатити через LiqPay</button>
+        <a id="editBtn" class="btn secondary" href="#">Змінити місця</a>
+      </div>
+      <div id="err" class="err"></div>
+    </div>
 
-    <!-- скрытая форма LiqPay -->
-    <form id="liqpayForm" method="POST" accept-charset="utf-8" action="https://www.liqpay.ua/api/3/checkout" style="display:none">
+    <!-- Невидима форма LiqPay -->
+    <form id="liqpayForm" method="POST" action="https://www.liqpay.ua/api/3/checkout" style="display:none">
       <input type="hidden" name="data" id="lp_data" />
-      <input type="hidden" name="signature" id="lp_sign" />
+      <input type="hidden" name="signature" id="lp_signature" />
     </form>
   </main>
 
   <div id="site-footer"></div>
   <script type="module" src="scripts/include.js"></script>
+
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    const supabaseUrl  = 'https://hkeuabtiemsxadusmqlo.supabase.co';
-    const supabaseAnon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE';
-    const supabase = createClient(supabaseUrl, supabaseAnon);
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    const qp     = new URLSearchParams(location.search);
-    const show   = qp.get('show')   || '';
-    const seats  = (qp.get('seats') || '').split(',').map(s=>s.trim()).filter(Boolean);
-    const amount = Number(qp.get('amount') || qp.get('sum') || '0');
-    const orderId= qp.get('order_id') || (`${(show.split('/').pop()||'SHOW').toUpperCase()}-${Date.now()}`);
+  // === Конфіг Supabase ===
+  const SUPABASE_URL  = 'https://hkeuabtiemsxadusmqlo.supabase.co'; // твій активний проект
+  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const orderBox = document.getElementById('orderBox');
-    const backLink = document.getElementById('backLink');
-    backLink.href = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
+  // === Вхідні дані з hall.html ===
+  const qp = new URLSearchParams(location.search);
+  const show   = qp.get('show')   || '';
+  const seats  = qp.get('seats')  || '';       // "Р1-М5,Р1-М6"
+  const amount = Number(qp.get('amount')||0);
+  const orderId= qp.get('order_id') || '';
+  const name   = qp.get('name')   || '';
+  const phone  = qp.get('phone')  || '';
+  const email  = qp.get('email')  || '';
 
-    if (!show || !seats.length || !amount) {
-      orderBox.innerHTML = '<p>❌ Помилка: неповні параметри замовлення.</p>';
-      document.getElementById('custForm').style.display='none';
-    } else {
-      orderBox.innerHTML = `
-        <div><strong>Вистава:</strong> ${show.replace('/', ' — ')}</div>
-        <div><strong>Місця:</strong> ${seats.join(', ')}</div>
-        <div><strong>Сума:</strong> ${amount} грн</div>
-        <div class="meta">ID замовлення: ${orderId}</div>
-      `;
-    }
+  // Підтвердження замовлення
+  const orderBox = document.getElementById('orderBox');
+  orderBox.innerHTML = `
+    <h3 style="margin:0 0 8px">Підтвердження замовлення</h3>
+    <p style="margin:6px 0"><strong>Вистава:</strong> ${show.replace('/', ' — ')}</p>
+    <p style="margin:6px 0"><strong>Місця:</strong> ${seats || '—'}</p>
+    <p style="margin:6px 0"><strong>Сума:</strong> ${amount} грн</p>
+    <p class="muted" style="margin:6px 0">Order ID: ${orderId}</p>
+  `;
+  document.getElementById('f_name').textContent  = name || '—';
+  document.getElementById('f_phone').textContent = phone || '—';
+  document.getElementById('f_email').textContent = email || '—';
+  document.getElementById('editBtn').href = `spectacles/hall.html?show=${encodeURIComponent(show)}`;
 
-    const okEl  = document.getElementById('ok');
-    const errEl = document.getElementById('err');
-    const form  = document.getElementById('custForm');
+  const errBox = document.getElementById('err');
+  function showErr(m){ errBox.textContent = m; errBox.style.display = 'block'; }
 
-    function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+  // 1) Записать/обновить заказ в Supabase (status = 'new')
+  async function upsertOrder(){
+    const payload = {
+      order_id: orderId,
+      show_slug: show,
+      seats: seats ? seats.split(',').map(s=>s.trim()) : [],
+      amount: amount,
+      customer_name: name,
+      customer_phone: phone,
+      customer_email: email,
+      status: 'new'
+    };
+    const { error } = await supabase.from('orders').upsert(payload, { onConflict: 'order_id' });
+    if (error) throw error;
+  }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errEl.style.display='none';
-      okEl.style.display='none';
+  // 2) Получить подпись через Edge Function
+  async function getSignature(){
+    const body = {
+      public_key:  qp.get('public_key') || 'i69132711692',  // твiй публічний ключ
+      amount:      amount,
+      currency:    'UAH',
+      description: `Квитки: ${show} (${seats})`,
+      order_id:    orderId,
+      result_url:  location.origin + '/thanks.html?order_id=' + encodeURIComponent(orderId),
+      server_url:  `https://hkeuabtiemsxadusmqlo.functions.supabase.co/liqpay-callback`, // (опційно: твій webhook)
+      // прокинемо службові поля, щоб callback міг відправити PDF:
+      'sender_name':  name,
+      'sender_phone': phone,
+      'sender_email': email
+    };
 
-      const name  = (document.getElementById('name').value||'').trim();
-      const phone = (document.getElementById('phone').value||'').trim();
-      const email = (document.getElementById('email').value||'').trim();
-
-      if (!name || !phone || !email) { err('Заповніть усі поля.'); return; }
-      if (!validEmail(email))        { err('Невірний формат e-mail.'); return; }
-
-      try {
-        // upsert бронь в Supabase
-        const payload = {
-          order_id: orderId,
-          show_slug: show,
-          seat_ids: seats,
-          amount: amount,
-          customer_name: name,
-          customer_phone: phone,
-          customer_email: email,
-          payment_status: 'pending'
-        };
-        const { error } = await supabase
-          .from('bookings')
-          .upsert(payload, { onConflict: 'order_id' });
-        if (error) throw error;
-
-        okEl.style.display='block';
-
-        // Готовим LiqPay
-        const pubKey = 'i69132711692'; // ваш public
-        const resultUrl  = `${location.origin}/thanks.html?order_id=${encodeURIComponent(orderId)}`;
-        const serverUrl  = 'https://eoxtgyskksdmvdxmxjab.supabase.co/functions/v1/liqpay-notify'; // ВАЖНО: замените на ваш ref!
-        const payloadLP = {
-          public_key: pubKey,
-          version: 3,
-          action: "pay",
-          amount: amount,
-          currency: "UAH",
-          description: `Квитки • ${show} • ${seats.join(',')}`,
-          order_id: orderId,
-          language: "uk",
-          result_url: resultUrl,
-          server_url: serverUrl,
-          // полезно прокинуть информацию покупателя
-          info: JSON.stringify({ name, phone, email, show, seats })
-        };
-
-        const res = await fetch('/functions/v1/liqpay-sign', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify(payloadLP)
-        });
-        if (!res.ok) throw new Error('sign http '+res.status);
-        const { data, signature } = await res.json();
-
-        document.getElementById('lp_data').value = data;
-        document.getElementById('lp_sign').value = signature;
-        document.getElementById('liqpayForm').submit();
-      } catch (e) {
-        err(`Помилка при підготовці оплати: ${e.message||e}`);
-      }
+    const res = await fetch('https://hkeuabtiemsxadusmqlo.functions.supabase.co/liqpay-sign', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
     });
+    if (!res.ok){ throw new Error('liqpay-sign HTTP '+res.status); }
+    return res.json(); // { data, signature }
+  }
 
-    function err(msg){
-      errEl.textContent = msg;
-      errEl.style.display = 'block';
+  // 3) Submit в LiqPay
+  async function pay(){
+    try{
+      errBox.style.display='none';
+      await upsertOrder();
+      const { data, signature } = await getSignature();
+
+      document.getElementById('lp_data').value = data;
+      document.getElementById('lp_signature').value = signature;
+      document.getElementById('liqpayForm').submit();
+    }catch(e){
+      console.error(e);
+      showErr('Помилка підготовки оплати: ' + (e.message || e));
     }
-  </script>
+  }
 
-  <style>
-    .row{display:grid;gap:12px}
-    .row.two{grid-template-columns:1fr 1fr}
-    @media (max-width:720px){.row.two{grid-template-columns:1fr}}
-    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px}
-    .hint{font-size:12px;color:#6b7280}
-    input{height:42px;border:1px solid #ddd;border-radius:10px;padding:0 12px;width:100%}
-    .ok{background:#ecfdf5;border:1px solid #10b981;color:#065f46;border-radius:10px;padding:12px;margin-top:12px}
-    .err{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d;border-radius:10px;padding:12px;margin-top:12px}
-  </style>
+  document.getElementById('payBtn').addEventListener('click', pay);
+  </script>
 </body>
 </html>
