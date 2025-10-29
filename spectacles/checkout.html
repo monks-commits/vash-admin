@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Оплата квитків — Ваш Адмін</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Підготовка платежу…</h2>
+    <p id="status">Зачекайте, йде з’єднання з LiqPay</p>
+  </div>
+
+  <footer>
+    <p>© 2025 Ваш Адмін — Квитки без комісій</p>
+  </footer>
+
+  <script>
+    // =============== Налаштування ==================
+    const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co"; // заміни на свій
+    const SIGN_FN_URL = SUPABASE_URL + "/functions/v1/liqpay-sign";
+    const LIQPAY_CHECKOUT = "https://www.liqpay.ua/api/3/checkout";
+
+    // Отримання параметрів із URL (назва, сума, опис, ідентифікатор)
+    const params = new URLSearchParams(window.location.search);
+    const amount = params.get("amount") || 1;
+    const title = params.get("title") || "Платіж за квитки";
+    const orderId = params.get("order_id") || "ORDER_" + Date.now();
+
+    // =============== Основна функція ==================
+    async function startPayment() {
+      const statusEl = document.getElementById("status");
+
+      try {
+        statusEl.textContent = "Підготовка запиту до сервера…";
+
+        const resp = await fetch(SIGN_FN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            public_key: "i69132711692",
+            amount,
+            currency: "UAH",
+            description: title,
+            order_id: orderId,
+            result_url: "https://vash-admin.com/thanks.html",
+            sandbox: 1, // 1 = тестовий режим
+          }),
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(`Помилка сервера: ${resp.status} ${errText}`);
+        }
+
+        const { data, signature, error } = await resp.json();
+        if (error) throw new Error(error);
+        if (!data || !signature) throw new Error("Немає підпису або даних");
+
+        statusEl.textContent = "Переадресація на LiqPay…";
+
+        // =============== Формуємо форму ==================
+        const form = document.createElement("form");
+        form.action = LIQPAY_CHECKOUT;
+        form.method = "POST";
+
+        const f1 = document.createElement("input");
+        f1.type = "hidden";
+        f1.name = "data";
+        f1.value = data;
+
+        const f2 = document.createElement("input");
+        f2.type = "hidden";
+        f2.name = "signature";
+        f2.value = signature;
+
+        form.appendChild(f1);
+        form.appendChild(f2);
+        document.body.appendChild(form);
+        form.submit();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Помилка: " + err.message;
+      }
+    }
+
+    startPayment();
+  </script>
+</body>
+</html>
