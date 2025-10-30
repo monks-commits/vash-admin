@@ -2,11 +2,12 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Підтвердження та оплата — Ваш Адмін</title>
+
+  <!-- общий стиль -->
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    /* чуть-чуть чтобы точно было красиво даже без твоего css */
     body {
       background: #f3f4f6;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -14,186 +15,291 @@
     .container-page {
       max-width: 920px;
       margin: 0 auto;
-      padding: 24px 16px 80px;
+      padding: 24px 16px 140px;
     }
     .card {
       background: #fff;
       border-radius: 16px;
-      padding: 18px 20px 4px;
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
-      margin-bottom: 18px;
+      padding: 20px 20px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.05);
     }
-    .card h2 {
-      font-size: 1.3rem;
-      margin-bottom: 8px;
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #111827;
+    }
+    h2 {
+      font-size: 20px;
+      margin-bottom: 14px;
     }
     .row {
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
     }
-    .field {
-      margin-bottom: 14px;
-      width: 100%;
+    .field-group {
+      flex: 1 1 48%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
     label {
-      display: block;
-      font-size: 0.85rem;
-      margin-bottom: 4px;
-      color: #374151;
+      font-weight: 500;
     }
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"] {
-      width: 100%;
-      padding: 10px 12px;
+    input {
       border: 1px solid #d1d5db;
       border-radius: 10px;
-      font-size: 1rem;
-      background: #eff3ff;
+      padding: 10px 12px;
+      font-size: 15px;
+      outline: none;
+      background: #ecf2ff;
     }
-    .btn-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
+    input:focus {
+      border-color: #3b82f6;
+      background: #fff;
     }
     .btn-primary {
-      background: #0f62fe;
+      background: #2563eb;
       color: #fff;
       border: none;
-      border-radius: 9999px;
-      padding: 10px 20px;
-      font-size: 0.95rem;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-weight: 600;
       cursor: pointer;
+      font-size: 15px;
+      transition: .15s;
+    }
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
     }
     .btn-secondary {
       background: #e5e7eb;
-      color: #111827;
       border: none;
-      border-radius: 9999px;
-      padding: 10px 20px;
-      font-size: 0.95rem;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 500;
       cursor: pointer;
     }
-    .alert {
-      margin-top: 16px;
+    .btns-line {
+      display: flex;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .err-box {
       background: #fee2e2;
       border: 1px solid #fca5a5;
-      color: #b91c1c;
-      padding: 12px 14px;
       border-radius: 12px;
+      padding: 12px 16px;
+      color: #b91c1c;
+      margin-top: 14px;
       display: none;
     }
-    .summary-line b {
-      font-weight: 600;
+    .ok-box {
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: #166534;
+      margin-top: 10px;
+      display: none;
     }
-    @media (min-width: 768px) {
-      .w-1-2 {
-        width: calc(50% - 8px);
+    footer.legal {
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+      padding: 28px 16px 80px;
+      margin-top: 32px;
+      border-radius: 18px 18px 0 0;
+    }
+    footer.legal p {
+      margin: 2px 0;
+    }
+    @media (max-width: 640px) {
+      .row {
+        flex-direction: column;
+      }
+      .field-group {
+        flex: 1 1 100%;
+      }
+      .btns-line {
+        flex-direction: column;
       }
     }
   </style>
 </head>
 <body>
-  <!-- шапка будет подставлена include.js -->
   <div id="site-header"></div>
 
   <main class="container-page">
-    <h1 style="font-size:1.6rem; margin-bottom:15px;">Підтвердження та оплата</h1>
+    <h1>Підтвердження та оплата</h1>
 
-    <!-- Блок с подтверждением -->
-    <section class="card" id="summaryCard">
+    <!-- БЛОК 1: інфо про замовлення -->
+    <section class="card" id="orderCard">
       <h2>Підтвердження замовлення</h2>
-      <p class="summary-line"><b>Вистава:</b> <span id="showTitle">—</span></p>
-      <p class="summary-line"><b>Місця:</b> <span id="seats">—</span></p>
-      <p class="summary-line"><b>Сума:</b> <span id="amount">0</span> грн</p>
-      <p class="summary-line"><b>Order ID:</b> <span id="orderId">—</span></p>
+      <p><b>Вистава:</b> <span id="showTitle">—</span></p>
+      <p><b>Місця:</b> <span id="seats">—</span></p>
+      <p><b>Сума:</b> <span id="amount">0</span> грн</p>
+      <p><b>Order ID:</b> <span id="orderId">—</span></p>
     </section>
 
-    <!-- Форма контактов -->
+    <!-- БЛОК 2: контакти -->
     <section class="card">
       <h2>Ваші контакти</h2>
       <div class="row">
-        <div class="field w-1-2">
+        <div class="field-group">
           <label for="buyerName">Ім’я та прізвище</label>
-          <input id="buyerName" type="text" required placeholder="Напр., Олександр Рябов" />
+          <input id="buyerName" type="text" placeholder="Ваші ПІБ" />
         </div>
-        <div class="field w-1-2">
+        <div class="field-group">
           <label for="buyerPhone">Телефон</label>
-          <input id="buyerPhone" type="tel" required placeholder="+380..." />
+          <input id="buyerPhone" type="tel" placeholder="+380..." />
         </div>
-        <div class="field" style="width:100%;">
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <div class="field-group" style="flex:1 1 100%;">
           <label for="buyerEmail">E-mail для отримання квитків</label>
-          <input id="buyerEmail" type="email" required placeholder="name@example.com" />
-          <small style="color:#6b7280;">На цю адресу надійдуть PDF-квитки / інструкції.</small>
+          <input id="buyerEmail" type="email" placeholder="name@example.com" />
+          <small>На цю адресу надійдуть PDF-квитки / інструкції.</small>
         </div>
       </div>
-      <div class="btn-row">
-        <button id="payLiqpay" class="btn-primary">Оплатити через LiqPay</button>
-        <button id="changeSeats" class="btn-secondary" type="button">Змінити місця</button>
+
+      <div class="btns-line">
+        <button id="payBtn" class="btn-primary">Оплатити через LiqPay</button>
+        <button id="backBtn" class="btn-secondary">Змінити місця</button>
       </div>
-      <div id="errorBox" class="alert"></div>
+
+      <div id="errorBox" class="err-box"></div>
+      <div id="successBox" class="ok-box"></div>
     </section>
 
-    <!-- юр. блок -->
-    <section class="card" style="font-size:0.8rem; line-height:1.4;">
+    <!-- БЛОК 3: юр.інфа -->
+    <footer class="legal">
       <p><b>ФОП Рябов Олександр Германович</b></p>
       <p>Адреса: Україна, 49100, Дніпропетровська обл., м. Дніпро, вул. Мандриківська, буд. 163, кв. 27</p>
-      <p>Реєстраційний номер: 2002240000000166615</p>
-      <p>Телефон: +380 (98) 126-16-95 | Email: alexandrryabov@ukr.net</p>
-      <p>Публічна оферта • Політика конфіденційності • Умови повернення</p>
-      <p>Безпечна оплата через LiqPay. Квитки без комісій.</p>
-      <p>© 2025 Ваш Адмін</p>
-    </section>
+      <p>Реєстраційний номер: 200224000000166615</p>
+      <p>Телефон: +380 (98) 126-16-95 | E-mail: alexandrryabov@ukr.net</p>
+    </footer>
   </main>
 
-  <!-- подвал будет подставлен include.js -->
   <div id="site-footer"></div>
+  <script src="./scripts/include.js" type="module"></script>
 
-  <!-- твой общий include для хедера/футера -->
-  <script type="module" src="./scripts/include.js"></script>
+  <script>
+    // ===== 1. парсимо query =====
+    const params = new URLSearchParams(location.search);
+    const show     = params.get("show")     || "";
+    const seats    = params.get("seats")    || "";
+    const amount   = params.get("amount")   || "0";
+    const order_id = params.get("order_id") || ("LEDI-" + Date.now());
+    const nameQ    = params.get("name")     || "";
+    const emailQ   = params.get("email")    || "";
+    const phoneQ   = params.get("phone")    || "";
 
-  <!-- Логика оплаты -->
-<script>
-  // 1. твой Supabase
-  const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
-  const SIGN_FN_URL = SUPABASE_URL + "/functions/v1/liqpay-sign";
+    // заполняем
+    document.getElementById("showTitle").textContent = show.replace("/", " — ");
+    document.getElementById("seats").textContent     = seats || "—";
+    document.getElementById("amount").textContent    = amount;
+    document.getElementById("orderId").textContent   = order_id;
 
-  // 2. парсим query (теперь декодируем!)
-  const params   = new URLSearchParams(location.search);
-  const show     = decodeURIComponent(params.get("show") || "");
-  const seats    = decodeURIComponent(params.get("seats") || "");
-  const amount   = Number(params.get("amount") || "0");
-  const orderId  = decodeURIComponent(params.get("order_id") || ("ORD-" + Date.now()));
-  const nameQ    = decodeURIComponent(params.get("name")  || "");
-  const emailQ   = decodeURIComponent(params.get("email") || "");
-  const phoneQ   = decodeURIComponent(params.get("phone") || "");
+    const nameInput  = document.getElementById("buyerName");
+    const phoneInput = document.getElementById("buyerPhone");
+    const mailInput  = document.getElementById("buyerEmail");
+    if (nameQ)  nameInput.value  = decodeURIComponent(nameQ);
+    if (phoneQ) phoneInput.value = decodeURIComponent(phoneQ);
+    if (emailQ) mailInput.value  = decodeURIComponent(emailQ);
 
-  // 3. подставляем в карточку
-  const showTitleEl = document.getElementById("showTitle");
-  const seatsEl     = document.getElementById("seats");
-  const amountEl    = document.getElementById("amount");
-  const orderIdEl   = document.getElementById("orderId");
+    const payBtn    = document.getElementById("payBtn");
+    const backBtn   = document.getElementById("backBtn");
+    const errorBox  = document.getElementById("errorBox");
+    const successBox= document.getElementById("successBox");
 
-  if (showTitleEl) showTitleEl.textContent = show ? show.replace("/", " — ") : "—";
-  if (seatsEl) seatsEl.textContent = seats || "—";
-  if (amountEl) amountEl.textContent = amount.toString();
-  if (orderIdEl) orderIdEl.textContent = orderId;
+    // ===== 2. обработчики =====
+    backBtn.addEventListener("click", () => {
+      const url = new URL("/spectacles/hall.html", location.origin);
+      url.searchParams.set("show", show);
+      location.href = url.toString();
+    });
 
-  const nameInput  = document.getElementById("buyerName");
-  const emailInput = document.getElementById("buyerEmail");
-  const phoneInput = document.getElementById("buyerPhone");
-  const errorBox   = document.getElementById("errorBox");
-  const changeBtn  = document.getElementById("changeSeats");
-  const payBtn     = document.getElementById("payLiqpay");
+    payBtn.addEventListener("click", async () => {
+      errorBox.style.display = "none";
+      successBox.style.display = "none";
 
-  // подставим из урла
-  if (nameInput && !nameInput.value)  nameInput.value  = nameQ;
-  if (emailInput && !emailInput.value) emailInput.value = emailQ;
-  if (phoneInput && !phoneInput.value) phoneInput.value = phoneQ;
+      const buyerName  = nameInput.value.trim();
+      const buyerPhone = phoneInput.value.trim();
+      const buyerEmail = mailInput.value.trim();
 
-  // остальной код оплаты (fetch, redirect и т.д.) — без изменений
-</script>
+      if (!buyerName || !buyerEmail) {
+        errorBox.textContent = "Вкажіть ім’я та e-mail.";
+        errorBox.style.display = "block";
+        return;
+      }
 
+      // 👇 вот это и должно улететь на Supabase
+      const payload = {
+        public_key: "i69132711692",
+        action: "pay",
+        amount: Number(amount),
+        currency: "UAH",
+        description: `${show} • ${seats}`,
+        order_id: order_id,
+        name: buyerName,
+        email: buyerEmail,
+        phone: buyerPhone,
+        server_url: "https://YOUR_PROJECT.supabase.co/functions/v1/liqpay-callback"
+      };
+
+      payBtn.disabled = true;
+      payBtn.textContent = "Готуємо оплату…";
+
+      try {
+        const resp = await fetch(
+          "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error("Помилка сервера: " + txt);
+        }
+
+        const { data, signature } = await resp.json();
+
+        // редирект на LiqPay
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "https://www.liqpay.ua/api/3/checkout";
+
+        const inputData = document.createElement("input");
+        inputData.type = "hidden";
+        inputData.name = "data";
+        inputData.value = data;
+
+        const inputSign = document.createElement("input");
+        inputSign.type = "hidden";
+        inputSign.name = "signature";
+        inputSign.value = signature;
+
+        form.appendChild(inputData);
+        form.appendChild(inputSign);
+        document.body.appendChild(form);
+        form.submit();
+      } catch (err) {
+        console.error(err);
+        errorBox.textContent = "Помилка ініціалізації оплати: " + err.message;
+        errorBox.style.display = "block";
+      } finally {
+        payBtn.disabled = false;
+        payBtn.textContent = "Оплатити через LiqPay";
+      }
+    });
+  </script>
 </body>
 </html>
