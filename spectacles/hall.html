@@ -72,7 +72,7 @@
     document.getElementById("show-label").textContent =
       "Вистава: " + showSlug.replace("/", " — ");
 
-    // простая модель зала: перший ряд 1–20
+    // ТЕСТОВИЙ зал: 1 ряд 1–20
     const hallSeats = document.getElementById("hall-seats");
     const seats = [];
     for (let i = 1; i <= 20; i++) {
@@ -114,15 +114,12 @@
     }
 
     btn.addEventListener("click", () => {
-      const ids = Array.from(selected);
-      const sum = Number(seatSumEl.textContent) || 0;
-
-      // читаем форму
-      const name  = document.getElementById("buyer-name").value.trim();
+      const ids  = Array.from(selected);
+      const sum  = Number(seatSumEl.textContent) || 0;
+      const name = document.getElementById("buyer-name").value.trim();
       const phone = document.getElementById("buyer-phone").value.trim();
       const email = document.getElementById("buyer-email").value.trim();
 
-      // Делаем order_id без кириллицы:
       const orderId = "LEDI-" + Date.now();
 
       const url = new URL(location.origin + "/checkout.html");
@@ -130,10 +127,10 @@
       url.searchParams.set("seats", ids.join(","));
       url.searchParams.set("amount", String(sum));
       url.searchParams.set("order_id", orderId);
-      // Эти три можно кодировать — но лучше передать чисто
-      url.searchParams.set("name", encodeURIComponent(name));
-      url.searchParams.set("phone", encodeURIComponent(phone));
-      url.searchParams.set("email", encodeURIComponent(email));
+      // ВАЖНО: без encodeURIComponent — URLSearchParams сам всё закодирует
+      url.searchParams.set("name", name);
+      url.searchParams.set("phone", phone);
+      url.searchParams.set("email", email);
 
       location.href = url.toString();
     });
