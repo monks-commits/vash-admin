@@ -187,119 +187,54 @@
   <script src="./scripts/include.js" type="module"></script>
 
   <script>
-    // ===== 1. парсимо query =====
-    const params = new URLSearchParams(location.search);
-    const show     = params.get("show")     || "";
-    const seats    = params.get("seats")    || "";
-    const amount   = params.get("amount")   || "0";
-    const order_id = params.get("order_id") || ("LEDI-" + Date.now());
-    const nameQ    = params.get("name")     || "";
-    const emailQ   = params.get("email")    || "";
-    const phoneQ   = params.get("phone")    || "";
+const payBtn = document.getElementById("payBtn");
+payBtn.addEventListener("click", async () => {
+  const url = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
 
-    // заполняем
-    document.getElementById("showTitle").textContent = show.replace("/", " — ");
-    document.getElementById("seats").textContent     = seats || "—";
-    document.getElementById("amount").textContent    = amount;
-    document.getElementById("orderId").textContent   = order_id;
+  const payload = {
+    amount: document.getElementById("amount").textContent.trim(),
+    order_id: document.getElementById("orderId").textContent.trim(),
+    // это улетит просто “как данные клиента”, в подпись не пойдёт
+    name: document.getElementById("buyerName").value,
+    email: document.getElementById("buyerEmail").value,
+    phone: document.getElementById("buyerPhone").value,
+    description: document.getElementById("showTitle").textContent.trim(),
+  };
 
-    const nameInput  = document.getElementById("buyerName");
-    const phoneInput = document.getElementById("buyerPhone");
-    const mailInput  = document.getElementById("buyerEmail");
-    if (nameQ)  nameInput.value  = decodeURIComponent(nameQ);
-    if (phoneQ) phoneInput.value = decodeURIComponent(phoneQ);
-    if (emailQ) mailInput.value  = decodeURIComponent(emailQ);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 
-    const payBtn    = document.getElementById("payBtn");
-    const backBtn   = document.getElementById("backBtn");
-    const errorBox  = document.getElementById("errorBox");
-    const successBox= document.getElementById("successBox");
+  const data = await res.json();
+  if (!res.ok) {
+    alert("Помилка: " + JSON.stringify(data));
+    return;
+  }
 
-    // ===== 2. обработчики =====
-    backBtn.addEventListener("click", () => {
-      const url = new URL("/spectacles/hall.html", location.origin);
-      url.searchParams.set("show", show);
-      location.href = url.toString();
-    });
+  // редирект на LiqPay
+  const form = document.createElement("form");
+  form.action = "https://www.liqpay.ua/api/3/checkout";
+  form.method = "POST";
+  form.acceptCharset = "utf-8";
 
-    payBtn.addEventListener("click", async () => {
-      errorBox.style.display = "none";
-      successBox.style.display = "none";
+  const i1 = document.createElement("input");
+  i1.type = "hidden";
+  i1.name = "data";
+  i1.value = data.data;
 
-      const buyerName  = nameInput.value.trim();
-      const buyerPhone = phoneInput.value.trim();
-      const buyerEmail = mailInput.value.trim();
+  const i2 = document.createElement("input");
+  i2.type = "hidden";
+  i2.name = "signature";
+  i2.value = data.signature;
 
-      if (!buyerName || !buyerEmail) {
-        errorBox.textContent = "Вкажіть ім’я та e-mail.";
-        errorBox.style.display = "block";
-        return;
-      }
+  form.appendChild(i1);
+  form.appendChild(i2);
+  document.body.appendChild(form);
+  form.submit();
+});
+</script>
 
-      // 👇 вот это и должно улететь на Supabase
-      const payload = {
-        public_key: "i69132711692",
-        action: "pay",
-        amount: Number(amount),
-        currency: "UAH",
-        description: `${show} • ${seats}`,
-        order_id: order_id,
-        name: buyerName,
-        email: buyerEmail,
-        phone: buyerPhone,
-        server_url: "https://YOUR_PROJECT.supabase.co/functions/v1/liqpay-callback"
-      };
-
-      payBtn.disabled = true;
-      payBtn.textContent = "Готуємо оплату…";
-
-      try {
-        const resp = await fetch(
-          "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-          }
-        );
-
-        if (!resp.ok) {
-          const txt = await resp.text();
-          throw new Error("Помилка сервера: " + txt);
-        }
-
-        const { data, signature } = await resp.json();
-
-        // редирект на LiqPay
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = "https://www.liqpay.ua/api/3/checkout";
-
-        const inputData = document.createElement("input");
-        inputData.type = "hidden";
-        inputData.name = "data";
-        inputData.value = data;
-
-        const inputSign = document.createElement("input");
-        inputSign.type = "hidden";
-        inputSign.name = "signature";
-        inputSign.value = signature;
-
-        form.appendChild(inputData);
-        form.appendChild(inputSign);
-        document.body.appendChild(form);
-        form.submit();
-      } catch (err) {
-        console.error(err);
-        errorBox.textContent = "Помилка ініціалізації оплати: " + err.message;
-        errorBox.style.display = "block";
-      } finally {
-        payBtn.disabled = false;
-        payBtn.textContent = "Оплатити через LiqPay";
-      }
-    });
-  </script>
 </body>
 </html>
