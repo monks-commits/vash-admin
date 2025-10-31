@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../styles.css" />
   <style>
     body { background:#f4f4f6; }
+    main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
     .hall-wrap { background:#fff; border-radius:14px; padding:26px; margin-bottom:26px; }
     .hall-row { display:flex; gap:8px; flex-wrap:wrap; }
     .seat {
@@ -33,7 +34,10 @@
   </style>
 </head>
 <body>
-  <main class="container" style="max-width:1100px;">
+  <!-- общая шапка -->
+  <div id="site-header"></div>
+
+  <main>
     <h1>Вибір місць</h1>
     <p id="show-label">Вистава: —</p>
 
@@ -65,14 +69,19 @@
     </div>
   </main>
 
-  <script type="module" src="../scripts/include.js"></script>
+  <!-- общий подвал -->
+  <div id="site-footer"></div>
+
+  <!-- подключаем include.js -->
+  <script src="/vash-admin/scripts/include.js"></script>
+
+  <!-- твоя логика зала — оставляем -->
   <script>
     const params = new URLSearchParams(location.search);
     const showSlug = params.get("show") || "shevchenko/ledi";
     document.getElementById("show-label").textContent =
       "Вистава: " + showSlug.replace("/", " — ");
 
-    // ТЕСТОВИЙ зал: 1 ряд 1–20
     const hallSeats = document.getElementById("hall-seats");
     const seats = [];
     for (let i = 1; i <= 20; i++) {
@@ -114,12 +123,11 @@
     }
 
     btn.addEventListener("click", () => {
-      const ids  = Array.from(selected);
-      const sum  = Number(seatSumEl.textContent) || 0;
-      const name = document.getElementById("buyer-name").value.trim();
+      const ids = Array.from(selected);
+      const sum = Number(seatSumEl.textContent) || 0;
+      const name  = document.getElementById("buyer-name").value.trim();
       const phone = document.getElementById("buyer-phone").value.trim();
       const email = document.getElementById("buyer-email").value.trim();
-
       const orderId = "LEDI-" + Date.now();
 
       const url = new URL(location.origin + "/checkout.html");
@@ -127,10 +135,9 @@
       url.searchParams.set("seats", ids.join(","));
       url.searchParams.set("amount", String(sum));
       url.searchParams.set("order_id", orderId);
-      // ВАЖНО: без encodeURIComponent — URLSearchParams сам всё закодирует
-      url.searchParams.set("name", name);
-      url.searchParams.set("phone", phone);
-      url.searchParams.set("email", email);
+      url.searchParams.set("name", encodeURIComponent(name));
+      url.searchParams.set("phone", encodeURIComponent(phone));
+      url.searchParams.set("email", encodeURIComponent(email));
 
       location.href = url.toString();
     });
