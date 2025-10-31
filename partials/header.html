@@ -1,43 +1,20 @@
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="/vash-admin/index.html">ВАШ АДМІН</a>
+<!-- partials/header.html -->
+<header class="header">
+  <div class="header-inner">
+    <a href="/index.html" class="brand">
+      <img src="/images/logo-placeholder.png" alt="Ваш Адмін" />
+      <div>
+        <h1>Ваш Адмін</h1>
+        <p class="tagline">Квитки без комісій. Дніпро • Кривий Ріг</p>
+      </div>
+    </a>
+
     <nav class="nav">
-      <a href="/vash-admin/index.html">Афіша</a>
-      <a href="/vash-admin/spectacles/hall.html?show=shevchenko/ledi">Шевченко — Леді</a>
-      <!-- потім додамо інші -->
+      <a href="/index.html">Головна</a>
+      <a href="/afisha.html">Афіша</a>
+      <a href="/theatres.html">Театри</a>
+      <a href="/about.html">Про нас</a>
+      <a href="/contacts.html">Контакти</a>
     </nav>
   </div>
 </header>
-
-<style>
-  .topbar {
-    background: #fff;
-    border-bottom: 1px solid rgba(15, 23, 42, .06);
-    position: sticky;
-    top: 0;
-    z-index: 50;
-  }
-  .topbar-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
-  .brand {
-    font-weight: 700;
-    font-size: 18px;
-    text-decoration: none;
-    color: #0f172a;
-  }
-  .nav a {
-    margin-right: 12px;
-    color: #0f172a;
-    text-decoration: none;
-    font-weight: 500;
-  }
-  .nav a:hover {
-    color: #155EEF;
-  }
-</style>
