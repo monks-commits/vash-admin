@@ -5,257 +5,98 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Вибір місць — Ваш Адмін</title>
   <link rel="stylesheet" href="../styles.css" />
-  <style>
-    body { background:#f4f4f6; }
-    main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
-    .hall-wrap { background:#fff; border-radius:14px; padding:22px 22px 10px; margin-bottom:22px; }
-    .hall-grid {
-      display:grid;
-      gap:6px;
-      justify-content:center;
-    }
-    .row-line {
-      display:flex;
-      gap:6px;
-      justify-content:center;
-      flex-wrap:wrap;
-    }
-    .seat {
-      width:40px; height:40px;
-      background:#fff;
-      border:1px solid #d0d5dd;
-      border-radius:8px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:14px;
-      cursor:pointer;
-      transition:.12s;
-    }
-    .seat:hover { background:#e5edff; }
-    .seat.selected {
-      background:#155EEF;
-      color:#fff;
-      border-color:#155EEF;
-    }
-    .seat.disabled {
-      background:#e5e7eb;
-      color:#9ca3af;
-      cursor:not-allowed;
-    }
-    .row-label {
-      text-align:center;
-      color:#4b5563;
-      font-size:13px;
-      margin:4px 0 10px;
-    }
-    .order-form { background:#fff; border-radius:14px; padding:22px; }
-    .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
-    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
-    .form-group input {
-      height:44px; border:1px solid #d0d5dd; border-radius:10px;
-      padding:0 12px; font-size:15px;
-    }
-    .primary-btn {
-      background:#155EEF; color:#fff; border:none;
-      border-radius:999px; padding:11px 30px;
-      font-size:15px; font-weight:600; cursor:pointer;
-    }
-    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
-    .err-box {
-      background:#fee2e2; border:1px solid #ef4444; color:#7f1d1d;
-      border-radius:10px; padding:9px 11px; margin-bottom:14px; display:none;
-    }
-  </style>
 </head>
 <body>
-  <!-- шапка -->
   <div id="site-header"></div>
 
-  <main>
+  <main style="max-width:1100px;margin:0 auto;padding:24px 16px 50px;">
     <h1>Вибір місць</h1>
     <p id="show-label">Вистава: —</p>
 
-    <div class="hall-wrap">
-      <div id="hall" class="hall-grid"></div>
+    <div class="hall-wrap" id="hall">
+      <div class="hall-row" id="hall-seats"></div>
     </div>
 
-    <div class="order-form">
-      <div id="form-error" class="err-box"></div>
-      <h2 style="margin-top:0">Дані покупця</h2>
+    <div class="order-form" id="buyer-form">
+      <h2>Дані покупця</h2>
       <div class="flex-row">
         <div class="form-group">
           <label for="buyer-name">Ім’я та прізвище</label>
-          <input id="buyer-name" placeholder="Ваше ім’я" value="Олександр Рябов" />
+          <input id="buyer-name" value="Олександр Рябов" />
         </div>
         <div class="form-group">
           <label for="buyer-phone">Телефон</label>
-          <input id="buyer-phone" placeholder="+380..." value="+380981261695" />
+          <input id="buyer-phone" value="+380981261695" />
         </div>
       </div>
-      <div class="form-group" style="margin-top:12px;">
+      <div class="form-group" style="margin-top:14px;">
         <label for="buyer-email">Електронна пошта (куди надійде квиток)</label>
-        <input id="buyer-email" type="email" placeholder="you@example.com" value="alexandrryabov@ukr.net" />
+        <input id="buyer-email" value="alexandrryabov@ukr.net" />
       </div>
-      <p style="margin-top:14px;">
-        Вибрано місць: <span id="seat-count">0</span> •
-        Сума: <span id="seat-sum">0</span> грн
-      </p>
+      <p style="margin-top:14px;">Обрано місць: <span id="seat-count">0</span> • Сума: <span id="seat-sum">0</span> грн</p>
       <button id="to-checkout" class="primary-btn" disabled>Перейти до оплати</button>
     </div>
   </main>
 
-  <!-- подвал -->
   <div id="site-footer"></div>
-
-  <!-- подключаем include.js (относительно /spectacles/) -->
-  <script src="../scripts/include.js" type="module"></script>
+  <script src="/scripts/include.js"></script>
 
   <script>
     const params = new URLSearchParams(location.search);
-    const slug = params.get("show") || "shevchenko/ledi";
-    const labelEl = document.getElementById("show-label");
-    const hallEl  = document.getElementById("hall");
-    const seatCountEl = document.getElementById("seat-count");
-    const seatSumEl   = document.getElementById("seat-sum");
-    const btnCheckout = document.getElementById("to-checkout");
-    const errBox      = document.getElementById("form-error");
+    const showSlug = params.get("show") || "shevchenko/ledi";
+    document.getElementById("show-label").textContent =
+      "Вистава: " + showSlug.replace("/", " — ");
 
-    labelEl.textContent = "Вистава: " + slug.replace("/", " — ");
-
-    // тут будем хранить: [{section,row,seats,aisles,price}]
-    let rows = [];
-    let sellMode = null;      // "only" | "disable" | null
-    let available = new Set(); // для квоти
-    const selected = new Set(); // "row-seat" выбранные
-
-    // грузим JSON спектакля
-    (async function loadShow() {
-      try {
-        const resp = await fetch(`../data/shows/${slug}.json?ts=${Date.now()}`);
-        if (!resp.ok) throw new Error("HTTP "+resp.status);
-        const show = await resp.json();
-
-        // массив рядов
-        rows = Array.isArray(show.rows) ? show.rows : [];
-
-        // квота
-        sellMode = show.sell_mode || show.sellMode || null;
-        const av = show.available || show.sell || [];
-        available = new Set(av.map(String));
-
-        buildHall();
-        updateSummary();
-      } catch (e) {
-        console.error(e);
-        hallEl.innerHTML = "<p>Не вдалося завантажити схему залу.</p>";
-      }
-    })();
-
-    function buildHall() {
-      hallEl.innerHTML = "";
-      if (!rows.length) {
-        hallEl.innerHTML = "<p>Схема не налаштована.</p>";
-        return;
-      }
-
-      rows
-        .filter(r => r.section === "parter" || !r.section || r.section === "logeA" || r.section === "logeB")
-        .sort((a,b) => (a.section||"parter").localeCompare(b.section||"parter") || a.row - b.row)
-        .forEach(r => {
-          const line = document.createElement("div");
-          line.className = "row-line";
-
-          const aisles = (r.aisles || []).slice().sort((a,b)=>a-b);
-          let nextA = 0;
-
-          for (let s = 1; s <= r.seats; s++) {
-            // вставка прохода
-            while (nextA < aisles.length && s === aisles[nextA] + 1) {
-              const gap = document.createElement("div");
-              gap.style.width = "18px";
-              line.appendChild(gap);
-              nextA++;
-            }
-
-            const id = `${r.row}-${s}`;
-            const seat = document.createElement("div");
-            seat.className = "seat";
-            seat.textContent = s;
-            seat.title = `Ряд ${r.row}, Місце ${s} — ${r.price || 0} грн`;
-
-            // квота
-            if (sellMode === "only" && !available.has(id)) {
-              seat.classList.add("disabled");
-            }
-
-            if (sellMode === "disable" && !available.has(id)) {
-              seat.classList.add("disabled");
-            }
-
-            seat.addEventListener("click", () => {
-              // если нельзя — выходим
-              if (seat.classList.contains("disabled")) return;
-
-              if (selected.has(id)) {
-                selected.delete(id);
-                seat.classList.remove("selected");
-              } else {
-                selected.add(id);
-                seat.classList.add("selected");
-              }
-              updateSummary();
-            });
-
-            line.appendChild(seat);
-          }
-
-          hallEl.appendChild(line);
-
-          // подпись под рядом
-          const rl = document.createElement("div");
-          rl.className = "row-label";
-          rl.textContent = `Ряд ${r.row} • ${(r.price ? r.price + " грн" : "ціна не вказана")}`;
-          hallEl.appendChild(rl);
-        });
+    const hallSeats = document.getElementById("hall-seats");
+    const seats = [];
+    for (let i = 1; i <= 20; i++) {
+      seats.push({ id: `R1-M${i}`, title: `Ряд 1, Місце ${i}`, price: i <= 10 ? 170 : 140 });
     }
+
+    const selected = new Set();
+    const seatCountEl = document.getElementById("seat-count");
+    const seatSumEl = document.getElementById("seat-sum");
+    const btn = document.getElementById("to-checkout");
+
+    seats.forEach(seat => {
+      const div = document.createElement("div");
+      div.className = "seat";
+      div.textContent = seat.id.split("M")[1];
+      div.title = seat.title + " — " + seat.price + " грн";
+      div.addEventListener("click", () => {
+        if (selected.has(seat.id)) {
+          selected.delete(seat.id);
+          div.classList.remove("selected");
+        } else {
+          selected.add(seat.id);
+          div.classList.add("selected");
+        }
+        updateSummary();
+      });
+      hallSeats.appendChild(div);
+    });
 
     function updateSummary() {
       const ids = Array.from(selected);
       seatCountEl.textContent = ids.length;
-
-      // считаем сумму по цене ряда
-      let total = 0;
-      ids.forEach(id => {
-        const [rowStr, seatStr] = id.split("-");
-        const rowNum = Number(rowStr);
-        const rowCfg = rows.find(r => r.row === rowNum);
-        if (rowCfg && rowCfg.price) total += Number(rowCfg.price);
-      });
-      seatSumEl.textContent = total;
-      btnCheckout.disabled = ids.length === 0;
+      const sum = ids.reduce((acc, id) => {
+        const s = seats.find(x => x.id === id);
+        return acc + (s ? s.price : 0);
+      }, 0);
+      seatSumEl.textContent = sum;
+      btn.disabled = ids.length === 0;
     }
 
-    btnCheckout.addEventListener("click", () => {
-      errBox.style.display = "none";
-
-      const name  = document.getElementById("buyer-name").value.trim();
-      const phone = document.getElementById("buyer-phone").value.trim();
-      const email = document.getElementById("buyer-email").value.trim();
-
-      if (!name || !phone || !email) {
-        errBox.textContent = "Заповніть, будь ласка, ПІБ, телефон і e-mail.";
-        errBox.style.display = "block";
-        return;
-      }
-
+    btn.addEventListener("click", () => {
       const ids = Array.from(selected);
       const sum = Number(seatSumEl.textContent) || 0;
-
-      const orderId = slug.replace(/\//g,"-").toUpperCase() + "-" + Date.now();
+      const name = document.getElementById("buyer-name").value.trim();
+      const phone = document.getElementById("buyer-phone").value.trim();
+      const email = document.getElementById("buyer-email").value.trim();
+      const orderId = "LEDI-" + Date.now();
 
       const url = new URL(location.origin + "/checkout.html");
-      url.searchParams.set("show", slug);
+      url.searchParams.set("show", showSlug);
       url.searchParams.set("seats", ids.join(","));
       url.searchParams.set("amount", String(sum));
       url.searchParams.set("order_id", orderId);
