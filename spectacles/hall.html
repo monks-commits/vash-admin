@@ -5,11 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Вибір місць — Ваш Адмін</title>
   <link rel="stylesheet" href="../styles.css" />
+  <style>
+    body { background:#f4f4f6; }
+    main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
+    .hall-wrap { background:#fff; border-radius:14px; padding:26px; margin-bottom:26px; }
+    .hall-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .seat {
+      min-width:34px;
+      height:34px;
+      border-radius:9px;
+      background:#fff;
+      border:1px solid #d0d5dd;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:.12s;
+      font-size:14px;
+    }
+    .seat:hover { background:#e5edff; }
+    .seat.selected { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+
+    .order-form { background:#fff; border-radius:14px; padding:26px; }
+    .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
+    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
+    .form-group input {
+      height:44px; border:1px solid #d0d5dd; border-radius:10px;
+      padding:0 12px; font-size:15px;
+    }
+    .primary-btn {
+      background:#155EEF; color:#fff; border:none;
+      border-radius:999px; padding:11px 30px;
+      font-size:15px; font-weight:600; cursor:pointer;
+    }
+    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
+
+    /* просто підсвітка блоку з ложами */
+    .lodges {
+      display:flex; gap:12px; margin-top:12px;
+    }
+    .lodge {
+      background:#f3f4f6; border:1px solid rgba(15,23,42,.04);
+      border-radius:8px; padding:6px 12px; font-size:14px;
+    }
+  </style>
 </head>
 <body>
+  <!-- спільна шапка -->
   <div id="site-header"></div>
 
-  <main style="max-width:1100px;margin:0 auto;padding:24px 16px 50px;">
+  <main>
     <h1>Вибір місць</h1>
     <p id="show-label">Вистава: —</p>
 
@@ -30,67 +75,154 @@
         </div>
       </div>
       <div class="form-group" style="margin-top:14px;">
-        <label for="buyer-email">Електронна пошта (куди надійде квиток)</label>
+        <label for="buyer-email">Електронна пошта (куди надійде PDF-квиток)</label>
         <input id="buyer-email" value="alexandrryabov@ukr.net" />
       </div>
-      <p style="margin-top:14px;">Обрано місць: <span id="seat-count">0</span> • Сума: <span id="seat-sum">0</span> грн</p>
+      <p style="margin-top:14px;">
+        Вибрано місць: <span id="seat-count">0</span> •
+        Сума: <span id="seat-sum">0</span> грн
+      </p>
       <button id="to-checkout" class="primary-btn" disabled>Перейти до оплати</button>
     </div>
   </main>
 
+  <!-- спільний підвал -->
   <div id="site-footer"></div>
-  <script src="/scripts/include.js"></script>
 
+  <!-- Підключаємо include.js (шапка/підвал) -->
+  <script src="/vash-admin/scripts/include.js"></script>
+
+  <!-- ВЕСЬ КОД ЗАЛУ -->
   <script>
+    // який спектакль
     const params = new URLSearchParams(location.search);
     const showSlug = params.get("show") || "shevchenko/ledi";
     document.getElementById("show-label").textContent =
       "Вистава: " + showSlug.replace("/", " — ");
 
-    const hallSeats = document.getElementById("hall-seats");
-    const seats = [];
-    for (let i = 1; i <= 20; i++) {
-      seats.push({ id: `R1-M${i}`, title: `Ряд 1, Місце ${i}`, price: i <= 10 ? 170 : 140 });
+    // завжди малюємо одну й ту саму схему Шевченка
+    const selected = new Set();
+    const hall = document.getElementById("hall-seats");
+    hall.innerHTML = "";
+
+    // 👇 тут міняєш ціни по рядах (ти вже ставив свої — можеш просто вставити їх сюди)
+    const rowPrices = {
+      1: 220,
+      2: 220,
+      3: 200,
+      4: 200,
+      5: 180,
+      6: 180,
+      7: 170,
+      8: 170,
+      9: 160,
+      10: 160,
+      11: 150,
+      12: 150,
+      13: 140,
+      14: 140,
+      15: 120,
+      16: 120,
+      17: 100,
+      18: 100
+    };
+
+    // каркас усіх рядів
+    const layout = document.createElement("div");
+    layout.style.display = "flex";
+    layout.style.flexDirection = "column";
+    layout.style.gap = "6px";
+
+    for (let row = 1; row <= 18; row++) {
+      const rowBox = document.createElement("div");
+      rowBox.style.display = "flex";
+      rowBox.style.alignItems = "center";
+      rowBox.style.gap = "8px";
+
+      // номер ряда
+      const rowLabel = document.createElement("div");
+      rowLabel.textContent = row;
+      rowLabel.style.width = "34px";
+      rowLabel.style.textAlign = "right";
+      rowLabel.style.fontWeight = "600";
+      rowLabel.style.color = "#1f2937";
+      rowBox.appendChild(rowLabel);
+
+      // места
+      const seatsWrap = document.createElement("div");
+      seatsWrap.style.display = "flex";
+      seatsWrap.style.gap = "6px";
+
+      for (let seat = 1; seat <= 20; seat++) {
+        const id = `P${row}-M${seat}`;
+        const price = rowPrices[row] || 0;
+
+        const btn = document.createElement("button");
+        btn.textContent = seat;
+        btn.className = "seat";
+        btn.title = `Ряд ${row}, місце ${seat} — ${price} грн`;
+
+        btn.addEventListener("click", () => {
+          if (selected.has(id)) {
+            selected.delete(id);
+            btn.classList.remove("selected");
+          } else {
+            selected.add(id);
+            btn.classList.add("selected");
+          }
+          updateSummary();
+        });
+
+        // проход по центру
+        if (seat === 11) {
+          const gap = document.createElement("div");
+          gap.style.width = "20px";
+          seatsWrap.appendChild(gap);
+        }
+
+        seatsWrap.appendChild(btn);
+      }
+
+      rowBox.appendChild(seatsWrap);
+      layout.appendChild(rowBox);
     }
 
-    const selected = new Set();
-    const seatCountEl = document.getElementById("seat-count");
-    const seatSumEl = document.getElementById("seat-sum");
-    const btn = document.getElementById("to-checkout");
+    hall.appendChild(layout);
 
-    seats.forEach(seat => {
-      const div = document.createElement("div");
-      div.className = "seat";
-      div.textContent = seat.id.split("M")[1];
-      div.title = seat.title + " — " + seat.price + " грн";
-      div.addEventListener("click", () => {
-        if (selected.has(seat.id)) {
-          selected.delete(seat.id);
-          div.classList.remove("selected");
-        } else {
-          selected.add(seat.id);
-          div.classList.add("selected");
-        }
-        updateSummary();
-      });
-      hallSeats.appendChild(div);
-    });
+    // ложі (не клікаються)
+    const lodges = document.createElement("div");
+    lodges.className = "lodges";
+    lodges.innerHTML = `
+      <div class="lodge">Ложа А (18 місць)</div>
+      <div class="lodge">Ложа Б (18 місць)</div>
+    `;
+    hall.appendChild(lodges);
 
+    // обновляем счётчик и сумму
     function updateSummary() {
       const ids = Array.from(selected);
-      seatCountEl.textContent = ids.length;
+      const countEl = document.getElementById("seat-count");
+      const sumEl = document.getElementById("seat-sum");
+
       const sum = ids.reduce((acc, id) => {
-        const s = seats.find(x => x.id === id);
-        return acc + (s ? s.price : 0);
+        const row = Number(id.split("-")[0].substring(1));
+        return acc + (rowPrices[row] || 0);
       }, 0);
-      seatSumEl.textContent = sum;
-      btn.disabled = ids.length === 0;
+
+      countEl.textContent = ids.length;
+      sumEl.textContent = sum;
+      document.getElementById("to-checkout").disabled = ids.length === 0;
     }
 
-    btn.addEventListener("click", () => {
+    // переход на checkout
+    document.getElementById("to-checkout").addEventListener("click", () => {
       const ids = Array.from(selected);
-      const sum = Number(seatSumEl.textContent) || 0;
-      const name = document.getElementById("buyer-name").value.trim();
+      const sum = ids.reduce((acc, id) => {
+        const row = Number(id.split("-")[0].substring(1));
+        return acc + (rowPrices[row] || 0);
+      }, 0);
+
+      const name  = document.getElementById("buyer-name").value.trim();
       const phone = document.getElementById("buyer-phone").value.trim();
       const email = document.getElementById("buyer-email").value.trim();
       const orderId = "LEDI-" + Date.now();
@@ -103,7 +235,6 @@
       url.searchParams.set("name", encodeURIComponent(name));
       url.searchParams.set("phone", encodeURIComponent(phone));
       url.searchParams.set("email", encodeURIComponent(email));
-
       location.href = url.toString();
     });
   </script>
