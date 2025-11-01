@@ -142,13 +142,16 @@
 
         try {
           const payload = {
-            public_key: "i69132711692",   // твій тестовий/робочий — як ставив
-            action:     "pay",
-            amount:     Number(amount) || 0,
-            currency:   "UAH",
-            description: `Квитки ${show} (${seats})`,
-            order_id:   orderId
-          };
+  public_key: "i69132711692",
+  action: "pay",
+  // LiqPay любит строку
+  amount: String(Number(amount) || 0),
+  currency: "UAH",
+  // только латиница, максимум 30-40 символов
+  description: "Tickets VashAdmin",
+  order_id: orderId
+};
+
 
           const resp = await fetch(LIQPAY_FN, {
             method: "POST",
