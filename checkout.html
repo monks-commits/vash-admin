@@ -92,110 +92,93 @@
 
   <!-- основна логіка checkout -->
   <script>
-    // твоя edge-функція
-    const LIQPAY_FN = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
+  // твой URL функции в Supabase
+  const EDGE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const params = new URLSearchParams(location.search);
+  (function () {
+    const p = new URLSearchParams(location.search);
 
-      const show   = params.get("show")     || "shevchenko/ledi";
-      const seats  = params.get("seats")    || "";
-      const amount = params.get("amount")   || "0";
-      const orderId= params.get("order_id") || ("LEDI-" + Date.now());
+    const show   = (p.get("show") || "").replace(/%2F/g, "/");
+    const seats  = (p.get("seats") || "").split(",").filter(Boolean);
+    const amount = Number(p.get("amount") || "0");
+    const orderId = p.get("order_id") || ("LEDI-" + Date.now());
 
-      const name   = params.get("name")  ? decodeURIComponent(params.get("name"))  : "";
-      const phone  = params.get("phone") ? decodeURIComponent(params.get("phone")) : "";
-      const email  = params.get("email") ? decodeURIComponent(params.get("email")) : "";
+    // заполняем шапку заказа
+    document.getElementById("show-title").textContent = "Вистава: " + (show || "—");
+    document.getElementById("show-seats").textContent = seats.length ? seats.join(", ") : "—";
+    document.getElementById("show-amount").textContent = amount + " грн";
+    document.getElementById("order-id").textContent = orderId;
 
-      // подставим в блок
-      document.getElementById("show-title").textContent = "Вистава: " + show.replace("/", "/");
-      document.getElementById("show-meta").textContent  = "";
-      document.getElementById("show-seats").textContent = seats ? seats : "—";
-      document.getElementById("show-amount").textContent = amount + " грн";
-      document.getElementById("order-id").textContent    = orderId;
+    // проставляем ПІБ/тел/емейл если прилетели из залу
+    const name  = p.get("name")  ? decodeURIComponent(p.get("name"))  : "";
+    const phone = p.get("phone") ? decodeURIComponent(p.get("phone")) : "";
+    const email = p.get("email") ? decodeURIComponent(p.get("email")) : "";
 
-      // подставим в форму
-      document.getElementById("f-name").value  = name;
-      document.getElementById("f-phone").value = phone;
-      document.getElementById("f-email").value = email;
+    if (name)  document.getElementById("f-name").value  = name;
+    if (phone) document.getElementById("f-phone").value = phone;
+    if (email) document.getElementById("f-email").value = email;
 
-      const btn    = document.getElementById("liqpay-btn");
-      const errBox = document.getElementById("err-pay");
-      const okBox  = document.getElementById("ok-pay");
+    const errBox = document.getElementById("err-pay");
+    const btn = document.getElementById("liqpay-btn");
 
-      btn.addEventListener("click", async () => {
-        errBox.style.display = "none";
-        okBox.style.display  = "none";
+    btn.addEventListener("click", async () => {
+      errBox.style.display = "none";
 
-        const buyerName  = document.getElementById("f-name").value.trim();
-        const buyerPhone = document.getElementById("f-phone").value.trim();
-        const buyerEmail = document.getElementById("f-email").value.trim();
+      try {
+        // отправляем в функцію только то, что точно безопасно
+        const payload = {
+          public_key: "i69132711692",
+          action: "pay",
+          amount: String(amount),
+          currency: "UAH",
+          description: "Tickets VashAdmin",   // БЕЗ кириллицы
+          order_id: orderId
+        };
 
-        if (!buyerName || !buyerPhone || !buyerEmail) {
-          errBox.textContent = "Заповніть, будь ласка, всі поля.";
-          errBox.style.display = "block";
-          return;
+        const res = await fetch(EDGE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error("edge: " + txt);
         }
 
-        btn.disabled = true;
-        btn.textContent = "Готуємо оплату...";
-
-        try {
-          const payload = {
-  public_key: "i69132711692",
-  action: "pay",
-  // LiqPay любит строку
-  amount: String(Number(amount) || 0),
-  currency: "UAH",
-  // только латиница, максимум 30-40 символов
-  description: "Tickets VashAdmin",
-  order_id: orderId
-};
-
-
-          const resp = await fetch(LIQPAY_FN, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          if (!resp.ok) {
-            const txt = await resp.text();
-            throw new Error("Помилка сервера: " + txt);
-          }
-
-          const { data, signature } = await resp.json();
-
-          // робимо форму і відправляємо на LiqPay
-          const form = document.createElement("form");
-          form.method = "POST";
-          form.action = "https://www.liqpay.ua/api/3/checkout";
-          form.target = "_self";
-
-          const inputData = document.createElement("input");
-          inputData.type = "hidden";
-          inputData.name = "data";
-          inputData.value = data;
-
-          const inputSig = document.createElement("input");
-          inputSig.type = "hidden";
-          inputSig.name = "signature";
-          inputSig.value = signature;
-
-          form.appendChild(inputData);
-          form.appendChild(inputSig);
-          document.body.appendChild(form);
-          form.submit();
-
-        } catch (e) {
-          console.error(e);
-          errBox.textContent = "Помилка при формуванні оплати: " + e.message;
-          errBox.style.display = "block";
-          btn.disabled = false;
-          btn.textContent = "Оплатити через LiqPay";
+        const { data, signature, error } = await res.json();
+        if (error) {
+          throw new Error(error);
         }
-      });
+
+        // шлём в LiqPay
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "https://www.liqpay.ua/api/3/checkout";
+        form.acceptCharset = "utf-8";
+
+        const f1 = document.createElement("input");
+        f1.type = "hidden";
+        f1.name = "data";
+        f1.value = data;
+
+        const f2 = document.createElement("input");
+        f2.type = "hidden";
+        f2.name = "signature";
+        f2.value = signature;
+
+        form.appendChild(f1);
+        form.appendChild(f2);
+        document.body.appendChild(form);
+        form.submit();
+      } catch (e) {
+        console.error(e);
+        errBox.textContent = "Помилка при формуванні оплати: " + e.message;
+        errBox.style.display = "block";
+      }
     });
-  </script>
+  })();
+</script>
+
 </body>
 </html>
