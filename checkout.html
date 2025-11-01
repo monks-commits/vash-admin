@@ -125,124 +125,164 @@
   <script src="/scripts/include.js"></script>
 
   <!-- Логіка LiqPay -->
+    <!-- підключаємо Supabase (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
-    // 1. що прилетіло з hall.html
+    // ====== 1. Налаштування ======
+    // твій проект: yqhzekifwxotizsmaeaf.supabase.co
+    const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
+    const SUPABASE_ANON_KEY = "<<< ВСТАВ СВІЙ ANON PUBLIC KEY ІЗ SUPABASE >>>";
+
+    // якщо ключ вставлений – створюємо клієнта
+    const supa = (SUPABASE_ANON_KEY.includes("<<<"))
+      ? null
+      : window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // твоя edge-функція для підпису LiqPay
+    const LIQPAY_SIGN_URL =
+      "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
+
+    // ====== 2. Розбір параметрів з URL ======
     const params = new URLSearchParams(location.search);
-    const show  = params.get("show")  || "shevchenko/ledi";
-    const seats = (params.get("seats") || "").split(",").filter(Boolean);
+
+    const showSlug = params.get("show") || "shevchenko/ledi";
+    const seatsStr = params.get("seats") || "";        // "P1-M1,P1-M2"
     const amount = Number(params.get("amount") || "0");
     const orderId = params.get("order_id") || ("LEDI-" + Date.now());
-    const nameFromUrl  = params.get("name")  ? decodeURIComponent(params.get("name"))  : "";
-    const phoneFromUrl = params.get("phone") ? decodeURIComponent(params.get("phone")) : "";
-    const emailFromUrl = params.get("email") ? decodeURIComponent(params.get("email")) : "";
 
-    // 2. показати користувачу
-    document.getElementById("show-title").textContent = "Вистава: " + show.replace("/", " — ");
-    document.getElementById("show-meta").textContent  = "";
-    document.getElementById("show-seats").textContent = seats.length ? seats.join(", ") : "—";
-    document.getElementById("show-amount").textContent = amount + " грн";
+    // Для “людської” назви шоу можемо взяти частину після /
+    const showTitle =
+      showSlug.includes("/") ? showSlug.split("/")[1] : showSlug;
+
+    // ====== 3. Підставляємо у верстку ======
+    document.getElementById("show-title").textContent =
+      "Вистава: " + showSlug.replace("/", "/");
+    document.getElementById("show-meta").textContent = ""; // можна дату/час
+    document.getElementById("show-seats").textContent =
+      seatsStr ? seatsStr : "—";
+    document.getElementById("show-amount").textContent =
+      amount + " грн";
     document.getElementById("order-id").textContent = orderId;
 
-    // 3. підставити у форму
-    if (nameFromUrl)  document.getElementById("f-name").value  = nameFromUrl;
-    if (phoneFromUrl) document.getElementById("f-phone").value = phoneFromUrl;
-    if (emailFromUrl) document.getElementById("f-email").value = emailFromUrl;
-
+    // ====== 4. Обробник кнопки LiqPay ======
     const btn = document.getElementById("liqpay-btn");
-    const errPay = document.getElementById("err-pay");
-
-    // твоя функція-підписувач
-    const SIGN_URL = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
-    // куди LiqPay буде стукати після оплати (ми потім зробимо цю функцію)
-    const SERVER_CALLBACK = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-callback";
-    // куди повертати покупця після оплати
-    const RETURN_URL = "https://vash-admin.com/thanks.html";
+    const errBox = document.getElementById("err-pay");
+    const okBox = document.getElementById("ok-pay");
 
     btn.addEventListener("click", async () => {
-      errPay.style.display = "none";
+      errBox.style.display = "none";
+      okBox.style.display = "none";
 
-      const buyerName  = document.getElementById("f-name").value.trim();
+      const buyerName = document.getElementById("f-name").value.trim();
       const buyerPhone = document.getElementById("f-phone").value.trim();
       const buyerEmail = document.getElementById("f-email").value.trim();
 
       if (!buyerName || !buyerPhone || !buyerEmail) {
-        errPay.textContent = "Заповніть ім’я, телефон і e-mail.";
-        errPay.style.display = "block";
+        errBox.textContent = "Заповніть, будь ласка, всі поля.";
+        errBox.style.display = "block";
         return;
       }
 
       btn.disabled = true;
 
-      // збережемо в localStorage — щоб на thanks.html бачити хто платив
-      localStorage.setItem("vash-admin-last-order", JSON.stringify({
-        order_id: orderId,
-        show,
-        seats,
-        amount,
-        name: buyerName,
-        phone: buyerPhone,
-        email: buyerEmail
-      }));
+      // 4.1. Спочатку пишемо замовлення в Supabase (pending)
+      try {
+        if (supa) {
+          const { error } = await supa.from("orders").upsert(
+            [
+              {
+                order_id: orderId,
+                show_slug: showSlug,
+                seats: seatsStr ? seatsStr.split(",") : [],
+                amount: amount,
+                buyer_name: buyerName,
+                buyer_phone: buyerPhone,
+                buyer_email: buyerEmail,
+                liqpay_status: "pending",
+              },
+            ],
+            {
+              onConflict: "order_id", // щоб при повторній оплаті оновило
+            }
+          );
+          if (error) {
+            console.warn("supabase insert error", error);
+            // не зупиняємо оплату, просто йдемо далі
+          }
+        } else {
+          console.warn("Supabase client не створений – немає anon key");
+        }
+      } catch (e) {
+        console.warn("supabase upsert failed", e);
+      }
 
-      // зібрали payload для LiqPay
-      const payload = {
-        version: 3,
-        action: "pay",
+      // 4.2. Готуємо тіло для edge-функції
+      const description = `Квитки ${showTitle} (${seatsStr || "без місць"})`;
+
+      const resultUrl = "https://vash-admin.com/thanks.html?" +
+        new URLSearchParams({
+          order_id: orderId,
+          amount: amount,
+          show: showSlug,
+          seats: seatsStr,
+        }).toString();
+
+      const body = {
         amount: amount,
         currency: "UAH",
-        description: `Квитки ${show} (${seats.join(",")})`,
+        description: description,
         order_id: orderId,
-        // !! дуже важливо:
-        result_url: RETURN_URL + `?order_id=${encodeURIComponent(orderId)}&amount=${amount}&show=${encodeURIComponent(show)}&seats=${encodeURIComponent(seats.join(","))}`,
-        server_url: SERVER_CALLBACK,
-        // щоб у тебе у LiqPay в деталях був e-mail/телефон
-        sender_first_name: buyerName,
-        phone: buyerPhone,
-        customer: buyerEmail
+        // куди LiqPay поверне користувача
+        result_url: resultUrl,
+        // можемо поки не чіпати server_url
       };
 
       try {
-        const res = await fetch(SIGN_URL, {
+        const res = await fetch(LIQPAY_SIGN_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         });
 
         if (!res.ok) {
-          throw new Error("Сервер підпису відповів " + res.status);
+          throw new Error("LiqPay function error");
         }
 
         const { data, signature } = await res.json();
 
-        // відкриваємо LiqPay у новій вкладці (можна і form submit'ом)
+        // 4.3. Створюємо форму на https://www.liqpay.ua/api/3/checkout
         const form = document.createElement("form");
-        form.action = "https://www.liqpay.ua/api/3/checkout";
         form.method = "POST";
+        form.action = "https://www.liqpay.ua/api/3/checkout";
         form.acceptCharset = "utf-8";
-        form.target = "_blank";
 
-        const fData = document.createElement("input");
-        fData.type = "hidden";
-        fData.name = "data";
-        fData.value = data;
+        const inputData = document.createElement("input");
+        inputData.type = "hidden";
+        inputData.name = "data";
+        inputData.value = data;
 
-        const fSign = document.createElement("input");
-        fSign.type = "hidden";
-        fSign.name = "signature";
-        fSign.value = signature;
+        const inputSign = document.createElement("input");
+        inputSign.type = "hidden";
+        inputSign.name = "signature";
+        inputSign.value = signature;
 
-        form.appendChild(fData);
-        form.appendChild(fSign);
+        form.appendChild(inputData);
+        form.appendChild(inputSign);
         document.body.appendChild(form);
+
         form.submit();
       } catch (err) {
         console.error(err);
-        errPay.textContent = "Помилка при формуванні оплати: " + err.message;
-        errPay.style.display = "block";
-      } finally {
+        errBox.textContent =
+          "Помилка при формуванні оплати: " + err.message;
+        errBox.style.display = "block";
         btn.disabled = false;
       }
     });
   </script>
+
 </body>
 </html>
