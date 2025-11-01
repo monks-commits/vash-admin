@@ -1,21 +1,38 @@
-<!-- partials/header.html -->
-<header class="header">
-  <div class="header-inner">
-    <a href="/index.html" class="brand" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
-  <img src="/images/logo-vash-admin.jpg" alt="Ваш Адмін" style="height:70px;border-radius:6px;" />
-  <div>
-    <h1 style="font-size:20px;margin:0;color:#111;font-weight:700;">Ваш Адмін</h1>
-    <p style="margin:0;color:#555;font-size:14px;">Квитки без комісій</p>
-  </div>
-</a>
-
-
+<!-- /partials/header.html -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/index.html">
+      <img src="/images/logo-vash-admin.jpg" alt="Ваш Адмін" style="height:34px;vertical-align:middle;border-radius:6px" />
+    </a>
     <nav class="nav">
-      <a href="/index.html">Головна</a>
       <a href="/afisha.html">Афіша</a>
       <a href="/theatres.html">Театри</a>
-      <a href="/about.html">Про нас</a>
       <a href="/contacts.html">Контакти</a>
     </nav>
   </div>
 </header>
+
+<style>
+  .topbar {
+    background:#fff;
+    border-bottom:1px solid rgba(15,23,42,.05);
+    position:sticky;
+    top:0;
+    z-index:99;
+  }
+  .topbar-inner {
+    max-width:1100px;
+    margin:0 auto;
+    padding:12px 16px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+  }
+  .nav a {
+    margin-right:12px;
+    text-decoration:none;
+    color:#0f172a;
+    font-weight:500;
+  }
+  .nav a:hover { color:#155EEF; }
+</style>
