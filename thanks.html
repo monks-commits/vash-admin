@@ -1,83 +1,42 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Дякуємо за оплату — Ваш Адмін</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div id="site-header"></div>
 
-  <main class="container">
-    <h1>Дякуємо за оплату</h1>
-    <div id="box" class="card">
-      <div id="wait">Перевіряємо статус платежу…</div>
-      <div id="ok"  style="display:none"></div>
-      <div id="err" class="err" style="display:none"></div>
+  <main class="page" style="max-width:800px;margin:0 auto;padding:24px 16px 60px;">
+    <h1>Дякуємо за оплату!</h1>
+    <p id="p1">Ми надішлемо ваші квитки на e-mail.</p>
+
+    <div class="card" style="margin-top:20px;">
+      <p><strong>Номер замовлення:</strong> <span id="order"></span></p>
+      <p><strong>Вистава:</strong> <span id="show"></span></p>
+      <p><strong>Місця:</strong> <span id="seats"></span></p>
+      <p><strong>Сума:</strong> <span id="amount"></span> грн</p>
     </div>
-    <p style="margin-top:12px">
-      <a class="btn" href="afisha.html">Повернутися до афіші</a>
+
+    <p style="margin-top:24px;">
+      Якщо листа немає — перевірте «Спам» або напишіть нам у Telegram.
+    </p>
+    <p>
+      <a class="btn" href="/afisha.html">Повернутися до афіші</a>
     </p>
   </main>
 
   <div id="site-footer"></div>
-  <script type="module" src="scripts/include.js"></script>
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    const supabaseUrl  = 'https://hkeuabtiemsxadusmqlo.supabase.co';
-    const supabaseAnon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE';
-    const supabase = createClient(supabaseUrl, supabaseAnon);
 
-    const qp = new URLSearchParams(location.search);
-    const orderId = qp.get('order_id') || '';
-
-    const waitEl = document.getElementById('wait');
-    const okEl   = document.getElementById('ok');
-    const errEl  = document.getElementById('err');
-
-    if (!orderId) {
-      waitEl.style.display='none';
-      errEl.textContent = 'Відсутній order_id.';
-      errEl.style.display='block';
-    } else {
-      poll();
-      setInterval(poll, 2000);
-    }
-
-    async function poll() {
-      try {
-        const { data, error } = await supabase
-          .from('bookings').select('*')
-          .eq('order_id', orderId).limit(1).maybeSingle();
-        if (error) throw error;
-        if (!data) return;
-
-        const st = (data.payment_status || '').toLowerCase();
-        if (st === 'paid') {
-          waitEl.style.display='none';
-          okEl.innerHTML = `
-            <div class="ok" style="display:block">
-              ✅ Оплату отримано. Дякуємо!
-              <div style="margin-top:8px">
-                <div><strong>Вистава:</strong> ${data.show_slug}</div>
-                <div><strong>Місця:</strong> ${(data.seat_ids||[]).join(', ')}</div>
-                <div><strong>Сума:</strong> ${data.amount} грн</div>
-                <div class="meta">Квиток буде надіслано на email: ${data.customer_email}</div>
-              </div>
-            </div>`;
-          okEl.style.display='block';
-        } else if (st === 'failed' || st === 'error') {
-          waitEl.style.display='none';
-          errEl.textContent = 'Платіж не пройшов. Спробуйте ще раз або зв’яжіться з нами.';
-          errEl.style.display='block';
-        }
-      } catch (e) {
-        waitEl.style.display='none';
-        errEl.textContent = 'Помилка перевірки статусу: ' + (e.message||e);
-        errEl.style.display='block';
-      }
-    }
+  <script src="/scripts/include.js"></script>
+  <script>
+    const p = new URLSearchParams(location.search);
+    document.getElementById("order").textContent  = p.get("order_id") || "—";
+    document.getElementById("show").textContent   = p.get("show") ? p.get("show").replace("/", " / ") : "—";
+    document.getElementById("seats").textContent  = p.get("seats") ? decodeURIComponent(p.get("seats")).replace(/,/g, ", ") : "—";
+    document.getElementById("amount").textContent = p.get("amount") || "—";
   </script>
 </body>
 </html>
