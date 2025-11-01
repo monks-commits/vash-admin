@@ -1,42 +1,141 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Дякуємо за оплату — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { background:#f4f4f6; }
+    .page { max-width:900px; margin:0 auto; padding:24px 16px 60px; }
+    .card {
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:18px 18px 20px;
+      margin-bottom:18px;
+    }
+    .title { font-size:30px; font-weight:700; margin-bottom:14px; }
+    .muted { color:#6b7280; }
+    .badge { display:inline-block; background:#ecfdf5; border:1px solid #10b981; color:#065f46; padding:3px 10px; border-radius:999px; font-weight:600; font-size:14px; }
+    .btn {
+      background:#155EEF;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:10px 18px;
+      font-weight:600;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-block;
+      margin-right:10px;
+    }
+    .small { font-size:13px; }
+  </style>
 </head>
 <body>
   <div id="site-header"></div>
 
-  <main class="page" style="max-width:800px;margin:0 auto;padding:24px 16px 60px;">
-    <h1>Дякуємо за оплату!</h1>
-    <p id="p1">Ми надішлемо ваші квитки на e-mail.</p>
-
-    <div class="card" style="margin-top:20px;">
-      <p><strong>Номер замовлення:</strong> <span id="order"></span></p>
-      <p><strong>Вистава:</strong> <span id="show"></span></p>
-      <p><strong>Місця:</strong> <span id="seats"></span></p>
-      <p><strong>Сума:</strong> <span id="amount"></span> грн</p>
+  <main class="page">
+    <div class="card">
+      <p class="title">Дякуємо за оплату!</p>
+      <p class="muted">Ми надішлемо ваші квитки на e-mail.</p>
     </div>
 
-    <p style="margin-top:24px;">
-      Якщо листа немає — перевірте «Спам» або напишіть нам у Telegram.
-    </p>
-    <p>
+    <div class="card" id="order-block">
+      <p><span class="muted">Номер замовлення:</span> <strong id="o-id">—</strong></p>
+      <p><span class="muted">Вистава:</span> <strong id="o-show">—</strong></p>
+      <p><span class="muted">Місця:</span> <strong id="o-seats">—</strong></p>
+      <p><span class="muted">Сума:</span> <strong id="o-amount">—</strong></p>
+    </div>
+
+    <div class="card" id="buyer-block">
+      <p class="muted">Покупець</p>
+      <p><strong id="b-name">—</strong></p>
+      <p id="b-phone"></p>
+      <p id="b-email"></p>
+      <p class="small muted" style="margin-top:10px">
+        Якщо листа немає — перевірте «Спам» або напишіть нам у Telegram.
+      </p>
+      <div style="margin-top:14px" id="actions"></div>
+    </div>
+
+    <div class="card">
       <a class="btn" href="/afisha.html">Повернутися до афіші</a>
-    </p>
+    </div>
   </main>
 
   <div id="site-footer"></div>
 
   <script src="/scripts/include.js"></script>
   <script>
+    // 1. беремо з URL
     const p = new URLSearchParams(location.search);
-    document.getElementById("order").textContent  = p.get("order_id") || "—";
-    document.getElementById("show").textContent   = p.get("show") ? p.get("show").replace("/", " / ") : "—";
-    document.getElementById("seats").textContent  = p.get("seats") ? decodeURIComponent(p.get("seats")).replace(/,/g, ", ") : "—";
-    document.getElementById("amount").textContent = p.get("amount") || "—";
+    let order_id = p.get("order_id") || "";
+    let amount   = p.get("amount")   || "";
+    let show     = p.get("show")     || "";
+    let seats    = p.get("seats")    || "";
+
+    // 2. якщо чогось нема — добираємо з localStorage
+    if (!order_id || !amount || !show || !seats) {
+      const ls = localStorage.getItem("vash-admin-last-order");
+      if (ls) {
+        try {
+          const obj = JSON.parse(ls);
+          order_id = order_id || obj.order_id;
+          amount   = amount   || obj.amount;
+          show     = show     || obj.show;
+          seats    = seats    || (obj.seats ? obj.seats.join(",") : "");
+          // і покупця теж одразу
+          setBuyer(obj.name, obj.phone, obj.email);
+        } catch(e){}
+      }
+    }
+
+    // 3. показуємо
+    document.getElementById("o-id").textContent = order_id || "—";
+    document.getElementById("o-show").textContent = show ? show.replace("/", " / ") : "—";
+    document.getElementById("o-seats").textContent = seats || "—";
+    document.getElementById("o-amount").textContent = amount ? (amount + " грн") : "—";
+
+    // функція для покупця
+    function setBuyer(name, phone, email) {
+      if (name)  document.getElementById("b-name").textContent = name;
+      if (phone) document.getElementById("b-phone").textContent = phone;
+      if (email) document.getElementById("b-email").textContent = email;
+
+      // кнопка "надіслати"
+      if (email) {
+        const mailto =
+          "mailto:" + encodeURIComponent(email)
+          + "?subject=" + encodeURIComponent("Ваші квитки: " + (show || "театр"))
+          + "&body=" + encodeURIComponent(
+            "Доброго дня, " + (name || "") + "!\n\n"
+            + "Дякуємо за оплату.\n"
+            + "Номер замовлення: " + (order_id || "—") + "\n"
+            + "Вистава: " + (show || "—") + "\n"
+            + "Місця: " + (seats || "—") + "\n"
+            + "Сума: " + (amount ? amount + " грн" : "—") + "\n\n"
+            + "Ваш Адмін"
+          );
+
+        const a = document.createElement("a");
+        a.href = mailto;
+        a.textContent = "Відправити e-mail";
+        a.className = "btn";
+        document.getElementById("actions").appendChild(a);
+      }
+    }
+
+    // 4. якщо в URL теж лежать ПІБ/тел/мейл — теж підставимо
+    const n = p.get("name");
+    const ph = p.get("phone");
+    const em = p.get("email");
+    if (n || ph || em) {
+      setBuyer(n, ph, em);
+    } else {
+      // якщо з URL не прийшло, ми вже робили setBuyer(...) із localStorage вище
+    }
   </script>
 </body>
 </html>
