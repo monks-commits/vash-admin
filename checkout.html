@@ -135,12 +135,25 @@
   const amount = Number(qs.get("amount") || "0");
   const orderId = qs.get("order_id") || ("ORDER-" + Date.now());
 
+  const errBox = document.getElementById("err-pay");
+
   document.getElementById("liqpay-btn").addEventListener("click", async () => {
-    const name = document.getElementById("f-name").value.trim();
+    const name  = document.getElementById("f-name").value.trim();
     const phone = document.getElementById("f-phone").value.trim();
     const email = document.getElementById("f-email").value.trim();
 
-    const errBox = document.getElementById("err-pay");
+    // 1. валидация
+    if (!name || !phone || !email) {
+      errBox.textContent = "Заповніть ім’я, телефон і e-mail перед оплатою.";
+      errBox.style.display = "block";
+      return;
+    }
+    if (!amount || !seats.length) {
+      errBox.textContent = "Немає суми або місць для оплати.";
+      errBox.style.display = "block";
+      return;
+    }
+
     errBox.style.display = "none";
 
     try {
@@ -159,7 +172,7 @@
             customer_name: name,
             customer_phone: phone,
             customer_email: email,
-            // можно передать result_url, если нужно
+            result_url: "https://vash-admin.com/thanks.html"
           }),
         }
       );
@@ -171,22 +184,22 @@
 
       const { data, signature } = await res.json();
 
-      // редиректим на liqpay
+      // 3. отправляем форму в LiqPay
       const form = document.createElement("form");
       form.method = "POST";
       form.action = "https://www.liqpay.ua/api/3/checkout";
 
-      const inputData = document.createElement("input");
-      inputData.type = "hidden";
-      inputData.name = "data";
-      inputData.value = data;
-      form.appendChild(inputData);
+      const f1 = document.createElement("input");
+      f1.type = "hidden";
+      f1.name = "data";
+      f1.value = data;
+      form.appendChild(f1);
 
-      const inputSign = document.createElement("input");
-      inputSign.type = "hidden";
-      inputSign.name = "signature";
-      inputSign.value = signature;
-      form.appendChild(inputSign);
+      const f2 = document.createElement("input");
+      f2.type = "hidden";
+      f2.name = "signature";
+      f2.value = signature;
+      form.appendChild(f2);
 
       document.body.appendChild(form);
       form.submit();
@@ -197,6 +210,7 @@
     }
   });
 </script>
+
 
 
 </body>
