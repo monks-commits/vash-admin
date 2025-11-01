@@ -10,25 +10,21 @@
     main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
     .hall-wrap { background:#fff; border-radius:14px; padding:26px; margin-bottom:26px; }
 
-    .hall-grid {
-      display:flex;
-      gap:40px;
-      overflow-x:auto;
-    }
+    .hall-grid { display:flex; gap:40px; overflow-x:auto; }
     .hall-col { display:flex; flex-direction:column; gap:8px; }
 
+    .row-line {
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
     .row-label {
-      width:28px;
-      text-align:center;
+      width:30px;
+      text-align:right;
       font-weight:600;
       color:#0f172a;
     }
-
-    .seats-row {
-      display:flex;
-      gap:8px;
-      flex-wrap:nowrap;
-    }
+    .seats-row { display:flex; gap:8px; }
 
     .seat {
       width:42px; height:42px; border-radius:10px;
@@ -40,21 +36,17 @@
     .seat.selected { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
     .seat.taken { background:#f3f4f6; color:#94a3b8; border-color:#e2e8f0; cursor:not-allowed; }
 
-    .box-legend { margin-top:14px; font-size:13px; color:#475569; }
+    .gap { width:26px; }
 
-    .order-form { background:#fff; border-radius:14px; padding:26px; }
-    .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
-    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
-    .form-group input {
-      height:44px; border:1px solid #d0d5dd; border-radius:10px;
-      padding:0 12px; font-size:15px;
+    .info-box {
+      margin-top:12px;
+      background:#eff6ff;
+      border:1px solid #dbeafe;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      color:#0f172a;
     }
-    .primary-btn {
-      background:#155EEF; color:#fff; border:none;
-      border-radius:999px; padding:11px 30px;
-      font-size:15px; font-weight:600; cursor:pointer;
-    }
-    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
 
     .lodge-row {
       display:flex;
@@ -69,7 +61,23 @@
       font-size:14px;
       color:#0f172a;
     }
+
+    .order-form { background:#fff; border-radius:14px; padding:26px; }
+    .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
+    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
+    .form-group input {
+      height:44px; border:1px solid #d0d5dd; border-radius:10px;
+      padding:0 12px; font-size:15px;
+    }
+    .primary-btn {
+      background:#155EEF; color:#fff; border:none;
+      border-radius:999px; padding:11px 30px;
+      font-size:15px; font-weight:600; cursor:pointer;
+    }
+    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
   </style>
+
+  <!-- supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -81,14 +89,16 @@
     <p id="show-label">Вистава: —</p>
 
     <div class="hall-wrap">
-      <div class="hall-grid" id="hall-grid">
-        <!-- сюда отрендерим -->
-      </div>
+      <div class="hall-grid" id="hall-grid"></div>
+
       <div class="lodge-row">
         <div class="lodge">Ложа А (18 місць)</div>
         <div class="lodge">Ложа Б (18 місць)</div>
       </div>
-      <p class="box-legend">Сірим — місця, які вже бронюють зараз (до 15 хв), блакитним — ваш вибір.</p>
+
+      <div id="seat-info" class="info-box">
+        Натисніть на місце, щоб побачити ряд, місце та ціну.
+      </div>
     </div>
 
     <div class="order-form" id="buyer-form">
@@ -118,116 +128,121 @@
   <!-- подвал -->
   <div id="site-footer"></div>
 
-  <!-- include -->
-  <script src="/vash-admin/scripts/include.js"></script>
+  <!-- include из корня -->
+  <script src="/scripts/include.js"></script>
 
   <script>
-    // 1. конфіг supabase
-    const SUPABASE_URL = "https://yqhzekifwotizsmaeaf.supabase.co"; // твій
-    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE";                    // твій
-    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    // ===== 0. Конфіг Supabase =====
+    // вставь свои значения:
+    const SUPABASE_URL = "https://yqhzekifwotizsmaeaf.supabase.co";  // у тебя такой
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE";
+    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 2. читаємо, що за вистава
+    // ===== 1. Параметри вистави =====
     const params = new URLSearchParams(location.search);
     const showSlug = params.get("show") || "shevchenko/ledi";
     document.getElementById("show-label").textContent =
       "Вистава: " + showSlug.replace("/", " — ");
 
-    // 3. модель зала (18 рядів, по 10 + прохід + 10)
-    const rowsCount = 18;
-    const leftSeats = 10;
-    const rightSeats = 10;
+    // ===== 2. Модель зала =====
+    const ROWS = 18;
+    const LEFT = 10;
+    const RIGHT = 10;
 
-    // ціни по рядам — ти їх уже міняв, можеш тут підкрутити
+    // твои цены можно менять тут
     const rowPrices = {
       1: 220, 2: 220, 3: 220,
       4: 200, 5: 200, 6: 200,
       7: 180, 8: 180, 9: 180,
       10: 150, 11: 150, 12: 150,
       13: 120, 14: 120, 15: 100,
-      16: 100, 17: 90, 18: 70
+      16: 100, 17: 90, 18: 70,
     };
 
     const hallGrid = document.getElementById("hall-grid");
+    const seatInfo = document.getElementById("seat-info");
     const selected = new Set();
     const seatCountEl = document.getElementById("seat-count");
     const seatSumEl = document.getElementById("seat-sum");
     const btn = document.getElementById("to-checkout");
 
-    // 4. рендер зала
-    function renderHall(takenSet = new Set()) {
+    // ===== 3. Рендер зала =====
+    function renderHall(taken = new Set()) {
       hallGrid.innerHTML = "";
-
       const col = document.createElement("div");
       col.className = "hall-col";
 
-      for (let r = 1; r <= rowsCount; r++) {
-        const wrap = document.createElement("div");
-        wrap.style.display = "flex";
-        wrap.style.gap = "10px";
-        wrap.style.alignItems = "center";
+      for (let r = 1; r <= ROWS; r++) {
+        const line = document.createElement("div");
+        line.className = "row-line";
 
-        const label = document.createElement("div");
-        label.className = "row-label";
-        label.textContent = r;
-        wrap.appendChild(label);
+        const lbl = document.createElement("div");
+        lbl.className = "row-label";
+        lbl.textContent = r;
+        line.appendChild(lbl);
 
         const rowBox = document.createElement("div");
         rowBox.className = "seats-row";
 
-        // ліва десятка
-        for (let s = 1; s <= leftSeats; s++) {
-          const seatId = `P${r}-M${s}`;
-          const div = document.createElement("div");
-          div.className = "seat";
-          div.textContent = s;
-          div.dataset.seatId = seatId;
-          if (takenSet.has(seatId)) {
-            div.classList.add("taken");
-          } else {
-            div.addEventListener("click", () => toggleSeat(div, seatId, r));
-          }
-          rowBox.appendChild(div);
+        // левая десятка
+        for (let s = 1; s <= LEFT; s++) {
+          rowBox.appendChild(makeSeat(r, s, taken));
         }
 
-        // порожній прохід
+        // проход
         const gap = document.createElement("div");
-        gap.style.width = "26px";
+        gap.className = "gap";
         rowBox.appendChild(gap);
 
-        // права десятка
-        for (let s = 11; s <= 10 + rightSeats; s++) {
-          const seatId = `P${r}-M${s}`;
-          const div = document.createElement("div");
-          div.className = "seat";
-          div.textContent = s;
-          div.dataset.seatId = seatId;
-          if (takenSet.has(seatId)) {
-            div.classList.add("taken");
-          } else {
-            div.addEventListener("click", () => toggleSeat(div, seatId, r));
-          }
-          rowBox.appendChild(div);
+        // правая десятка (11..20)
+        for (let s = 11; s <= 10 + RIGHT; s++) {
+          rowBox.appendChild(makeSeat(r, s, taken));
         }
 
-        wrap.appendChild(rowBox);
-        col.appendChild(wrap);
+        line.appendChild(rowBox);
+        col.appendChild(line);
       }
 
       hallGrid.appendChild(col);
     }
 
-    function toggleSeat(el, seatId, rowNum) {
+    function makeSeat(row, seatNum, takenSet) {
+      const id = `P${row}-M${seatNum}`;
+      const div = document.createElement("div");
+      div.className = "seat";
+      div.textContent = seatNum;
+      div.title = `Ряд ${row}, місце ${seatNum} — ${rowPrices[row] || 0} грн`;
+      div.dataset.seatId = id;
+      div.dataset.row = row;
+      div.dataset.price = rowPrices[row] || 0;
+
+      if (takenSet.has(id)) {
+        div.classList.add("taken");
+      } else {
+        div.addEventListener("click", () => toggleSeat(div));
+      }
+
+      return div;
+    }
+
+    function toggleSeat(el) {
       if (el.classList.contains("taken")) {
-        alert("Це місце вже щойно забрали. Онови сторінку.");
+        alert("Це місце вже щойно забрали. Оновіть сторінку.");
         return;
       }
+      const seatId = el.dataset.seatId;
+      const row = Number(el.dataset.row);
+      const price = Number(el.dataset.price);
+      const seatNum = el.textContent.trim();
+
       if (selected.has(seatId)) {
         selected.delete(seatId);
         el.classList.remove("selected");
+        seatInfo.textContent = "Місце знято з вибору.";
       } else {
         selected.add(seatId);
         el.classList.add("selected");
+        seatInfo.textContent = `Обрано: ряд ${row}, місце ${seatNum}, ціна ${price} грн.`;
       }
       recalc();
     }
@@ -235,40 +250,43 @@
     function recalc() {
       const ids = Array.from(selected);
       seatCountEl.textContent = ids.length;
-      const sum = ids.reduce((acc, id) => {
-        // id = P7-M3
-        const rowStr = id.split("-")[0].replace("P", "");
+      const sum = ids.reduce((acc, seatId) => {
+        const rowStr = seatId.split("-")[0].replace("P", "");
         const row = Number(rowStr);
-        const price = rowPrices[row] || 100;
-        return acc + price;
+        return acc + (rowPrices[row] || 0);
       }, 0);
       seatSumEl.textContent = sum;
       btn.disabled = ids.length === 0;
     }
 
-    // 5. забираємо заброньовані місця (тільки НЕ прострочені)
-    async function loadTakenSeats() {
-      const nowIso = new Date().toISOString();
-      const { data, error } = await supa
-        .from("bookings")
-        .select("seat_id")
-        .eq("show_slug", showSlug)
-        .gt("expires_at", nowIso);   // <-- ось це головне
+    // ===== 4. тянем актуальные брони =====
+    async function loadTaken() {
+      try {
+        const nowIso = new Date().toISOString();
+        const { data, error } = await supa
+          .from("bookings")
+          .select("seat_id")
+          .eq("show_slug", showSlug)
+          .gt("expires_at", nowIso);
 
-      if (error) {
-        console.warn("load bookings error", error);
+        if (error) {
+          console.warn("bookings error", error);
+          renderHall(new Set());
+          return;
+        }
+
+        const takenSet = new Set((data || []).map(r => r.seat_id));
+        renderHall(takenSet);
+      } catch (e) {
+        console.warn(e);
         renderHall(new Set());
-        return;
       }
-
-      const taken = new Set((data || []).map(r => r.seat_id));
-      renderHall(taken);
     }
 
-    // 6. періодично оновлюємо заброньовані (на випадок, якщо хтось ще зайшов)
-    setInterval(loadTakenSeats, 15_000); // раз у 15 секунд
+    // обновляем забронированные каждые 15 сек
+    setInterval(loadTaken, 15000);
 
-    // 7. перехід до checkout
+    // ===== 5. переход на checkout =====
     btn.addEventListener("click", () => {
       const ids = Array.from(selected);
       const sum = Number(seatSumEl.textContent) || 0;
@@ -289,8 +307,8 @@
       location.href = url.toString();
     });
 
-    // старт
-    loadTakenSeats();
+    // стартуем
+    loadTaken();
   </script>
 </body>
 </html>
