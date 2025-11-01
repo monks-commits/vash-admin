@@ -1,4 +1,4 @@
-<!-- scripts/include.js -->
+<!-- /scripts/include.js -->
 <script>
   async function injectPart(id, url) {
     try {
@@ -8,12 +8,12 @@
       if (!res.ok) return;
       el.innerHTML = await res.text();
     } catch (err) {
-      console.warn("include failed for", id, err);
+      console.warn("include fail:", id, err);
     }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    // ВНИМАНИЕ: без /vash-admin — берём прямо из корня
+    // ВАЖНО: без /vash-admin
     injectPart("site-header", "/partials/header.html");
     injectPart("site-footer", "/partials/footer.html");
   });
