@@ -6,113 +6,63 @@
   <title>Вибір місць — Ваш Адмін</title>
   <link rel="stylesheet" href="../styles.css" />
   <style>
-    body{background:#f4f4f6;}
-    main{max-width:1100px;margin:0 auto;padding:24px 16px 60px;}
+  body { background:#f4f4f6; }
+  main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
+  .hall-wrap { background:#fff; border-radius:14px; padding:26px; margin-bottom:26px; }
+  .hall-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;        /* ← главное: не переносим */
+    overflow-x: auto;         /* если экран узкий — горизонтальный скролл */
+    align-items: center;
+  }
+  .row-label {
+    width: 28px;
+    text-align: right;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .seat {
+    flex: 0 0 42px;           /* фикс ширина — чтобы не прыгали */
+    height: 42px;
+    border-radius:10px;
+    background:#fff;
+    border:1px solid #d0d5dd;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .seat:hover { background:#e5edff; }
+  .seat.selected { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
 
-    .hall-card{
-      background:#fff;
-      border:1px solid #e5e7eb;
-      border-radius:14px;
-      padding:18px;
-      margin-bottom:20px;
-    }
+  .order-form { background:#fff; border-radius:14px; padding:26px; }
+  .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
+  .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
+  .form-group input {
+    height:44px; border:1px solid #d0d5dd; border-radius:10px;
+    padding:0 12px; font-size:15px;
+  }
+  .primary-btn {
+    background:#155EEF; color:#fff; border:none;
+    border-radius:999px; padding:11px 30px;
+    font-size:15px; font-weight:600; cursor:pointer;
+  }
+  .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
+  .balcony {
+    display:flex;
+    gap:16px;
+    margin-top:12px;
+  }
+  .balcony .fake {
+    background:#f3f4f6;
+    border:1px dashed #d1d5db;
+    border-radius:10px;
+    padding:8px 14px;
+  }
+</style>
 
-    /* сітка залу */
-    .hall-grid{
-      --seat:38px;
-      --gap:6px;
-      display:grid;
-      gap:var(--gap);
-      justify-content:flex-start;
-      grid-template-columns:repeat(var(--cols,20), var(--seat));
-    }
-    .seat{
-      width:var(--seat);
-      height:var(--seat);
-      border-radius:10px;
-      background:#fff;
-      border:1px solid #d1d5db;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      font-size:13px;
-      font-weight:600;
-    }
-    .seat:hover{background:#e5edff}
-    .seat.selected{
-      background:#155EEF;
-      border-color:#155EEF;
-      color:#fff;
-    }
-    .spacer{
-      width:var(--seat);
-      height:var(--seat);
-      pointer-events:none;
-      opacity:0;
-    }
-    .row-label{
-      grid-column:1/-1;
-      text-align:left;
-      margin-top:2px;
-      margin-bottom:10px;
-      color:#6b7280;
-      font-size:13px;
-    }
-
-    .scene{
-      grid-column:1/-1;
-      background:#e5e7eb;
-      border-radius:10px;
-      text-align:center;
-      font-weight:700;
-      padding:6px 0 8px;
-      margin-bottom:12px;
-      color:#374151;
-    }
-
-    .order-form{
-      background:#fff;
-      border:1px solid #e5e7eb;
-      border-radius:14px;
-      padding:18px;
-    }
-    .form-row{
-      display:flex;
-      gap:14px;
-      flex-wrap:wrap;
-    }
-    .form-group{
-      flex:1 1 220px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    .form-group input{
-      height:42px;
-      border:1px solid #d1d5db;
-      border-radius:10px;
-      padding:0 10px;
-      font-size:15px;
-    }
-    .primary-btn{
-      background:#155EEF;
-      color:#fff;
-      border:none;
-      border-radius:999px;
-      padding:9px 20px;
-      font-weight:600;
-      cursor:pointer;
-    }
-    .primary-btn:disabled{
-      background:#9cb9ff;
-      cursor:not-allowed;
-    }
-
-    @media(max-width:700px){
-      .hall-grid{--seat:34px}
-    }
-  </style>
 </head>
 <body>
   <!-- шапка -->
