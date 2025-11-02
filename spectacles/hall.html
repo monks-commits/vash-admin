@@ -7,61 +7,22 @@
   <link rel="stylesheet" href="../styles.css" />
   <style>
     body { background:#f4f4f6; }
-    main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
+    main { max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
     .hall-wrap { background:#fff; border-radius:14px; padding:26px; margin-bottom:26px; }
-
-    .hall-grid { display:flex; gap:40px; overflow-x:auto; }
-    .hall-col { display:flex; flex-direction:column; gap:8px; }
-
-    .row-line {
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
-    .row-label {
-      width:30px;
-      text-align:right;
-      font-weight:600;
-      color:#0f172a;
-    }
-    .seats-row { display:flex; gap:8px; }
-
+    .row-line { display:flex; align-items:center; gap:14px; margin-bottom:8px; }
+    .row-label { width:24px; text-align:right; font-weight:600; color:#0f172a; }
+    .seats-line { display:flex; gap:6px; }
+    .gap { width:46px; }
     .seat {
-      width:42px; height:42px; border-radius:10px;
+      width:38px; height:38px; border-radius:10px;
       background:#fff; border:1px solid #d0d5dd;
       display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:.15s;
+      cursor:pointer; transition:.15s; font-size:14px;
     }
     .seat:hover { background:#e5edff; }
     .seat.selected { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
-    .seat.taken { background:#f3f4f6; color:#94a3b8; border-color:#e2e8f0; cursor:not-allowed; }
-
-    .gap { width:26px; }
-
-    .info-box {
-      margin-top:12px;
-      background:#eff6ff;
-      border:1px solid #dbeafe;
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-      color:#0f172a;
-    }
-
-    .lodge-row {
-      display:flex;
-      gap:14px;
-      margin-top:18px;
-    }
-    .lodge {
-      background:#fff;
-      border:1px dashed #d0d5dd;
-      border-radius:9px;
-      padding:6px 12px;
-      font-size:14px;
-      color:#0f172a;
-    }
-
+    .seat.booked { background:#e2e8f0; color:#94a3b8; border-style:dashed; cursor:not-allowed; }
+    .legend { margin-top:6px; font-size:13px; color:#64748b; }
     .order-form { background:#fff; border-radius:14px; padding:26px; }
     .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
     .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
@@ -76,32 +37,18 @@
     }
     .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
   </style>
-
-  <!-- supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- шапка -->
   <div id="site-header"></div>
 
   <main>
     <h1>Вибір місць</h1>
     <p id="show-label">Вистава: —</p>
 
-    <div class="hall-wrap">
-      <div class="hall-grid" id="hall-grid"></div>
+    <div class="hall-wrap" id="hall"></div>
+    <p class="legend">Натисніть на місце, щоб додати в замовлення. Сірі місця — вже заброньовані іншими.</p>
 
-      <div class="lodge-row">
-        <div class="lodge">Ложа А (18 місць)</div>
-        <div class="lodge">Ложа Б (18 місць)</div>
-      </div>
-
-      <div id="seat-info" class="info-box">
-        Натисніть на місце, щоб побачити ряд, місце та ціну.
-      </div>
-    </div>
-
-    <div class="order-form" id="buyer-form">
+    <div class="order-form">
       <h2>Дані покупця</h2>
       <div class="flex-row">
         <div class="form-group">
@@ -125,174 +72,152 @@
     </div>
   </main>
 
-  <!-- подвал -->
   <div id="site-footer"></div>
 
-  <!-- include из корня -->
   <script src="/scripts/include.js"></script>
+  <script type="module">
+    // ====== НАСТРОЙКИ ======
+    const SUPABASE_URL = "https://TUOЙPROJECT.supabase.co";   // поставь свой
+    const SUPABASE_ANON_KEY = "TUOЙ_ANON_KEY";                // поставь свой
 
-  <script>
-    // ===== 0. Конфіг Supabase =====
-    // вставь свои значения:
-    const SUPABASE_URL = "https://yqhzekifwotizsmaeaf.supabase.co";  // у тебя такой
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE";
-    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // ===== 1. Параметри вистави =====
-    const params = new URLSearchParams(location.search);
-    const showSlug = params.get("show") || "shevchenko/ledi";
-    document.getElementById("show-label").textContent =
-      "Вистава: " + showSlug.replace("/", " — ");
-
-    // ===== 2. Модель зала =====
+    // схема залу (18 рядів по 20 місць, 10 + прохід + 10)
     const ROWS = 18;
     const LEFT = 10;
     const RIGHT = 10;
 
-    // твои цены можно менять тут
-    const rowPrices = {
-      1: 220, 2: 220, 3: 220,
-      4: 200, 5: 200, 6: 200,
-      7: 180, 8: 180, 9: 180,
-      10: 150, 11: 150, 12: 150,
-      13: 120, 14: 120, 15: 100,
-      16: 100, 17: 90, 18: 70,
+    // ціни по рядам — можеш поміняти
+    const PRICE_BY_ROW = {
+      1: 220, 2: 220, 3: 220, 4: 200, 5: 200,
+      6: 180, 7: 180, 8: 160, 9: 150, 10: 140,
+      11: 140, 12: 120, 13: 120, 14: 100, 15: 100,
+      16: 90, 17: 80, 18: 70,
     };
 
-    const hallGrid = document.getElementById("hall-grid");
-    const seatInfo = document.getElementById("seat-info");
+    const hallEl = document.getElementById("hall");
+    const params = new URLSearchParams(location.search);
+    const showSlug = params.get("show") || "shevchenko/ledi";
+    document.getElementById("show-label").textContent = "Вистава: " + showSlug.replace("/", " / ");
+
     const selected = new Set();
     const seatCountEl = document.getElementById("seat-count");
     const seatSumEl = document.getElementById("seat-sum");
-    const btn = document.getElementById("to-checkout");
+    const toCheckoutBtn = document.getElementById("to-checkout");
 
-    // ===== 3. Рендер зала =====
-    function renderHall(taken = new Set()) {
-      hallGrid.innerHTML = "";
-      const col = document.createElement("div");
-      col.className = "hall-col";
+    // берём текущие брони из Supabase
+    async function loadBookings() {
+      try {
+        const resp = await fetch(
+          `${SUPABASE_URL}/rest/v1/bookings?show_slug=eq.${encodeURIComponent(showSlug)}&select=seat_id,expires_at`,
+          {
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          }
+        );
+        const data = await resp.json();
+        const now = new Date();
+        // оставляем только не просроченные
+        return data
+          .filter(b => !b.expires_at || new Date(b.expires_at) > now)
+          .map(b => b.seat_id);
+      } catch (e) {
+        console.log("bookings load error", e);
+        return [];
+      }
+    }
 
+    function renderHall(blockedSeats = []) {
+      hallEl.innerHTML = "";
       for (let r = 1; r <= ROWS; r++) {
-        const line = document.createElement("div");
-        line.className = "row-line";
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "row-line";
 
-        const lbl = document.createElement("div");
-        lbl.className = "row-label";
-        lbl.textContent = r;
-        line.appendChild(lbl);
+        const label = document.createElement("div");
+        label.className = "row-label";
+        label.textContent = r;
+        rowDiv.appendChild(label);
 
-        const rowBox = document.createElement("div");
-        rowBox.className = "seats-row";
+        const seatsLine = document.createElement("div");
+        seatsLine.className = "seats-line";
 
         // левая десятка
-        for (let s = 1; s <= LEFT; s++) {
-          rowBox.appendChild(makeSeat(r, s, taken));
+        for (let c = 1; c <= LEFT; c++) {
+          const seatId = `P${r}-M${c}`;
+          const div = document.createElement("div");
+          div.className = "seat";
+          if (blockedSeats.includes(seatId)) {
+            div.classList.add("booked");
+          }
+          div.textContent = c;
+          div.title = `Ряд ${r}, місце ${c} — ${PRICE_BY_ROW[r] || 0} грн`;
+          div.dataset.id = seatId;
+          div.dataset.row = r;
+          div.dataset.price = PRICE_BY_ROW[r] || 0;
+          seatsLine.appendChild(div);
         }
 
-        // проход
+        // прохід
         const gap = document.createElement("div");
         gap.className = "gap";
-        rowBox.appendChild(gap);
+        seatsLine.appendChild(gap);
 
-        // правая десятка (11..20)
-        for (let s = 11; s <= 10 + RIGHT; s++) {
-          rowBox.appendChild(makeSeat(r, s, taken));
+        // правая десятка
+        for (let c = 11; c <= 10 + RIGHT; c++) {
+          const seatId = `P${r}-M${c}`;
+          const div = document.createElement("div");
+          div.className = "seat";
+          if (blockedSeats.includes(seatId)) {
+            div.classList.add("booked");
+          }
+          div.textContent = c;
+          div.title = `Ряд ${r}, місце ${c} — ${PRICE_BY_ROW[r] || 0} грн`;
+          div.dataset.id = seatId;
+          div.dataset.row = r;
+          div.dataset.price = PRICE_BY_ROW[r] || 0;
+          seatsLine.appendChild(div);
         }
 
-        line.appendChild(rowBox);
-        col.appendChild(line);
+        rowDiv.appendChild(seatsLine);
+        hallEl.appendChild(rowDiv);
       }
-
-      hallGrid.appendChild(col);
     }
 
-    function makeSeat(row, seatNum, takenSet) {
-      const id = `P${row}-M${seatNum}`;
-      const div = document.createElement("div");
-      div.className = "seat";
-      div.textContent = seatNum;
-      div.title = `Ряд ${row}, місце ${seatNum} — ${rowPrices[row] || 0} грн`;
-      div.dataset.seatId = id;
-      div.dataset.row = row;
-      div.dataset.price = rowPrices[row] || 0;
-
-      if (takenSet.has(id)) {
-        div.classList.add("taken");
-      } else {
-        div.addEventListener("click", () => toggleSeat(div));
-      }
-
-      return div;
-    }
-
-    function toggleSeat(el) {
-      if (el.classList.contains("taken")) {
-        alert("Це місце вже щойно забрали. Оновіть сторінку.");
-        return;
-      }
-      const seatId = el.dataset.seatId;
-      const row = Number(el.dataset.row);
-      const price = Number(el.dataset.price);
-      const seatNum = el.textContent.trim();
-
-      if (selected.has(seatId)) {
-        selected.delete(seatId);
-        el.classList.remove("selected");
-        seatInfo.textContent = "Місце знято з вибору.";
-      } else {
-        selected.add(seatId);
-        el.classList.add("selected");
-        seatInfo.textContent = `Обрано: ряд ${row}, місце ${seatNum}, ціна ${price} грн.`;
-      }
-      recalc();
-    }
-
-    function recalc() {
+    function updateSummary() {
       const ids = Array.from(selected);
       seatCountEl.textContent = ids.length;
-      const sum = ids.reduce((acc, seatId) => {
-        const rowStr = seatId.split("-")[0].replace("P", "");
-        const row = Number(rowStr);
-        return acc + (rowPrices[row] || 0);
+      const sum = ids.reduce((acc, id) => {
+        const rowNum = Number(id.split("-")[0].substring(1));
+        return acc + (PRICE_BY_ROW[rowNum] || 0);
       }, 0);
       seatSumEl.textContent = sum;
-      btn.disabled = ids.length === 0;
+      toCheckoutBtn.disabled = ids.length === 0;
     }
 
-    // ===== 4. тянем актуальные брони =====
-    async function loadTaken() {
-      try {
-        const nowIso = new Date().toISOString();
-        const { data, error } = await supa
-          .from("bookings")
-          .select("seat_id")
-          .eq("show_slug", showSlug)
-          .gt("expires_at", nowIso);
+    hallEl.addEventListener("click", (e) => {
+      const el = e.target.closest(".seat");
+      if (!el) return;
+      if (el.classList.contains("booked")) return;
 
-        if (error) {
-          console.warn("bookings error", error);
-          renderHall(new Set());
-          return;
-        }
-
-        const takenSet = new Set((data || []).map(r => r.seat_id));
-        renderHall(takenSet);
-      } catch (e) {
-        console.warn(e);
-        renderHall(new Set());
+      const id = el.dataset.id;
+      if (selected.has(id)) {
+        selected.delete(id);
+        el.classList.remove("selected");
+      } else {
+        selected.add(id);
+        el.classList.add("selected");
       }
-    }
+      updateSummary();
+    });
 
-    // обновляем забронированные каждые 15 сек
-    setInterval(loadTaken, 15000);
-
-    // ===== 5. переход на checkout =====
-    btn.addEventListener("click", () => {
+    toCheckoutBtn.addEventListener("click", () => {
       const ids = Array.from(selected);
       const sum = Number(seatSumEl.textContent) || 0;
+
       const name  = document.getElementById("buyer-name").value.trim();
       const phone = document.getElementById("buyer-phone").value.trim();
       const email = document.getElementById("buyer-email").value.trim();
+
       const orderId = "SHEV-" + Date.now();
 
       const url = new URL(location.origin + "/checkout.html");
@@ -300,6 +225,7 @@
       url.searchParams.set("seats", ids.join(","));
       url.searchParams.set("amount", String(sum));
       url.searchParams.set("order_id", orderId);
+      // эти три пусть тоже поедут
       url.searchParams.set("name", encodeURIComponent(name));
       url.searchParams.set("phone", encodeURIComponent(phone));
       url.searchParams.set("email", encodeURIComponent(email));
@@ -307,8 +233,11 @@
       location.href = url.toString();
     });
 
-    // стартуем
-    loadTaken();
+    // загрузка и отрисовка
+    (async () => {
+      const blocked = await loadBookings();
+      renderHall(blocked);
+    })();
   </script>
 </body>
 </html>
