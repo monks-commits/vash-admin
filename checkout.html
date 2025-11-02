@@ -1,139 +1,200 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Підтвердження та оплата — Ваш Адмін</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { background:#f4f4f6; }
+    main { max-width:1100px; margin:0 auto; padding:24px 16px 56px; }
+    .card {
+      background:#fff;
+      border-radius:14px;
+      padding:20px 22px 22px;
+      margin-bottom:18px;
+    }
+    .title { font-size:28px; font-weight:700; margin-bottom:18px; }
+    .muted { color:#64748b; font-size:13px; }
+    .row { display:flex; gap:14px; flex-wrap:wrap; }
+    .field {
+      flex:1 1 240px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .field input {
+      height:42px;
+      border:1px solid #d0d5dd;
+      border-radius:10px;
+      padding:0 12px;
+      font-size:14px;
+    }
+    .pay-btn {
+      background:#155EEF;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:11px 30px;
+      font-size:15px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .pay-btn:disabled { background:#9ab6ff; cursor:not-allowed; }
+    .error-box {
+      background:#fee2e2;
+      color:#991b1b;
+      border:1px solid #fecaca;
+      border-radius:12px;
+      padding:10px 14px;
+      margin-top:12px;
+      display:none;
+      white-space:pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main>
+    <h1 class="title">Підтвердження та оплата</h1>
+
+    <!-- блок инфы по заказу -->
+    <div class="card" id="order-box">
+      <p><strong>Вистава:</strong> <span id="show-name">—</span></p>
+      <p><strong>Місця:</strong> <span id="seats-list">—</span></p>
+      <p><strong>Сума до сплати:</strong> <span id="amount">0</span> грн</p>
+      <p class="muted" style="margin-top:8px;">Номер замовлення: <span id="order-id">—</span></p>
+    </div>
+
+    <!-- данные покупателя -->
+    <div class="card">
+      <h2>Дані покупця</h2>
+      <div class="row" style="margin-top:10px;">
+        <div class="field">
+          <label for="buyer-name">Ім’я та прізвище</label>
+          <input id="buyer-name" placeholder="Ваше ім’я" />
+        </div>
+        <div class="field">
+          <label for="buyer-phone">Телефон</label>
+          <input id="buyer-phone" placeholder="+380..." />
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="buyer-email">Електронна пошта (сюди прийде квиток)</label>
+        <input id="buyer-email" placeholder="you@example.com" />
+      </div>
+    </div>
+
+    <!-- оплата -->
+    <div class="card">
+      <h2>Оплата онлайн</h2>
+      <p class="muted">Після оплати ви повернетеся на сайт.</p>
+      <button id="pay-btn" class="pay-btn" style="margin-top:12px;">Оплатити через LiqPay</button>
+      <div id="error-box" class="error-box"></div>
+    </div>
+  </main>
+
   <div id="site-footer"></div>
+
+  <!-- общий include -->
   <script src="/scripts/include.js"></script>
 
   <script>
-    // функция "раскрутить" до нормального текста
-    function safeDecode(v) {
-      if (!v) return "";
-      let out = v;
-      for (let i = 0; i < 2; i++) {        // максимум два раза
-        try {
-          out = decodeURIComponent(out);
-        } catch (e) {
-          break;
-        }
-      }
-      return out;
-    }
-
-    const params  = new URLSearchParams(location.search);
-    const show    = params.get("show")  || "shevchenko/ledi";
-    const seats   = params.get("seats") || "";
-    const amount  = Number(params.get("amount") || "0");
+    // 1. читаем параметры из URL
+    const params = new URLSearchParams(location.search);
+    const show   = params.get("show") || "—";
+    const seats  = params.get("seats") || "";
+    const amount = Number(params.get("amount") || "0");
     const orderId = params.get("order_id") || ("ORD-" + Date.now());
+    const name   = params.get("name")  ? decodeURIComponent(params.get("name"))  : "";
+    const phone  = params.get("phone") ? decodeURIComponent(params.get("phone")) : "";
+    const email  = params.get("email") ? decodeURIComponent(params.get("email")) : "";
 
-    // берём то, что пришло (вдруг два раза закодировано)
-    const qName  = safeDecode(params.get("name"));
-    const qPhone = safeDecode(params.get("phone"));
-    const qEmail = safeDecode(params.get("email"));
+    // 2. вставляем в верстку
+    document.getElementById("show-name").textContent  = show.replace("/", " / ");
+    document.getElementById("seats-list").textContent = seats || "—";
+    document.getElementById("amount").textContent     = amount.toString();
+    document.getElementById("order-id").textContent   = orderId;
 
-    document.getElementById("show-title").textContent = show.replace("/", " / ");
-    const metaEl = document.getElementById("show-meta");
-    if (metaEl) metaEl.textContent = "";
-    document.getElementById("show-seats").textContent  = seats || "—";
-    document.getElementById("show-amount").textContent = amount + " грн";
-    document.getElementById("order-id").textContent    = orderId;
+    // 3. подставляем в поля, чтобы не вводить заново
+    if (name)  document.getElementById("buyer-name").value  = name;
+    if (phone) document.getElementById("buyer-phone").value = phone.startsWith("+") ? phone : "+" + phone;
+    if (email) document.getElementById("buyer-email").value = email;
 
-    const nameInput  = document.getElementById("f-name");
-    const phoneInput = document.getElementById("f-phone");
-    const emailInput = document.getElementById("f-email");
-
-    if (qName)  nameInput.value  = qName;
-    if (qPhone) phoneInput.value = qPhone.startsWith("+") ? qPhone : "+" + qPhone;
-    if (qEmail) emailInput.value = qEmail;
-
-    if (!nameInput.value) {
-      const saved = localStorage.getItem("vashadmin_buyer");
-      if (saved) {
-        try {
-          const obj = JSON.parse(saved);
-          if (obj.name)  nameInput.value  = obj.name;
-          if (obj.phone) phoneInput.value = obj.phone;
-          if (obj.email) emailInput.value = obj.email;
-        } catch (e) {}
-      }
-    }
-
-    const LIQPAY_FN_URL = "https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign";
-    const errBox = document.getElementById("err-pay");
-    const btn    = document.getElementById("liqpay-btn");
+    // 4. обработчик кнопки оплаты
+    const payBtn   = document.getElementById("pay-btn");
+    const errorBox = document.getElementById("error-box");
 
     function showError(msg) {
-      errBox.style.display = "block";
-      errBox.textContent = msg;
-    }
-    function hideError() {
-      errBox.style.display = "none";
-      errBox.textContent = "";
+      errorBox.style.display = "block";
+      errorBox.textContent = "Помилка при формуванні оплати: " + msg;
     }
 
-    btn.addEventListener("click", async () => {
-      hideError();
+    async function createLiqpay() {
+      errorBox.style.display = "none";
+      payBtn.disabled = true;
 
-      const buyerName  = nameInput.value.trim();
-      const buyerPhone = phoneInput.value.trim();
-      const buyerEmail = emailInput.value.trim();
+      // соберём тело, которое ждёт наша edge-функция
+      const body = {
+        order_id: orderId,
+        amount: amount,
+        description: show + " (" + seats + ")",
+        // чтобы в LiqPay тоже легли контакты
+        info: {
+          name: document.getElementById("buyer-name").value.trim(),
+          phone: document.getElementById("buyer-phone").value.trim(),
+          email: document.getElementById("buyer-email").value.trim(),
+        }
+      };
 
-      // запомним
-      localStorage.setItem("vashadmin_buyer", JSON.stringify({
-        name: buyerName,
-        phone: buyerPhone,
-        email: buyerEmail
-      }));
-
-      btn.disabled = true;
       try {
-        const res = await fetch(LIQPAY_FN_URL, {
+        const resp = await fetch("https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: amount,
-            order_id: orderId,
-            description: `Квитки ${show} (${seats})`,
-            buyer_name: buyerName,
-            buyer_phone: buyerPhone,
-            buyer_email: buyerEmail
-          })
+          body: JSON.stringify(body)
         });
 
-        if (!res.ok) {
-          const txt = await res.text();
-          showError("Помилка з LiqPay: " + txt);
-          btn.disabled = false;
-          return;
+        // если CORS/500 — поймаем здесь
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error("HTTP " + resp.status + ": " + txt.slice(0,200));
         }
 
-        const { data, signature } = await res.json();
-        if (!data || !signature) {
-          showError("Від LiqPay не прийшли data/signature.");
-          btn.disabled = false;
-          return;
+        const json = await resp.json();
+        if (!json.data || !json.signature) {
+          throw new Error("У відповіді немає data/signature");
         }
 
+        // 5. создаём форму и отправляем на LiqPay
         const form = document.createElement("form");
         form.method = "POST";
         form.action = "https://www.liqpay.ua/api/3/checkout";
+        form.acceptCharset = "utf-8";
 
-        const inData = document.createElement("input");
-        inData.type = "hidden";
-        inData.name = "data";
-        inData.value = data;
+        const inpData = document.createElement("input");
+        inpData.type = "hidden";
+        inpData.name = "data";
+        inpData.value = json.data;
 
-        const inSign = document.createElement("input");
-        inSign.type = "hidden";
-        inSign.name = "signature";
-        inSign.value = signature;
+        const inpSign = document.createElement("input");
+        inpSign.type = "hidden";
+        inpSign.name = "signature";
+        inpSign.value = json.signature;
 
-        form.appendChild(inData);
-        form.appendChild(inSign);
+        form.appendChild(inpData);
+        form.appendChild(inpSign);
         document.body.appendChild(form);
         form.submit();
       } catch (e) {
         console.error(e);
-        showError("Помилка при формуванні оплати: " + e.message);
-        btn.disabled = false;
+        showError(e.message);
+      } finally {
+        payBtn.disabled = false;
       }
-    });
+    }
+
+    payBtn.addEventListener("click", createLiqpay);
   </script>
 </body>
 </html>
