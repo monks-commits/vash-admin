@@ -87,132 +87,92 @@
   <script src="/scripts/include.js"></script>
 
   <script>
-    // 1. supabase (для запису замовлення)
-    const SUPABASE_URL = "https://yqhzekifwotizsmaeaf.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE";
-    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 1. читаем параметры из URL
+  const url = new URL(location.href);
+  const showSlug = url.searchParams.get("show") || "";
+  const seats = (url.searchParams.get("seats") || "").split(",").filter(Boolean);
+  const amount = Number(url.searchParams.get("amount") || "0");
+  const orderId = url.searchParams.get("order_id") || ("ORD-" + Date.now());
 
-    // 2. читаем параметри з hall
-    const p = new URLSearchParams(location.search);
-    const show = p.get("show") || "";
-    const seats = (p.get("seats") || "").split(",").filter(Boolean);
-    const amount = Number(p.get("amount") || 0);
-    const order_id = p.get("order_id") || ("ORD-" + Date.now());
-    const name0 = decodeURIComponent(p.get("name") || "");
-    const phone0 = decodeURIComponent(p.get("phone") || "");
-    const email0 = decodeURIComponent(p.get("email") || "");
+  // 2. подставляем в форму
+  document.getElementById("show-title").textContent = showSlug.replace("/", " / ");
+  document.getElementById("show-seats").textContent = seats.join(",") || "—";
+  document.getElementById("show-amount").textContent = amount + " грн";
+  document.getElementById("order-id").textContent = orderId;
 
-    document.getElementById("show-title").textContent = "Вистава: " + show.replace("/", " / ");
-    document.getElementById("show-seats").textContent = seats.length ? seats.join(",") : "—";
-    document.getElementById("show-amount").textContent = amount + " грн";
-    document.getElementById("order-id").textContent = order_id;
+  const btn = document.getElementById("liqpay-btn");
+  const errBox = document.getElementById("err-pay");
 
-    document.getElementById("f-name").value = name0;
-    document.getElementById("f-phone").value = phone0;
-    document.getElementById("f-email").value = email0;
+  // 3. по клику — идём в edge-функцию
+  btn.addEventListener("click", async () => {
+    errBox.style.display = "none";
 
-    const liqpayBtn = document.getElementById("liqpay-btn");
-    const errPay = document.getElementById("err-pay");
-    const okPay = document.getElementById("ok-pay");
+    const buyerName = document.getElementById("f-name").value.trim();
+    const buyerPhone = document.getElementById("f-phone").value.trim();
+    const buyerEmail = document.getElementById("f-email").value.trim();
 
-    function showErr(msg){
-      errPay.textContent = msg;
-      errPay.style.display = "block";
-      okPay.style.display = "none";
+    if (!buyerName || !buyerPhone || !buyerEmail) {
+      errBox.textContent = "Заповніть усі поля покупця.";
+      errBox.style.display = "block";
+      return;
     }
 
-    async function ensureOrderRow() {
-      // запис у таблицю orders (idempotent по order_id)
-      try {
-        await supa
-          .from("orders")
-          .upsert({
-            order_id,
-            show_slug: show,
-            seats: seats,
-            amount: amount,
-            buyer_name: document.getElementById("f-name").value.trim(),
-            buyer_phone: document.getElementById("f-phone").value.trim(),
-            buyer_email: document.getElementById("f-email").value.trim(),
-            liqpay_status: "init"
-          }, { onConflict: "order_id" });
-      } catch(e) {
-        console.warn("supabase upsert err", e);
+    btn.disabled = true;
+
+    try {
+      // ⚠️ сюда поставь свой URL функции
+      const fnUrl = "https://<ТВОЙ-PROJECT>.functions.supabase.co/liqpay-sign";
+
+      const res = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount,
+          order_id: orderId,
+          description: "Квитки " + showSlug,
+          show_slug: showSlug,
+          seats,
+          buyer_name: buyerName,
+          buyer_phone: buyerPhone,
+          buyer_email: buyerEmail,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Помилка ініціалізації LiqPay");
       }
+
+      // открываем liqpay
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://www.liqpay.ua/api/3/checkout";
+      form.target = "_self";
+
+      const fData = document.createElement("input");
+      fData.type = "hidden";
+      fData.name = "data";
+      fData.value = data.data;
+
+      const fSign = document.createElement("input");
+      fSign.type = "hidden";
+      fSign.name = "signature";
+      fSign.value = data.signature;
+
+      form.appendChild(fData);
+      form.appendChild(fSign);
+      document.body.appendChild(form);
+      form.submit();
+    } catch (e) {
+      console.log(e);
+      errBox.textContent = "Помилка при формуванні оплати: " + e.message;
+      errBox.style.display = "block";
+      btn.disabled = false;
     }
+  });
+</script>
 
-    liqpayBtn.addEventListener("click", async () => {
-      const buyer_name = document.getElementById("f-name").value.trim();
-      const buyer_phone = document.getElementById("f-phone").value.trim();
-      const buyer_email = document.getElementById("f-email").value.trim();
-
-      if (!buyer_name || !buyer_phone) {
-        showErr("Заповніть ім’я та телефон.");
-        return;
-      }
-
-      liqpayBtn.disabled = true;
-      errPay.style.display = "none";
-
-      await ensureOrderRow();
-
-      // твоя edge-функція
-      const EDGE_URL = "https://yqhzekifwotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
-
-
-      const body = {
-        description: `Квитки ${show} (${seats.join(",")})`,
-        order_id: order_id,
-        amount: amount,
-        currency: "UAH",
-        result_url: `https://vash-admin.com/thanks.html?order_id=${encodeURIComponent(order_id)}&show=${encodeURIComponent(show)}&seats=${encodeURIComponent(seats.join(","))}&amount=${amount}`,
-        email: buyer_email,
-        phone: buyer_phone
-      };
-
-      try {
-        const res = await fetch(EDGE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) {
-          throw new Error("edge відповів " + res.status);
-        }
-        const data = await res.json();
-        // очікуємо від edge: { checkout_url: "..." }
-        if (data.checkout_url) {
-          location.href = data.checkout_url;
-        } else if (data.data && data.signature) {
-          // old-style: якщо edge повертає data/signature
-          const form = document.createElement("form");
-          form.action = "https://www.liqpay.ua/api/3/checkout";
-          form.method = "POST";
-          form.target = "_self";
-
-          const in1 = document.createElement("input");
-          in1.type = "hidden";
-          in1.name = "data";
-          in1.value = data.data;
-          form.appendChild(in1);
-
-          const in2 = document.createElement("input");
-          in2.type = "hidden";
-          in2.name = "signature";
-          in2.value = data.signature;
-          form.appendChild(in2);
-
-          document.body.appendChild(form);
-          form.submit();
-        } else {
-          showErr("Неочікувана відповідь від LiqPay");
-        }
-      } catch (e) {
-        console.error(e);
-        showErr("Помилка при формуванні оплати: " + e.message);
-        liqpayBtn.disabled = false;
-      }
-    });
-  </script>
 </body>
 </html>
