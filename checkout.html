@@ -1,231 +1,178 @@
 <!DOCTYPE html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Підтвердження та оплата — Ваш Адмін</title>
-  <link rel="stylesheet" href="/styles.css" />
-  <!-- supabase-js -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <!-- хедер підвантажується з /partials/header.html -->
-  <div id="site-header"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Підтвердження та оплата — Ваш Адмін</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <div id="site-header"></div>
 
-  <main class="main" style="max-width:1100px;margin:0 auto;padding:24px 16px 60px">
-    <h1 style="margin-bottom:20px">Підтвердження та оплата</h1>
+    <main class="main" style="max-width:1100px;margin:0 auto;padding:24px 16px 60px">
+      <h1 style="margin-bottom:20px">Підтвердження та оплата</h1>
 
-    <!-- 1. РЕЗЮМЕ ЗАМОВЛЕННЯ -->
-    <section class="card" style="margin-bottom:20px;">
-      <h2 style="font-size:18px;font-weight:700;margin-bottom:10px;">Вистава</h2>
-      <!-- ці 4 span ми будемо заповнювати з JS -->
-      <p><strong>Назва:</strong> <span id="checkout-show">—</span></p>
-      <p><strong>Місця:</strong> <span id="checkout-seats">—</span></p>
-      <p><strong>Сума до сплати:</strong> <span id="checkout-amount">—</span></p>
-      <p><strong>Номер замовлення:</strong> <span id="checkout-order-id">—</span></p>
-    </section>
+      <section class="card" style="margin-bottom:20px;">
+        <h2 class="title-sm">Вистава</h2>
+        <p id="order-show" class="meta">—</p>
+        <p id="order-seats" class="meta">Місця: —</p>
+        <p id="order-amount" class="meta">Сума до сплати: — грн</p>
+        <p id="order-number" class="meta">Номер замовлення: —</p>
+      </section>
 
-    <!-- 2. ДАНІ ПОКУПЦЯ -->
-    <section class="card" style="margin-bottom:20px;">
-      <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">Дані покупця</h2>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div style="flex:1 1 260px;">
-          <label class="label" for="buyer-name">Імʼя та прізвище</label>
-          <input id="buyer-name" class="input" placeholder="Ваше імʼя" />
+      <section class="card" style="margin-bottom:20px;">
+        <h2 class="title-sm">Дані покупця</h2>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1 1 260px;">
+            <label class="label">Імʼя та прізвище</label>
+            <input id="buyer-name" class="input" placeholder="Ваше імʼя" />
+          </div>
+          <div style="flex:1 1 220px;">
+            <label class="label">Телефон</label>
+            <input id="buyer-phone" class="input" placeholder="+380..." />
+          </div>
         </div>
-        <div style="flex:1 1 220px;">
-          <label class="label" for="buyer-phone">Телефон</label>
-          <input id="buyer-phone" class="input" placeholder="+380..." />
+        <div style="margin-top:12px;">
+          <label class="label">Електронна пошта (сюди прийде квиток)</label>
+          <input id="buyer-email" class="input" placeholder="you@example.com" />
         </div>
-      </div>
-      <div style="margin-top:12px;">
-        <label class="label" for="buyer-email">Електронна пошта (сюди прийде квиток)</label>
-        <input id="buyer-email" class="input" placeholder="you@example.com" />
-      </div>
-      <p id="checkout-seat-info" class="meta" style="margin-top:16px;">Вибрано місць: 0 • Сума: 0 грн</p>
-    </section>
+        <p id="seat-info" class="meta" style="margin-top:16px;">Вибрано місць: 0 • Сума: 0 грн</p>
+      </section>
 
-    <!-- 3. ОПЛАТА -->
-    <section class="card">
-      <h2 style="font-size:18px;font-weight:700;margin-bottom:10px;">Оплата онлайн</h2>
-      <p class="meta" style="margin-bottom:14px;">Після оплати ви повернетеся на сайт.</p>
+      <section class="card">
+        <h2 class="title-sm">Оплата онлайн</h2>
+        <p class="meta" style="margin-bottom:14px;">Після оплати ви повернетеся на сайт.</p>
+        <div id="checkout-error" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:12px;margin-bottom:14px;font-size:14px;"></div>
+        <button id="pay-btn" class="btn primary">Оплатити через LiqPay</button>
+      </section>
+    </main>
 
-      <!-- тут виводимо помилки -->
-      <div id="checkout-error"
-           style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:12px;margin-bottom:14px;font-size:14px;">
-      </div>
+    <div id="site-footer"></div>
 
-      <button id="pay-btn" class="btn primary" style="min-width:220px;">
-        Оплатити через LiqPay
-      </button>
-    </section>
-  </main>
+    <script type="module" src="/scripts/include.js"></script>
 
-  <!-- футер підвантажується з /partials/footer.html -->
-  <div id="site-footer"></div>
+    <script>
+      // === КОНСТАНТЫ ===
+      const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
+      const LIQPAY_SIGN_URL = "https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign";
 
-  <!-- ПІДТЯГУЄМО header/footer (переконайся, що include.js БЕЗ <script> всередині) -->
-  <script src="/scripts/include.js"></script>
+      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  <!-- ГОЛОВНИЙ СКРИПТ СТОРІНКИ -->
-  <script>
-    // === КОНСТАНТИ ПРОЄКТУ ===
-    const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
-    // ти сам його вставив вище — залишаю
-    const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
-    const LIQPAY_SIGN_URL = "https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign";
+      // забираем параметры из URL
+      const params = new URLSearchParams(location.search);
+      const show = params.get("show") || "";
+      const seats = params.get("seats") ? params.get("seats").split(",") : [];
+      const amount = Number(params.get("amount") || 0);
+      const orderId = params.get("order_id") || ("ORD-" + Date.now());
+      const buyerNameInput = document.getElementById("buyer-name");
+      const buyerPhoneInput = document.getElementById("buyer-phone");
+      const buyerEmailInput = document.getElementById("buyer-email");
+      const errorBox = document.getElementById("checkout-error");
+      const payBtn = document.getElementById("pay-btn");
 
-    // 1. створюємо клієнт
-    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // подставляем
+      document.getElementById("order-show").textContent = show.replace("/", " / ");
+      document.getElementById("order-seats").textContent = seats.join(", ");
+      document.getElementById("order-amount").textContent = amount + " грн";
+      document.getElementById("order-number").textContent = orderId;
+      document.getElementById("seat-info").textContent = `Вибрано місць: ${seats.length} • Сума: ${amount} грн`;
 
-    // 2. дістаємо все з URL
-    const url = new URL(window.location.href);
-    const showSlug = url.searchParams.get("show") || "";
-    const seatsParam = url.searchParams.get("seats") || "";
-    const amountParam = Number(url.searchParams.get("amount") || "0");
-    const orderId = url.searchParams.get("order_id") || ("ORD-" + Date.now());
-
-    // ці 3 — щоб підставити покупця, якщо він прийшов з попередньої сторінки
-    const initName  = url.searchParams.get("name")  ? decodeURIComponent(url.searchParams.get("name"))  : "";
-    const initPhone = url.searchParams.get("phone") ? decodeURIComponent(url.searchParams.get("phone")) : "";
-    const initEmail = url.searchParams.get("email") ? decodeURIComponent(url.searchParams.get("email")) : "";
-
-    // масив місць
-    const seats = seatsParam
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // 3. елементи DOM
-    const elShow     = document.getElementById("checkout-show");
-    const elSeats    = document.getElementById("checkout-seats");
-    const elAmount   = document.getElementById("checkout-amount");
-    const elOrderId  = document.getElementById("checkout-order-id");
-    const elSeatInfo = document.getElementById("checkout-seat-info");
-
-    const nameInput  = document.getElementById("buyer-name");
-    const phoneInput = document.getElementById("buyer-phone");
-    const emailInput = document.getElementById("buyer-email");
-
-    const errorBox   = document.getElementById("checkout-error");
-    const payBtn     = document.getElementById("pay-btn");
-
-    // 4. підставляємо дані в сторінку
-    if (elShow)    elShow.textContent   = showSlug ? showSlug.replace("/", " / ") : "—";
-    if (elSeats)   elSeats.textContent  = seats.length ? seats.join(", ") : "—";
-    if (elAmount)  elAmount.textContent = amountParam ? amountParam + " грн" : "0 грн";
-    if (elOrderId) elOrderId.textContent = orderId;
-
-    if (elSeatInfo) {
-      elSeatInfo.textContent = `Вибрано місць: ${seats.length} • Сума: ${amountParam} грн`;
-    }
-
-    if (nameInput && initName)   nameInput.value  = initName;
-    if (phoneInput && initPhone) phoneInput.value = initPhone;
-    if (emailInput && initEmail) emailInput.value = initEmail;
-
-    // 5. допоміжні
-    function showError(msg) {
-      if (!errorBox) {
-        alert(msg);
-        return;
+      function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = "block";
       }
-      errorBox.textContent = msg;
-      errorBox.style.display = "block";
-    }
+      function hideError() {
+        errorBox.style.display = "none";
+      }
 
-    function hideError() {
-      if (errorBox) errorBox.style.display = "none";
-    }
+      // 1. создать заказ в public.orders
+      async function saveOrder() {
+        hideError();
+        const buyer_name = buyerNameInput.value.trim();
+        const buyer_phone = buyerPhoneInput.value.trim();
+        const buyer_email = buyerEmailInput.value.trim();
 
-    // 6. зберегти замовлення в public.orders
-    async function saveOrderToSupabase() {
-      hideError();
+        const { data, error } = await supa
+          .from("orders")
+          .insert([
+            {
+              order_id: orderId,
+              show_slug: show,
+              seats: seats,
+              amount: amount,
+              buyer_name,
+              buyer_phone,
+              buyer_email,
+              status: "pending",
+            },
+          ])
+          .select()
+          .single();
 
-      const buyer_name  = nameInput  ? nameInput.value.trim()  : "";
-      const buyer_phone = phoneInput ? phoneInput.value.trim() : "";
-      const buyer_email = emailInput ? emailInput.value.trim() : "";
+        if (error) {
+          console.error("insert order error", error);
+          throw new Error("Не вдалося зберегти замовлення. Спробуйте ще раз.");
+        }
 
-      const { error } = await supa
-        .from("orders")
-        .insert([{
+        return data;
+      }
+
+      // 2. получить подпись у edge и отправить на LiqPay
+      async function startLiqpay() {
+        const body = {
           order_id: orderId,
-          show_slug: showSlug,
-          seats: seats,
-          amount: amountParam,
-          buyer_name,
-          buyer_phone,
-          buyer_email,
-          status: "pending"
-        }]);
+          description: `Квитки ${show}`,
+          amount: amount,
+          email: buyerEmailInput.value.trim(),
+          sender_phone: buyerPhoneInput.value.trim(),
+        };
 
-      if (error) {
-        console.log("insert order error", error);
-        throw new Error("Не вдалося зберегти замовлення. Спробуйте ще раз.");
+        const res = await fetch(LIQPAY_SIGN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error("liqpay-sign error", txt);
+          throw new Error("Не вдалося підготувати оплату.");
+        }
+
+        const { data, signature } = await res.json();
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "https://www.liqpay.ua/api/3/checkout";
+
+        const f1 = document.createElement("input");
+        f1.type = "hidden";
+        f1.name = "data";
+        f1.value = data;
+
+        const f2 = document.createElement("input");
+        f2.type = "hidden";
+        f2.name = "signature";
+        f2.value = signature;
+
+        form.appendChild(f1);
+        form.appendChild(f2);
+        document.body.appendChild(form);
+        form.submit();
       }
-    }
 
-    // 7. виклик edge-функції, отримання data/signature і редирект на LiqPay
-    async function goToLiqpay() {
-      const resp = await fetch(LIQPAY_SIGN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order_id: orderId,
-          description: `Квитки ${showSlug}`,
-          amount: amountParam,
-          email: emailInput ? emailInput.value.trim() : "",
-          sender_phone: phoneInput ? phoneInput.value.trim() : "",
-          // можеш одразу тут задати свої сторінки
-          result_url: "https://vash-admin.com/thanks.html",
-          server_url: "https://vash-admin.com/liqpay-callback.html"
-        })
-      });
-
-      if (!resp.ok) {
-        const txt = await resp.text();
-        console.log("liqpay error", txt);
-        throw new Error("Помилка при формуванні оплати. Спробуйте ще раз.");
-      }
-
-      const { data, signature } = await resp.json();
-
-      // робимо форму і відправляємо
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "https://www.liqpay.ua/api/3/checkout";
-
-      const inputData = document.createElement("input");
-      inputData.type = "hidden";
-      inputData.name = "data";
-      inputData.value = data;
-
-      const inputSig = document.createElement("input");
-      inputSig.type = "hidden";
-      inputSig.name = "signature";
-      inputSig.value = signature;
-
-      form.appendChild(inputData);
-      form.appendChild(inputSig);
-      document.body.appendChild(form);
-      form.submit();
-    }
-
-    // 8. обробник кнопки
-    if (payBtn) {
-      payBtn.addEventListener("click", async (ev) => {
-        ev.preventDefault();
+      payBtn.addEventListener("click", async () => {
         try {
           payBtn.disabled = true;
-          await saveOrderToSupabase(); // 1) спершу пишемо замовлення
-          await goToLiqpay();          // 2) потім відправляємо в LiqPay
+          await saveOrder();
+          await startLiqpay();
         } catch (err) {
-          showError(err.message || "Помилка");
+          showError(err.message);
           payBtn.disabled = false;
         }
       });
-    }
-  </script>
-
-</body>
+    </script>
+  </body>
 </html>
