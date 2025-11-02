@@ -87,29 +87,29 @@
   <script src="/scripts/include.js"></script>
 
   <script>
+  // читаем параметры из URL
   const url = new URL(location.href);
   const showSlug = url.searchParams.get("show") || "";
   const seats = (url.searchParams.get("seats") || "").split(",").filter(Boolean);
   const amount = Number(url.searchParams.get("amount") || "0");
   const orderId = url.searchParams.get("order_id") || ("ORD-" + Date.now());
 
-  // эти три мы передавали из hall.html
   const buyerNameFromUrl  = decodeURIComponent(url.searchParams.get("name")  || "").replace(/\+/g, " ");
   const buyerPhoneFromUrl = decodeURIComponent(url.searchParams.get("phone") || "").replace(/\+/g, " ");
   const buyerEmailFromUrl = decodeURIComponent(url.searchParams.get("email") || "").replace(/\+/g, " ");
 
-  // заполняем шапку
+  // подставляем в карточку
   document.getElementById("show-title").textContent = showSlug.replace("/", " / ");
-  document.getElementById("show-seats").textContent = seats.join(",") || "—";
+  document.getElementById("show-seats").textContent = seats.join(", ") || "—";
   document.getElementById("show-amount").textContent = amount + " грн";
   document.getElementById("order-id").textContent = orderId;
 
-  // заполняем форму
+  // подставляем в форму
   if (buyerNameFromUrl)  document.getElementById("f-name").value  = buyerNameFromUrl;
   if (buyerPhoneFromUrl) document.getElementById("f-phone").value = buyerPhoneFromUrl;
   if (buyerEmailFromUrl) document.getElementById("f-email").value = buyerEmailFromUrl;
 
-  const btn = document.getElementById("liqpay-btn");
+  const btn    = document.getElementById("liqpay-btn");
   const errBox = document.getElementById("err-pay");
 
   btn.addEventListener("click", async () => {
@@ -128,7 +128,7 @@
     btn.disabled = true;
 
     try {
-      // поставь сюда настоящий URL своей функции
+      // ВАЖНО: это твой реальный URL функции
       const fnUrl = "https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign";
 
       const res = await fetch(fnUrl, {
@@ -147,11 +147,13 @@
       });
 
       const json = await res.json();
+
       if (!res.ok) {
-        throw new Error(json.error || "Помилка ініціалізації LiqPay");
+        console.log("liqpay-sign error payload:", json);
+        throw new Error(json.error || ("HTTP " + res.status));
       }
 
-      // формируем форму в LiqPay
+      // создаём и шлём форму в LiqPay
       const form = document.createElement("form");
       form.method = "POST";
       form.action = "https://www.liqpay.ua/api/3/checkout";
