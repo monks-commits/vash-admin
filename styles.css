@@ -143,3 +143,19 @@ body {
   padding: 10px 14px;
   margin-top: 14px;
 }
+#pay-btn,
+.btn-primary,
+button.primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .15s;
+}
+
+#pay-btn:hover {
+  background: #1d4ed8;
+}
