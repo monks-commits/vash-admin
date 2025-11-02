@@ -57,190 +57,134 @@
   <!-- підключення шапки/футера -->
   <script type="module" src="/scripts/include.js"></script>
 
-  <script>
-    // === КОНСТАНТЫ ПРОЕКТА ===
-    const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM"; // ← ВСТАВЬ СВОЙ ANON KEY
-    const LIQPAY_SIGN_URL = "https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign";
+<script>
+  // === КОНСТАНТЫ ПРОЕКТА ===
+  const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
+  // 👇 сюда вставь НОВЫЙ public/publishable из вкладки API Keys
+  const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
+  const LIQPAY_SIGN_URL = "https://yqhzekifwxotizsmaeaf.functions.supabase.co/liqpay-sign";
 
-    // инициализация supabase
-    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // инициализация supabase
+  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // аккуратный декод с двойной попыткой
-    function safeDecode(val) {
-      if (!val) return "";
-      try {
-        return decodeURIComponent(decodeURIComponent(val));
-      } catch (e1) {
-        try {
-          return decodeURIComponent(val);
-        } catch (e2) {
-          return val;
+  // разбираем querystring
+  const params = new URLSearchParams(window.location.search);
+  const show = params.get("show") || "";
+  const seats = params.get("seats") ? params.get("seats").split(",") : [];
+  const amount = Number(params.get("amount") || 0);
+  const orderId = params.get("order_id") || ("ORD-" + Date.now());
+
+  // подставляем в шапку страницы
+  document.getElementById("order-show").textContent = show.replace("/", " / ");
+  document.getElementById("order-seats").textContent = seats.join(", ");
+  document.getElementById("order-amount").textContent = amount + " грн";
+  document.getElementById("order-id").textContent = orderId;
+
+  const buyerNameInput = document.getElementById("buyer-name");
+  const buyerPhoneInput = document.getElementById("buyer-phone");
+  const buyerEmailInput = document.getElementById("buyer-email");
+  const errorBox = document.getElementById("pay-error");
+  const payBtn = document.getElementById("pay-btn");
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = "block";
+  }
+
+  function hideError() {
+    errorBox.style.display = "none";
+  }
+
+  // 1. сохраняем заказ в таблицу orders
+  async function saveOrder() {
+    hideError();
+
+    const buyer_name = buyerNameInput.value.trim();
+    const buyer_phone = buyerPhoneInput.value.trim();
+    const buyer_email = buyerEmailInput.value.trim();
+
+    const { data, error } = await supa
+      .from("orders")
+      .insert([
+        {
+          order_id: orderId,
+          show_slug: show,
+          seats: seats,
+          amount: amount,
+          buyer_name,
+          buyer_phone,
+          buyer_email,
+          status: "pending"
         }
-      }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("insert order error", error);
+      throw new Error("Не вдалося зберегти замовлення. Спробуйте ще раз.");
     }
 
-    // парсим урл
-    const params = new URLSearchParams(window.location.search);
-    const show = safeDecode(params.get("show") || "");
-    const seatsRaw = safeDecode(params.get("seats") || "");
-    const amountRaw = safeDecode(params.get("amount") || "");
-    const orderId = safeDecode(params.get("order_id") || "");
-    const buyerNameParam = safeDecode(params.get("name") || "");
-    const buyerPhoneParam = safeDecode(params.get("phone") || "");
-    const buyerEmailParam = safeDecode(params.get("email") || "");
+    return data;
+  }
 
-    // нормализуем
-    const seatsArr = seatsRaw
-      ? seatsRaw.split(",").map((s) => s.trim()).filter(Boolean)
-      : [];
-    const amount = Number(amountRaw) || 0;
+  // 2. берём подпись у edge-функции и уходим на LiqPay
+  async function startLiqpay() {
+    const buyer_name = buyerNameInput.value.trim() || "Покупець";
+    const body = {
+      order_id: orderId,
+      description: `Квитки ${show}`,
+      amount: amount,
+      sender_phone: buyerPhoneInput.value.trim(),
+      email: buyerEmailInput.value.trim(),
+    };
 
-    // заполняем форму
-    document.getElementById("order-show").textContent = "Вистава: " + (show || "—");
-    document.getElementById("order-seats").textContent = "Місця: " + (seatsArr.length ? seatsArr.join(", ") : "—");
-    document.getElementById("order-amount").textContent = "Сума до сплати: " + amount + " грн";
-    document.getElementById("order-number").textContent = "Номер замовлення: " + (orderId || "—");
+    const res = await fetch(LIQPAY_SIGN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
 
-    const buyerNameInput = document.getElementById("buyer-name");
-    const buyerPhoneInput = document.getElementById("buyer-phone");
-    const buyerEmailInput = document.getElementById("buyer-email");
-    const seatInfo = document.getElementById("seat-info");
-    const errBox = document.getElementById("checkout-error");
-
-    buyerNameInput.value = buyerNameParam;
-    buyerPhoneInput.value = buyerPhoneParam || "+380";
-    buyerEmailInput.value = buyerEmailParam;
-
-    seatInfo.textContent = "Вибрано місць: " + seatsArr.length + " • Сума: " + amount + " грн";
-
-    // показ ошибки
-    function showError(msg) {
-      errBox.textContent = msg;
-      errBox.style.display = "block";
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("liqpay-sign error", txt);
+      throw new Error("Не вдалося підготувати оплату (liqpay).");
     }
 
-    async function createOrderInSupabase(payload) {
-      // payload: { order_id, show_slug, seats, amount, buyer_name, buyer_phone, buyer_email }
-      const { data, error } = await supa.from("orders").insert([{
-        order_id: payload.order_id,
-        show_slug: payload.show_slug,
-        seats: payload.seats,       // jsonb
-        amount: payload.amount,
-        buyer_name: payload.buyer_name,
-        buyer_phone: payload.buyer_phone,
-        buyer_email: payload.buyer_email,
-        liqpay_status: "pending"
-      }]).select().single();
+    const { data, signature } = await res.json();
 
-      if (error) {
-        console.warn("insert order error", error);
-        throw new Error("Не вдалося зберегти замовлення. Спробуйте ще раз.");
-      }
-      return data;
+    // формируем и отправляем форму
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://www.liqpay.ua/api/3/checkout";
+
+    const f1 = document.createElement("input");
+    f1.type = "hidden";
+    f1.name = "data";
+    f1.value = data;
+
+    const f2 = document.createElement("input");
+    f2.type = "hidden";
+    f2.name = "signature";
+    f2.value = signature;
+
+    form.appendChild(f1);
+    form.appendChild(f2);
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  payBtn.addEventListener("click", async () => {
+    try {
+      payBtn.disabled = true;
+      await saveOrder();     // сначала сохраняем
+      await startLiqpay();   // потом уходим в liqpay
+    } catch (e) {
+      showError(e.message);
+      payBtn.disabled = false;
     }
+  });
+</script>
 
-    async function getLiqpaySignature(payload) {
-      const res = await fetch(LIQPAY_SIGN_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const txt = await res.text();
-        console.warn("liqpay-sign error", txt);
-        throw new Error("Не вдалося отримати підпис LiqPay.");
-      }
-
-      return res.json();
-    }
-
-    async function handlePayClick() {
-      errBox.style.display = "none";
-
-      const buyer_name = buyerNameInput.value.trim();
-      const buyer_phone = buyerPhoneInput.value.trim();
-      const buyer_email = buyerEmailInput.value.trim();
-
-      if (!seatsArr.length) {
-        showError("Не вибрано місця.");
-        return;
-      }
-      if (!amount) {
-        showError("Сума замовлення = 0. Перевірте ціну.");
-        return;
-      }
-      if (!buyer_name) {
-        showError("Вкажіть імʼя.");
-        return;
-      }
-      if (!buyer_phone) {
-        showError("Вкажіть телефон.");
-        return;
-      }
-
-      // 1. сохраняем заказ
-      const orderPayload = {
-        order_id: orderId || ("ORD-" + Date.now()),
-        show_slug: show,
-        seats: seatsArr,
-        amount: amount,
-        buyer_name,
-        buyer_phone,
-        buyer_email
-      };
-
-      try {
-        await createOrderInSupabase(orderPayload);
-      } catch (e) {
-        showError(e.message);
-        return;
-      }
-
-      // 2. просим liqpay-sign
-      let liq;
-      try {
-        liq = await getLiqpaySignature({
-          order_id: orderPayload.order_id,
-          description: "Квитки: " + (show || "театр"),
-          amount: amount
-        });
-      } catch (e) {
-        showError(e.message);
-        return;
-      }
-
-      if (!liq || !liq.data || !liq.signature) {
-        showError("LiqPay повернув некоректну відповідь.");
-        return;
-      }
-
-      // 3. отправляем на LiqPay
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "https://www.liqpay.ua/api/3/checkout";
-      form.acceptCharset = "utf-8";
-
-      const dataInput = document.createElement("input");
-      dataInput.type = "hidden";
-      dataInput.name = "data";
-      dataInput.value = liq.data;
-
-      const signInput = document.createElement("input");
-      signInput.type = "hidden";
-      signInput.name = "signature";
-      signInput.value = liq.signature;
-
-      form.appendChild(dataInput);
-      form.appendChild(signInput);
-      document.body.appendChild(form);
-      form.submit();
-    }
-
-    document.getElementById("pay-btn").addEventListener("click", handlePayClick);
-  </script>
 </body>
 </html>
