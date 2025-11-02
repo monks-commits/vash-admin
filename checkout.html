@@ -87,27 +87,35 @@
   <script src="/scripts/include.js"></script>
 
   <script>
-  // 1. читаем параметры из URL
   const url = new URL(location.href);
   const showSlug = url.searchParams.get("show") || "";
   const seats = (url.searchParams.get("seats") || "").split(",").filter(Boolean);
   const amount = Number(url.searchParams.get("amount") || "0");
   const orderId = url.searchParams.get("order_id") || ("ORD-" + Date.now());
 
-  // 2. подставляем в форму
+  // эти три мы передавали из hall.html
+  const buyerNameFromUrl  = decodeURIComponent(url.searchParams.get("name")  || "").replace(/\+/g, " ");
+  const buyerPhoneFromUrl = decodeURIComponent(url.searchParams.get("phone") || "").replace(/\+/g, " ");
+  const buyerEmailFromUrl = decodeURIComponent(url.searchParams.get("email") || "").replace(/\+/g, " ");
+
+  // заполняем шапку
   document.getElementById("show-title").textContent = showSlug.replace("/", " / ");
   document.getElementById("show-seats").textContent = seats.join(",") || "—";
   document.getElementById("show-amount").textContent = amount + " грн";
   document.getElementById("order-id").textContent = orderId;
 
+  // заполняем форму
+  if (buyerNameFromUrl)  document.getElementById("f-name").value  = buyerNameFromUrl;
+  if (buyerPhoneFromUrl) document.getElementById("f-phone").value = buyerPhoneFromUrl;
+  if (buyerEmailFromUrl) document.getElementById("f-email").value = buyerEmailFromUrl;
+
   const btn = document.getElementById("liqpay-btn");
   const errBox = document.getElementById("err-pay");
 
-  // 3. по клику — идём в edge-функцию
   btn.addEventListener("click", async () => {
     errBox.style.display = "none";
 
-    const buyerName = document.getElementById("f-name").value.trim();
+    const buyerName  = document.getElementById("f-name").value.trim();
     const buyerPhone = document.getElementById("f-phone").value.trim();
     const buyerEmail = document.getElementById("f-email").value.trim();
 
@@ -120,14 +128,12 @@
     btn.disabled = true;
 
     try {
-      // ⚠️ сюда поставь свой URL функции
-      const fnUrl = "https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign";
+      // поставь сюда настоящий URL своей функции
+      const fnUrl = "https://YOUR-PROJECT-NAME.functions.supabase.co/liqpay-sign";
 
       const res = await fetch(fnUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
           order_id: orderId,
@@ -137,42 +143,41 @@
           buyer_name: buyerName,
           buyer_phone: buyerPhone,
           buyer_email: buyerEmail,
-        }),
+        })
       });
 
-      const data = await res.json();
+      const json = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Помилка ініціалізації LiqPay");
+        throw new Error(json.error || "Помилка ініціалізації LiqPay");
       }
 
-      // открываем liqpay
+      // формируем форму в LiqPay
       const form = document.createElement("form");
       form.method = "POST";
       form.action = "https://www.liqpay.ua/api/3/checkout";
-      form.target = "_self";
 
       const fData = document.createElement("input");
       fData.type = "hidden";
       fData.name = "data";
-      fData.value = data.data;
+      fData.value = json.data;
 
       const fSign = document.createElement("input");
       fSign.type = "hidden";
       fSign.name = "signature";
-      fSign.value = data.signature;
+      fSign.value = json.signature;
 
       form.appendChild(fData);
       form.appendChild(fSign);
       document.body.appendChild(form);
       form.submit();
     } catch (e) {
-      console.log(e);
       errBox.textContent = "Помилка при формуванні оплати: " + e.message;
       errBox.style.display = "block";
       btn.disabled = false;
     }
   });
 </script>
+
 
 </body>
 </html>
