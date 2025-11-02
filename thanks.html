@@ -1,116 +1,40 @@
 <!DOCTYPE html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8" />
-  <title>Дякуємо за оплату!</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body>
-  <div id="site-header"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Дякуємо за оплату — Ваш Адмін</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="site-header"></div>
+    <main class="main" style="max-width:700px;margin:40px auto;padding:0 16px;">
+      <h1>Дякуємо за оплату!</h1>
+      <p>Ми отримали ваше замовлення. Квитки надійдуть на вказану електронну пошту.</p>
 
-  <main class="page" style="max-width:900px;margin:0 auto;padding:32px 16px;">
-    <h1>Дякуємо за оплату!</h1>
-    <p>Ми надішлемо ваші квитки на e-mail.</p>
+      <div class="card" style="margin-top:20px;">
+        <p id="t-order">Номер замовлення: —</p>
+        <p id="t-amount">Сума: — грн</p>
+      </div>
 
-    <div class="card" style="background:#fff;border-radius:14px;padding:20px;margin-top:18px;">
-      <p><strong>Номер замовлення:</strong> <span id="ord"></span></p>
-      <p><strong>Вистава:</strong> <span id="show"></span></p>
-      <p><strong>Місця:</strong> <span id="seats"></span></p>
-      <p><strong>Сума:</strong> <span id="amount"></span> грн</p>
-      <p id="save-status" style="margin-top:16px;color:#6b7280;"></p>
-    </div>
+      <p style="margin-top:18px;">
+        Якщо листа немає — перевірте «Спам» або напишіть нам у Telegram.
+      </p>
 
-    <p style="margin-top:24px;">
-      <a href="/afisha.html">Повернутися до афіші</a>
-    </p>
-  </main>
-
-  <div id="site-footer"></div>
-
-  <script src="/scripts/include.js"></script>
-  <!-- supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // 1. читаем параметры, с которыми мы ВОЗВРАЩАЛИСЬ С LIQPAY
-    const p = new URLSearchParams(location.search);
-    const order_id = p.get("order_id") || "";
-    const amount   = Number(p.get("amount") || "0");
-    const show     = p.get("show") || "";
-    const seatsStr = p.get("seats") || "";
-
-    // подставим в разметку
-    document.getElementById("ord").textContent = order_id || "—";
-    document.getElementById("show").textContent = show ? show.replace("/", " / ") : "—";
-    document.getElementById("seats").textContent = seatsStr || "—";
-    document.getElementById("amount").textContent = amount ? amount : "0";
-
-    // 2. подключаемся к Supabase
-    const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
-    const SUPABASE_ANON = "<<< eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZXVhYnRpZW1zeGFkdXNtcWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDE3MzcsImV4cCI6MjA3NjE3NzczN30.aOHorW8nvctPxC1If_HNTl6iq_7cDHzFgFEPJg3PPPE >>>";
-    const statusEl = document.getElementById("save-status");
-
-    if (!SUPABASE_ANON.includes("<<<")) {
-      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-      (async () => {
-        try {
-          // пытаемся обновить уже существующую запись
-          const payload = {
-            returned_at: new Date().toISOString(),
-            from_page: "thanks.html"
-          };
-
-          const { data, error } = await supa
-  .from("orders")
-  .update({
-    liqpay_status: "success",
-    paid_at: new Date().toISOString(),
-    paid_amount: amount,
-    liqpay_payload: payload
-  })
-  .eq("order_id", order_id);
-
-// === ДОБАВЛЯЕМ ЭТО СРАЗУ ПОСЛЕ ===
-await supa
-  .from("allocations")
-  .update({
-    status: "paid",
-    expires_at: new Date(Date.now() + 365*24*60*60*1000).toISOString() // +1 рік
-  })
-  .eq("order_id", order_id);
-
-
-          if (error) {
-            // если не было строки — создадим
-            const { error: insErr } = await supa
-              .from("orders")
-              .insert([{
-                order_id: order_id,
-                show_slug: show,
-                seats: seatsStr ? seatsStr.split(",") : [],
-                amount: amount,
-                liqpay_status: "success",
-                paid_at: new Date().toISOString(),
-                paid_amount: amount,
-                liqpay_payload: payload
-              }]);
-            if (insErr) {
-              statusEl.textContent = "Не вдалося зберегти оплату в базу.";
-            } else {
-              statusEl.textContent = "Оплату збережено.";
-            }
-          } else {
-            statusEl.textContent = "Оплату збережено.";
-          }
-        } catch (e) {
-          console.warn(e);
-          statusEl.textContent = "Не вдалося зберегти оплату.";
-        }
-      })();
-    } else {
-      statusEl.textContent = "Supabase key не вказаний, запис не збережено.";
-    }
-  </script>
-</body>
+      <p style="margin-top:30px;">
+        <a href="/index.html" class="btn">Повернутися до афіші</a>
+      </p>
+    </main>
+    <div id="site-footer"></div>
+    <script type="module" src="/scripts/include.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      document.getElementById("t-order").textContent =
+        "Номер замовлення: " + (params.get("order_id") || "—");
+      if (params.get("amount")) {
+        document.getElementById("t-amount").textContent =
+          "Сума: " + params.get("amount") + " грн";
+      }
+    </script>
+  </body>
 </html>
