@@ -7,48 +7,126 @@
   <link rel="stylesheet" href="../styles.css" />
   <style>
     body { background:#f4f4f6; }
-    main { max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
-    .hall-wrap { background:#fff; border-radius:14px; padding:26px; margin-bottom:26px; }
-    .row-line { display:flex; align-items:center; gap:14px; margin-bottom:8px; }
-    .row-label { width:24px; text-align:right; font-weight:600; color:#0f172a; }
-    .seats-line { display:flex; gap:6px; }
-    .gap { width:46px; }
+    main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
+    .hall-wrap {
+      background:#fff;
+      border-radius:14px;
+      padding:22px 22px 26px;
+      margin-bottom:24px;
+      min-height:120px;
+    }
+    .hall-title {
+      font-weight:600;
+      margin-bottom:16px;
+    }
+    /* ряд */
+    .hall-row {
+      display:flex;
+      gap:8px;
+      margin-bottom:8px;
+      align-items:center;
+    }
+    /* номер ряда слева */
+    .row-label {
+      width:26px;
+      text-align:right;
+      font-size:13px;
+      color:#475569;
+      flex:0 0 26px;
+    }
     .seat {
-      width:38px; height:38px; border-radius:10px;
-      background:#fff; border:1px solid #d0d5dd;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:.15s; font-size:14px;
+      width:42px;
+      height:42px;
+      border-radius:10px;
+      background:#fff;
+      border:1px solid #d0d5dd;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:.15s;
+      font-size:14px;
     }
     .seat:hover { background:#e5edff; }
-    .seat.selected { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
-    .seat.booked { background:#e2e8f0; color:#94a3b8; border-style:dashed; cursor:not-allowed; }
-    .legend { margin-top:6px; font-size:13px; color:#64748b; }
-    .order-form { background:#fff; border-radius:14px; padding:26px; }
+    .seat.selected {
+      background:#155EEF;
+      border-color:#155EEF;
+      color:#fff;
+    }
+    .seat.disabled {
+      background:#e2e8f0;
+      border-color:#e2e8f0;
+      color:#64748b;
+      cursor:not-allowed;
+    }
+    /* проход между 10 и 11 */
+    .pass-gap { width:40px; height:1px; }
+    .order-form {
+      background:#fff;
+      border-radius:14px;
+      padding:26px;
+    }
     .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
-    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
+    .form-group {
+      flex:1 1 240px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
     .form-group input {
-      height:44px; border:1px solid #d0d5dd; border-radius:10px;
-      padding:0 12px; font-size:15px;
+      height:44px;
+      border:1px solid #d0d5dd;
+      border-radius:10px;
+      padding:0 12px;
+      font-size:15px;
     }
     .primary-btn {
-      background:#155EEF; color:#fff; border:none;
-      border-radius:999px; padding:11px 30px;
-      font-size:15px; font-weight:600; cursor:pointer;
+      background:#155EEF;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:11px 30px;
+      font-size:15px;
+      font-weight:600;
+      cursor:pointer;
     }
-    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
+    .primary-btn:disabled {
+      background:#95b5ff;
+      cursor:not-allowed;
+    }
+    .muted { color:#64748b; font-size:13px; }
+    .badge-loge {
+      display:inline-block;
+      background:#e2e8f0;
+      border-radius:999px;
+      padding:6px 16px;
+      margin-right:10px;
+      margin-top:14px;
+      font-size:13px;
+      color:#0f172a;
+    }
   </style>
+  <!-- supabase, если нужен для броней — можно оставить, не нужен — можно убрать -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- общая шапка -->
   <div id="site-header"></div>
 
   <main>
     <h1>Вибір місць</h1>
-    <p id="show-label">Вистава: —</p>
+    <p id="show-label" class="muted" style="margin-bottom:14px;">Вистава: —</p>
 
-    <div class="hall-wrap" id="hall"></div>
-    <p class="legend">Натисніть на місце, щоб додати в замовлення. Сірі місця — вже заброньовані іншими.</p>
+    <div class="hall-wrap">
+      <div id="hall"></div>
+      <!-- ложи просто текстом -->
+      <div style="margin-top:10px;">
+        <span class="badge-loge">Ложа А (18 місць)</span>
+        <span class="badge-loge">Ложа Б (18 місць)</span>
+      </div>
+    </div>
 
-    <div class="order-form">
+    <div class="order-form" id="buyer-form">
       <h2>Дані покупця</h2>
       <div class="flex-row">
         <div class="form-group">
@@ -69,101 +147,168 @@
         Сума: <span id="seat-sum">0</span> грн
       </p>
       <button id="to-checkout" class="primary-btn" disabled>Перейти до оплати</button>
+      <p class="muted" style="margin-top:10px;">Натисніть на місце, щоб додати в замовлення. Сірі місця — вже заброньовані іншими.</p>
     </div>
   </main>
 
+  <!-- общий подвал -->
   <div id="site-footer"></div>
 
+  <!-- подгружаем шапку/подвал -->
   <script src="/scripts/include.js"></script>
+
   <script>
-  const params = new URLSearchParams(location.search);
-  const showSlug = params.get("show") || "shevchenko/ledi";
+    // -------- 0. Параметри з URL --------
+    const params = new URLSearchParams(location.search);
+    const showSlug = params.get("show") || "shevchenko/ledi";
+    document.getElementById("show-label").textContent =
+      "Вистава: " + showSlug.replace("/", " — ");
 
-  document.getElementById("show-label").textContent =
-    "Вистава: " + showSlug.replace("/", " — ");
+    // -------- 1. Конфіг для залу --------
+    const ROWS = 18;
+    const SEATS_PER_ROW = 20;
+    const PASS_AFTER = 10; // після 10-го - прохід
 
-  // ===== генерим 18 рядов по 20 мест с проходом =====
-  const hallSeats = document.getElementById("hall-seats");
-  const seats = [];
-
-  for (let row = 1; row <= 18; row++) {
-    for (let seat = 1; seat <= 20; seat++) {
-      const id = `P${row}-M${seat}`;
-      const price =
-        row <= 5 ? 220 :
-        row <= 10 ? 180 :
-        row <= 15 ? 140 : 100;
-      seats.push({ id, row, seat, price });
-    }
-  }
-
-  const selected = new Set();
-  const seatCountEl = document.getElementById("seat-count");
-  const seatSumEl   = document.getElementById("seat-sum");
-  const btn         = document.getElementById("to-checkout");
-
-  seats.forEach((seat) => {
-    const div = document.createElement("div");
-    div.className = "seat";
-    div.textContent = seat.seat;
-    div.title = `Ряд ${seat.row}, місце ${seat.seat} — ${seat.price} грн`;
-
-    // делаем проход после 10-го места
-    if (seat.seat === 11) {
-      div.style.marginLeft = "46px";
+    // -------- 2. Тарифи по рядах (ти потім підставиш свої) --------
+    function priceForRow(row) {
+      if (row <= 5) return 220;
+      if (row <= 10) return 180;
+      if (row <= 15) return 140;
+      return 100;
     }
 
-    div.addEventListener("click", () => {
-      // тут может быть проверка брони из Supabase — это оставляем как у тебя
-      if (div.classList.contains("disabled")) return;
-
-      if (selected.has(seat.id)) {
-        selected.delete(seat.id);
-        div.classList.remove("selected");
-      } else {
-        selected.add(seat.id);
-        div.classList.add("selected");
+    // -------- 3. Підготуємо масив місць --------
+    const ALL_SEATS = [];
+    for (let r = 1; r <= ROWS; r++) {
+      for (let s = 1; s <= SEATS_PER_ROW; s++) {
+        ALL_SEATS.push({
+          id: `P${r}-M${s}`,
+          row: r,
+          seat: s,
+          price: priceForRow(r),
+        });
       }
-      updateSummary();
+    }
+
+    // -------- 4. Рендер залу --------
+    const hallEl = document.getElementById("hall");
+    const selected = new Set();
+    const seatCountEl = document.getElementById("seat-count");
+    const seatSumEl   = document.getElementById("seat-sum");
+    const btnCheckout = document.getElementById("to-checkout");
+
+    // Сюда потом подставим занятые из Supabase
+    let busySeats = new Set();
+
+    function renderHall() {
+      hallEl.innerHTML = "";
+      for (let r = 1; r <= ROWS; r++) {
+        const rowEl = document.createElement("div");
+        rowEl.className = "hall-row";
+
+        const lbl = document.createElement("div");
+        lbl.className = "row-label";
+        lbl.textContent = r;
+        rowEl.appendChild(lbl);
+
+        for (let s = 1; s <= SEATS_PER_ROW; s++) {
+          if (s === PASS_AFTER + 1) {
+            const gap = document.createElement("div");
+            gap.className = "pass-gap";
+            rowEl.appendChild(gap);
+          }
+
+          const seatId = `P${r}-M${s}`;
+          const seatData = ALL_SEATS.find((x) => x.id === seatId);
+
+          const seatEl = document.createElement("div");
+          seatEl.className = "seat";
+          seatEl.textContent = s;
+          seatEl.title = `Ряд ${r}, місце ${s} — ${seatData.price} грн`;
+
+          // якщо місце вже заброньовано в Supabase
+          if (busySeats.has(seatId)) {
+            seatEl.classList.add("disabled");
+          } else {
+            seatEl.addEventListener("click", () => {
+              if (selected.has(seatId)) {
+                selected.delete(seatId);
+                seatEl.classList.remove("selected");
+              } else {
+                selected.add(seatId);
+                seatEl.classList.add("selected");
+              }
+              updateSummary();
+            });
+          }
+
+          rowEl.appendChild(seatEl);
+        }
+
+        hallEl.appendChild(rowEl);
+      }
+    }
+
+    function updateSummary() {
+      const ids = Array.from(selected);
+      seatCountEl.textContent = ids.length;
+      const sum = ids.reduce((acc, id) => {
+        const s = ALL_SEATS.find((x) => x.id === id);
+        return acc + (s ? s.price : 0);
+      }, 0);
+      seatSumEl.textContent = sum;
+      btnCheckout.disabled = ids.length === 0;
+    }
+
+    // -------- 5. Спробуємо витягти броні з Supabase (якщо ключі є) --------
+    (async function loadBookings() {
+      // якщо ти ще не хочеш ловити звідти — просто закоментуй весь блок
+      const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
+      const SUPABASE_ANON_KEY = "ПОСТАВЬ_СВОЙ_ANON_СЮДА"; // Settings → API → anon
+
+      try {
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data, error } = await sb
+          .from("bookings")
+          .select("seat_id")
+          .eq("show_slug", showSlug)
+          .gte("expires_at", new Date().toISOString()); // тільки актуальні
+
+        if (!error && Array.isArray(data)) {
+          busySeats = new Set(data.map((r) => r.seat_id));
+        }
+      } catch (e) {
+        // якщо нема ключа / таблиці — просто малюємо пустий зал
+        console.warn("Не вдалося завантажити броні:", e.message);
+      } finally {
+        renderHall();
+      }
+    })();
+
+    // -------- 6. Перехід на оплату --------
+    btnCheckout.addEventListener("click", () => {
+      const ids = Array.from(selected);
+      const sum = Number(seatSumEl.textContent) || 0;
+
+      const name  = document.getElementById("buyer-name").value.trim();
+      const phone = document.getElementById("buyer-phone").value.trim();
+      const email = document.getElementById("buyer-email").value.trim();
+
+      const orderId = "SHEV-" + Date.now();
+
+      const url = new URL(location.origin + "/checkout.html");
+      url.searchParams.set("show", showSlug);
+      url.searchParams.set("seats", ids.join(","));
+      url.searchParams.set("amount", String(sum));
+      url.searchParams.set("order_id", orderId);
+
+      // ВАЖНО: без ручного encodeURIComponent
+      if (name)  url.searchParams.set("name", name);
+      if (phone) url.searchParams.set("phone", phone);
+      if (email) url.searchParams.set("email", email);
+
+      location.href = url.toString();
     });
-
-    hallSeats.appendChild(div);
-  });
-
-  function updateSummary() {
-    const ids = Array.from(selected);
-    seatCountEl.textContent = ids.length;
-    const sum = ids.reduce((acc, id) => {
-      const s = seats.find((x) => x.id === id);
-      return acc + (s ? s.price : 0);
-    }, 0);
-    seatSumEl.textContent = sum;
-    btn.disabled = ids.length === 0;
-  }
-
-  btn.addEventListener("click", () => {
-    const ids = Array.from(selected);
-    const sum = Number(seatSumEl.textContent) || 0;
-
-    const name  = document.getElementById("buyer-name").value.trim();
-    const phone = document.getElementById("buyer-phone").value.trim();
-    const email = document.getElementById("buyer-email").value.trim();
-    const orderId = "SHEV-" + Date.now();
-
-    const url = new URL(location.origin + "/checkout.html");
-    url.searchParams.set("show", showSlug);
-    url.searchParams.set("seats", ids.join(","));
-    url.searchParams.set("amount", String(sum));
-    url.searchParams.set("order_id", orderId);
-
-    // ВАЖНО: БЕЗ encodeURIComponent
-    if (name)  url.searchParams.set("name", name);
-    if (phone) url.searchParams.set("phone", phone);
-    if (email) url.searchParams.set("email", email);
-
-    location.href = url.toString();
-  });
-</script>
-
+  </script>
 </body>
 </html>
