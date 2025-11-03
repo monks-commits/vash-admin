@@ -120,6 +120,11 @@
     <div class="hall-wrap">
       <div id="hall"></div>
       <!-- ложи просто текстом -->
+
+      <!-- Список цен по рядам -->
+<div id="row-price-list" class="row-price-list"></div>
+
+      
       <div style="margin-top:10px;">
         <span class="badge-loge">Ложа А (18 місць)</span>
         <span class="badge-loge">Ложа Б (18 місць)</span>
@@ -191,6 +196,42 @@
       if (row <= 18) return 70;
     }
 
+    // === Статичный список цен по рядам под схемой ===
+// Требования к разметке мест: у каждого места должны быть data-row и data-price
+// Например: <circle class="seat" data-row="1" data-num="5" data-price="200" ... />
+
+(function buildRowPrices() {
+  const listEl = document.getElementById('row-price-list');
+  if (!listEl) return;
+
+  // найдём все места
+  const seats = document.querySelectorAll('.seat');
+  if (!seats.length) return;
+
+  // собираем цены по рядам (берём первую встреченную цену в ряду)
+  const rowPriceMap = new Map();
+  seats.forEach(s => {
+    const row   = s.dataset.row   || s.getAttribute('data-row');
+    const price = s.dataset.price || s.getAttribute('data-price');
+    if (!row || !price) return;
+    if (!rowPriceMap.has(row)) rowPriceMap.set(row, Number(price));
+  });
+
+  // сортируем ряды по номеру
+  const rows = [...rowPriceMap.entries()]
+    .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  // рендерим
+  listEl.innerHTML = rows.map(([r, p]) => `
+    <div class="row-price">
+      <span>Ряд ${r}</span>
+      <span class="dots"></span>
+      <b>${p} грн</b>
+    </div>
+  `).join('');
+})();
+
+    
     // -------- 3. Підготуємо масив місць --------
     const ALL_SEATS = [];
     for (let r = 1; r <= ROWS; r++) {
