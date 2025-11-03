@@ -240,3 +240,45 @@ svg .seat {
 .row-price b {
   font-weight: 700;
 }
+/* --- Горизонтальный скролл только для схемы зала --- */
+.hall-scroll{
+  overflow-x: auto;                /* включаем горизонт-скролл */
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch; /* плавная прокрутка на iOS */
+}
+
+/* Внутри делаем “полотно” схемы широким, чтобы было что скроллить */
+.hall-inner{
+  width: max(760px, 100%);         /* базовая ширина полотна */
+}
+
+/* Если где-то в базовых стилях запрещён горизонт-скролл страницам —
+   точечно разрешим минимум на этой странице */
+body, html, .main{
+  overflow-x: auto !important;
+}
+
+/* --- Мобильная подстройка размеров --- */
+@media (max-width: 480px){
+  .seat{
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .row-label{
+    width: 22px;
+    flex: 0 0 22px;
+    font-size: 12px;
+  }
+  .pass-gap{ width: 24px; }
+  .hall-inner{ width: max(680px, 100%); } /* чуть уже, чтобы влезало */
+}
+
+/* Подписи “Ряд N • ХХ грн” под каждым рядом — если используешь */
+.row-price-list{ margin-top:14px; }
+.row-price{
+  display:flex; align-items:center; gap:8px;
+  font-size:14px; color:#0f172a; padding:6px 0; border-bottom:1px dotted #e5e7eb;
+}
+.row-price .dots{ flex:1 1 auto; border-bottom:1px dotted #e5e7eb; height:0; }
