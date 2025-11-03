@@ -172,7 +172,8 @@
     // -------- 2. Тарифи по рядах (ти потім підставиш свої) --------
     function priceForRow(row) {
       if (row <= 1) return 170;
-      if (row <= 2-3) return 200;
+      if (row <= 2) return 200;
+      if (row <= 3) return 200;
       if (row <= 4-6) return 180;
       if (row <= 7-8) return 170;
       if (row <= 9-10) return 160;
