@@ -5,61 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Вибір місць — Ваш Адмін</title>
   <link rel="stylesheet" href="../styles.css" />
+
   <style>
+    :root{
+      /* общий размер «кнопок-мест» (удобно править один раз) */
+      --seat: clamp(34px, 6.2vw, 42px);
+      --seat-font: clamp(12px, 2.4vw, 14px);
+    }
+
     body { background:#f4f4f6; }
     main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
 
-    .hall-wrap {
-      background:#fff; border-radius:14px; padding:22px 22px 26px;
-      margin-bottom:24px; min-height:120px;
+    .hall-wrap{
+      background:#fff;
+      border-radius:14px;
+      padding:22px 22px 26px;
+      margin-bottom:24px;
     }
 
-    .hall-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
-    .row-label { width:170px; text-align:left; font-size:13px; color:#475569; flex:0 0 170px; }
+    .hall-title{ font-weight:600; margin-bottom:16px; }
+    .muted{ color:#64748b; font-size:13px; }
 
-    .seat {
-      width:42px; height:42px; border-radius:10px; background:#fff;
-      border:1px solid #d0d5dd; display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:.15s; font-size:14px;
-    }
-    .seat:hover { background:#e5edff; }
-    .seat.selected { background:#155EEF; border-color:#155EEF; color:#fff; }
-    .seat.disabled { background:#e2e8f0; border-color:#e2e8f0; color:#64748b; cursor:not-allowed; }
-
-    /* проход между 10 и 11 */
-    .pass-gap { width:40px; height:1px; }
-
-    .order-form { background:#fff; border-radius:14px; padding:26px; }
-    .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
-    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
-    .form-group input {
-      height:44px; border:1px solid #d0d5dd; border-radius:10px; padding:0 12px; font-size:15px;
-    }
-    .primary-btn {
-      background:#155EEF; color:#fff; border:none; border-radius:999px; padding:11px 30px;
-      font-size:15px; font-weight:600; cursor:pointer;
-    }
-    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
-    .muted { color:#64748b; font-size:13px; }
-
-    .badge-loge {
-      display:inline-block; background:#e2e8f0; border-radius:999px; padding:6px 16px;
-      margin-right:10px; margin-top:14px; font-size:13px; color:#0f172a;
+    /* Ряд с местами */
+    .row-wrap{ margin-bottom:14px; }
+    .hall-row{
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:nowrap;
     }
 
-    /* список цен по рядам под схемой */
-    .row-price-list { margin-top:14px; padding:12px 14px; background:#f7f7f8; border-radius:12px; font-size:14px; }
-    .row-price { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed #e2e2e2; }
-    .row-price:last-child { border-bottom:0; }
-    .row-price .dots { flex:1 1 auto; border-bottom:1px dotted #d7d7d7; transform:translateY(-2px); }
-    .row-price b { font-weight:700; }
+    /* Место */
+    .seat{
+      width:var(--seat);
+      height:var(--seat);
+      border-radius:10px;
+      background:#fff;
+      border:1px solid #d0d5dd;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:.15s;
+      font-size:var(--seat-font);
+      user-select:none;
+      touch-action:manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .seat:hover{ background:#e5edff; }
+    .seat.selected{
+      background:#155EEF;
+      border-color:#155EEF;
+      color:#fff;
+    }
+    .seat.disabled{
+      background:#e2e8f0;
+      border-color:#e2e8f0;
+      color:#64748b;
+      cursor:not-allowed;
+      pointer-events:none;
+    }
+
+    /* Проход между 10 и 11 */
+    .pass-gap{ width:calc(var(--seat) * .9); height:1px; }
+
+    /* Подпись под рядом: «Ряд N • ХХ грн» */
+    .row-note{
+      text-align:center;
+      font-size:12px;
+      color:#475569;
+      margin-top:4px;
+    }
+
+    .order-form{
+      background:#fff;
+      border-radius:14px;
+      padding:26px;
+    }
+    .flex-row{ display:flex; gap:16px; flex-wrap:wrap; }
+    .form-group{
+      flex:1 1 240px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .form-group input{
+      height:44px;
+      border:1px solid #d0d5dd;
+      border-radius:10px;
+      padding:0 12px;
+      font-size:15px;
+    }
+    .primary-btn{
+      background:#155EEF; color:#fff;
+      border:none; border-radius:999px;
+      padding:11px 30px; font-size:15px; font-weight:600;
+      cursor:pointer;
+    }
+    .primary-btn:disabled{ background:#95b5ff; cursor:not-allowed; }
+
+    /* ложи — просто метки */
+    .badge-loge{
+      display:inline-block;
+      background:#e2e8f0;
+      border-radius:999px;
+      padding:6px 16px;
+      margin-right:10px;
+      margin-top:14px;
+      font-size:13px;
+      color:#0f172a;
+    }
   </style>
 
-  <!-- Supabase (для броней) -->
+  <!-- supabase-js (для загрузки броней — можно оставить, не мешает) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- хедер -->
+  <!-- общий header -->
   <div id="site-header"></div>
 
   <main>
@@ -69,10 +132,6 @@
     <div class="hall-wrap">
       <div id="hall"></div>
 
-      <!-- Список цен по рядам -->
-      <div id="row-price-list" class="row-price-list"></div>
-
-      <!-- Ложі просто текстом -->
       <div style="margin-top:10px;">
         <span class="badge-loge">Ложа А (18 місць)</span>
         <span class="badge-loge">Ложа Б (18 місць)</span>
@@ -95,43 +154,46 @@
         <label for="buyer-email">Електронна пошта (куди надійде PDF-квиток)</label>
         <input id="buyer-email" value="alexandrryabov@ukr.net" />
       </div>
+
       <p style="margin-top:14px;">
         Вибрано місць: <span id="seat-count">0</span> •
         Сума: <span id="seat-sum">0</span> грн
       </p>
+
       <button id="to-checkout" class="primary-btn" disabled>Перейти до оплати</button>
       <p class="muted" style="margin-top:10px;">Натисніть на місце, щоб додати в замовлення. Сірі місця — вже заброньовані іншими.</p>
     </div>
   </main>
 
-  <!-- футер -->
+  <!-- общий footer -->
   <div id="site-footer"></div>
 
-  <!-- подгружаем шапку/подвал -->
+  <!-- Подключение шапки/футера -->
   <script src="/scripts/include.js"></script>
 
   <script>
     // -------- 0. Параметри з URL --------
     const params = new URLSearchParams(location.search);
     const showSlug = params.get("show") || "shevchenko/ledi";
-    document.getElementById("show-label").textContent = "Вистава: " + showSlug.replace("/", " — ");
+    document.getElementById("show-label").textContent =
+      "Вистава: " + showSlug.replace("/", " — ");
 
     // -------- 1. Конфіг залу --------
     const ROWS = 18;
     const SEATS_PER_ROW = 20;
-    const PASS_AFTER = 10; // прохід після 10-го
+    const PASS_AFTER = 10; // після 10-го — прохід
 
-    // -------- 2. Ціни по рядах (поміняєш як треба) --------
+    // -------- 2. Ціни по рядах --------
     function priceForRow(row) {
-      if (row <= 1) return 170;
-      if (row <= 2) return 200;
-      if (row <= 3) return 200;
-      if (row <= 4) return 180;
-      if (row <= 5) return 180;
-      if (row <= 6) return 180;
-      if (row <= 7) return 170;
-      if (row <= 8) return 170;
-      if (row <= 9) return 160;
+      if (row <= 1)  return 170;
+      if (row <= 2)  return 200;
+      if (row <= 3)  return 200;
+      if (row <= 4)  return 180;
+      if (row <= 5)  return 180;
+      if (row <= 6)  return 180;
+      if (row <= 7)  return 170;
+      if (row <= 8)  return 170;
+      if (row <= 9)  return 160;
       if (row <= 10) return 160;
       if (row <= 11) return 140;
       if (row <= 12) return 140;
@@ -147,41 +209,33 @@
     const ALL_SEATS = [];
     for (let r = 1; r <= ROWS; r++) {
       for (let s = 1; s <= SEATS_PER_ROW; s++) {
-        ALL_SEATS.push({ id: `P${r}-M${s}`, row: r, seat: s, price: priceForRow(r) });
+        ALL_SEATS.push({
+          id: `P${r}-M${s}`,
+          row: r,
+          seat: s,
+          price: priceForRow(r),
+        });
       }
     }
 
-    // -------- 4. Рендер --------
+    // -------- 4. Рендер залу (підпис під кожним рядом) --------
     const hallEl = document.getElementById("hall");
     const selected = new Set();
     const seatCountEl = document.getElementById("seat-count");
     const seatSumEl   = document.getElementById("seat-sum");
     const btnCheckout = document.getElementById("to-checkout");
-    let busySeats = new Set();
 
-    function renderRowPriceList() {
-      const list = document.getElementById('row-price-list');
-      const rows = [];
-      for (let r = 1; r <= ROWS; r++) rows.push([r, priceForRow(r)]);
-      list.innerHTML = rows.map(([r,p]) => `
-        <div class="row-price">
-          <span>Ряд ${r}</span>
-          <span class="dots"></span>
-          <b>${p} грн</b>
-        </div>
-      `).join('');
-    }
+    let busySeats = new Set(); // зайняті із бази
 
     function renderHall() {
       hallEl.innerHTML = "";
+
       for (let r = 1; r <= ROWS; r++) {
+        const rowWrap = document.createElement("div");
+        rowWrap.className = "row-wrap";
+
         const rowEl = document.createElement("div");
         rowEl.className = "hall-row";
-
-        const lbl = document.createElement("div");
-        lbl.className = "row-label";
-        lbl.textContent = `Ряд ${r} • ${priceForRow(r)} грн`;
-        rowEl.appendChild(lbl);
 
         for (let s = 1; s <= SEATS_PER_ROW; s++) {
           if (s === PASS_AFTER + 1) {
@@ -191,14 +245,12 @@
           }
 
           const seatId = `P${r}-M${s}`;
-          const seatData = ALL_SEATS.find((x) => x.id === seatId);
+          const seatData = ALL_SEATS.find(x => x.id === seatId);
 
           const seatEl = document.createElement("div");
           seatEl.className = "seat";
           seatEl.textContent = s;
-          seatEl.title = `Ряд ${r}, Місце ${s} — ${seatData.price} грн`;
-          seatEl.setAttribute('data-row', r);
-          seatEl.setAttribute('data-price', seatData.price);
+          seatEl.title = `Ряд ${r}, місце ${s} — ${seatData.price} грн`;
 
           if (busySeats.has(seatId)) {
             seatEl.classList.add("disabled");
@@ -218,25 +270,31 @@
           rowEl.appendChild(seatEl);
         }
 
-        hallEl.appendChild(rowEl);
-      }
+        // Підпис під рядом
+        const label = document.createElement("div");
+        label.className = "row-note";
+        label.textContent = `Ряд ${r} • ${priceForRow(r)} грн`;
 
-      renderRowPriceList();
+        rowWrap.appendChild(rowEl);
+        rowWrap.appendChild(label);
+        hallEl.appendChild(rowWrap);
+      }
     }
 
     function updateSummary() {
       const ids = Array.from(selected);
       seatCountEl.textContent = ids.length;
       const sum = ids.reduce((acc, id) => {
-        const s = ALL_SEATS.find((x) => x.id === id);
+        const s = ALL_SEATS.find(x => x.id === id);
         return acc + (s ? s.price : 0);
       }, 0);
       seatSumEl.textContent = sum;
       btnCheckout.disabled = ids.length === 0;
     }
 
-    // -------- 5. Завантаження броней з Supabase --------
+    // -------- 5. Спроба завантажити броні з Supabase --------
     (async function loadBookings() {
+      // Можна вимкнути весь блок, якщо не потрібно.
       const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
 
@@ -249,7 +307,7 @@
           .gte("expires_at", new Date().toISOString());
 
         if (!error && Array.isArray(data)) {
-          busySeats = new Set(data.map((r) => r.seat_id));
+          busySeats = new Set(data.map(r => r.seat_id));
         }
       } catch (e) {
         console.warn("Не вдалося завантажити броні:", e.message);
@@ -274,6 +332,7 @@
       url.searchParams.set("seats", ids.join(","));
       url.searchParams.set("amount", String(sum));
       url.searchParams.set("order_id", orderId);
+
       if (name)  url.searchParams.set("name", name);
       if (phone) url.searchParams.set("phone", phone);
       if (email) url.searchParams.set("email", email);
