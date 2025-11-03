@@ -8,109 +8,58 @@
   <style>
     body { background:#f4f4f6; }
     main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
+
     .hall-wrap {
-      background:#fff;
-      border-radius:14px;
-      padding:22px 22px 26px;
-      margin-bottom:24px;
-      min-height:120px;
+      background:#fff; border-radius:14px; padding:22px 22px 26px;
+      margin-bottom:24px; min-height:120px;
     }
-    .hall-title {
-      font-weight:600;
-      margin-bottom:16px;
-    }
-    /* ряд */
-    .hall-row {
-      display:flex;
-      gap:8px;
-      margin-bottom:8px;
-      align-items:center;
-    }
-    /* номер ряда слева */
-    .row-label {
-      width:26px;
-      text-align:right;
-      font-size:13px;
-      color:#475569;
-      flex:0 0 26px;
-    }
+
+    .hall-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+    .row-label { width:170px; text-align:left; font-size:13px; color:#475569; flex:0 0 170px; }
+
     .seat {
-      width:42px;
-      height:42px;
-      border-radius:10px;
-      background:#fff;
-      border:1px solid #d0d5dd;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      transition:.15s;
-      font-size:14px;
+      width:42px; height:42px; border-radius:10px; background:#fff;
+      border:1px solid #d0d5dd; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:.15s; font-size:14px;
     }
     .seat:hover { background:#e5edff; }
-    .seat.selected {
-      background:#155EEF;
-      border-color:#155EEF;
-      color:#fff;
-    }
-    .seat.disabled {
-      background:#e2e8f0;
-      border-color:#e2e8f0;
-      color:#64748b;
-      cursor:not-allowed;
-    }
+    .seat.selected { background:#155EEF; border-color:#155EEF; color:#fff; }
+    .seat.disabled { background:#e2e8f0; border-color:#e2e8f0; color:#64748b; cursor:not-allowed; }
+
     /* проход между 10 и 11 */
     .pass-gap { width:40px; height:1px; }
-    .order-form {
-      background:#fff;
-      border-radius:14px;
-      padding:26px;
-    }
+
+    .order-form { background:#fff; border-radius:14px; padding:26px; }
     .flex-row { display:flex; gap:16px; flex-wrap:wrap; }
-    .form-group {
-      flex:1 1 240px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
+    .form-group { flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
     .form-group input {
-      height:44px;
-      border:1px solid #d0d5dd;
-      border-radius:10px;
-      padding:0 12px;
-      font-size:15px;
+      height:44px; border:1px solid #d0d5dd; border-radius:10px; padding:0 12px; font-size:15px;
     }
     .primary-btn {
-      background:#155EEF;
-      color:#fff;
-      border:none;
-      border-radius:999px;
-      padding:11px 30px;
-      font-size:15px;
-      font-weight:600;
-      cursor:pointer;
+      background:#155EEF; color:#fff; border:none; border-radius:999px; padding:11px 30px;
+      font-size:15px; font-weight:600; cursor:pointer;
     }
-    .primary-btn:disabled {
-      background:#95b5ff;
-      cursor:not-allowed;
-    }
+    .primary-btn:disabled { background:#95b5ff; cursor:not-allowed; }
     .muted { color:#64748b; font-size:13px; }
+
     .badge-loge {
-      display:inline-block;
-      background:#e2e8f0;
-      border-radius:999px;
-      padding:6px 16px;
-      margin-right:10px;
-      margin-top:14px;
-      font-size:13px;
-      color:#0f172a;
+      display:inline-block; background:#e2e8f0; border-radius:999px; padding:6px 16px;
+      margin-right:10px; margin-top:14px; font-size:13px; color:#0f172a;
     }
+
+    /* список цен по рядам под схемой */
+    .row-price-list { margin-top:14px; padding:12px 14px; background:#f7f7f8; border-radius:12px; font-size:14px; }
+    .row-price { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed #e2e2e2; }
+    .row-price:last-child { border-bottom:0; }
+    .row-price .dots { flex:1 1 auto; border-bottom:1px dotted #d7d7d7; transform:translateY(-2px); }
+    .row-price b { font-weight:700; }
   </style>
-  <!-- supabase, если нужен для броней — можно оставить, не нужен — можно убрать -->
+
+  <!-- Supabase (для броней) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- общая шапка -->
+  <!-- хедер -->
   <div id="site-header"></div>
 
   <main>
@@ -119,12 +68,11 @@
 
     <div class="hall-wrap">
       <div id="hall"></div>
-      <!-- ложи просто текстом -->
 
       <!-- Список цен по рядам -->
-<div id="row-price-list" class="row-price-list"></div>
+      <div id="row-price-list" class="row-price-list"></div>
 
-      
+      <!-- Ложі просто текстом -->
       <div style="margin-top:10px;">
         <span class="badge-loge">Ложа А (18 місць)</span>
         <span class="badge-loge">Ложа Б (18 місць)</span>
@@ -156,7 +104,7 @@
     </div>
   </main>
 
-  <!-- общий подвал -->
+  <!-- футер -->
   <div id="site-footer"></div>
 
   <!-- подгружаем шапку/подвал -->
@@ -166,15 +114,14 @@
     // -------- 0. Параметри з URL --------
     const params = new URLSearchParams(location.search);
     const showSlug = params.get("show") || "shevchenko/ledi";
-    document.getElementById("show-label").textContent =
-      "Вистава: " + showSlug.replace("/", " — ");
+    document.getElementById("show-label").textContent = "Вистава: " + showSlug.replace("/", " — ");
 
-    // -------- 1. Конфіг для залу --------
+    // -------- 1. Конфіг залу --------
     const ROWS = 18;
     const SEATS_PER_ROW = 20;
-    const PASS_AFTER = 10; // після 10-го - прохід
+    const PASS_AFTER = 10; // прохід після 10-го
 
-    // -------- 2. Тарифи по рядах (ти потім підставиш свої) --------
+    // -------- 2. Ціни по рядах (поміняєш як треба) --------
     function priceForRow(row) {
       if (row <= 1) return 170;
       if (row <= 2) return 200;
@@ -193,67 +140,37 @@
       if (row <= 15) return 100;
       if (row <= 16) return 100;
       if (row <= 17) return 70;
-      if (row <= 18) return 70;
+      return 70; // 18
     }
 
-    // === Статичный список цен по рядам под схемой ===
-// Требования к разметке мест: у каждого места должны быть data-row и data-price
-// Например: <circle class="seat" data-row="1" data-num="5" data-price="200" ... />
-
-(function buildRowPrices() {
-  const listEl = document.getElementById('row-price-list');
-  if (!listEl) return;
-
-  // найдём все места
-  const seats = document.querySelectorAll('.seat');
-  if (!seats.length) return;
-
-  // собираем цены по рядам (берём первую встреченную цену в ряду)
-  const rowPriceMap = new Map();
-  seats.forEach(s => {
-    const row   = s.dataset.row   || s.getAttribute('data-row');
-    const price = s.dataset.price || s.getAttribute('data-price');
-    if (!row || !price) return;
-    if (!rowPriceMap.has(row)) rowPriceMap.set(row, Number(price));
-  });
-
-  // сортируем ряды по номеру
-  const rows = [...rowPriceMap.entries()]
-    .sort((a, b) => Number(a[0]) - Number(b[0]));
-
-  // рендерим
-  listEl.innerHTML = rows.map(([r, p]) => `
-    <div class="row-price">
-      <span>Ряд ${r}</span>
-      <span class="dots"></span>
-      <b>${p} грн</b>
-    </div>
-  `).join('');
-})();
-
-    
-    // -------- 3. Підготуємо масив місць --------
+    // -------- 3. Підготуємо місця --------
     const ALL_SEATS = [];
     for (let r = 1; r <= ROWS; r++) {
       for (let s = 1; s <= SEATS_PER_ROW; s++) {
-        ALL_SEATS.push({
-          id: `P${r}-M${s}`,
-          row: r,
-          seat: s,
-          price: priceForRow(r),
-        });
+        ALL_SEATS.push({ id: `P${r}-M${s}`, row: r, seat: s, price: priceForRow(r) });
       }
     }
 
-    // -------- 4. Рендер залу --------
+    // -------- 4. Рендер --------
     const hallEl = document.getElementById("hall");
     const selected = new Set();
     const seatCountEl = document.getElementById("seat-count");
     const seatSumEl   = document.getElementById("seat-sum");
     const btnCheckout = document.getElementById("to-checkout");
-
-    // Сюда потом подставим занятые из Supabase
     let busySeats = new Set();
+
+    function renderRowPriceList() {
+      const list = document.getElementById('row-price-list');
+      const rows = [];
+      for (let r = 1; r <= ROWS; r++) rows.push([r, priceForRow(r)]);
+      list.innerHTML = rows.map(([r,p]) => `
+        <div class="row-price">
+          <span>Ряд ${r}</span>
+          <span class="dots"></span>
+          <b>${p} грн</b>
+        </div>
+      `).join('');
+    }
 
     function renderHall() {
       hallEl.innerHTML = "";
@@ -263,7 +180,7 @@
 
         const lbl = document.createElement("div");
         lbl.className = "row-label";
-        lbl.textContent = r;
+        lbl.textContent = `Ряд ${r} • ${priceForRow(r)} грн`;
         rowEl.appendChild(lbl);
 
         for (let s = 1; s <= SEATS_PER_ROW; s++) {
@@ -279,9 +196,10 @@
           const seatEl = document.createElement("div");
           seatEl.className = "seat";
           seatEl.textContent = s;
-          seatEl.title = `Ряд ${r}, місце ${s} — ${seatData.price} грн`;
+          seatEl.title = `Ряд ${r}, Місце ${s} — ${seatData.price} грн`;
+          seatEl.setAttribute('data-row', r);
+          seatEl.setAttribute('data-price', seatData.price);
 
-          // якщо місце вже заброньовано в Supabase
           if (busySeats.has(seatId)) {
             seatEl.classList.add("disabled");
           } else {
@@ -302,6 +220,8 @@
 
         hallEl.appendChild(rowEl);
       }
+
+      renderRowPriceList();
     }
 
     function updateSummary() {
@@ -315,11 +235,10 @@
       btnCheckout.disabled = ids.length === 0;
     }
 
-    // -------- 5. Спробуємо витягти броні з Supabase (якщо ключі є) --------
+    // -------- 5. Завантаження броней з Supabase --------
     (async function loadBookings() {
-      // якщо ти ще не хочеш ловити звідти — просто закоментуй весь блок
       const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
-      const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM"; // Settings → API → anon
+      const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
 
       try {
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -327,13 +246,12 @@
           .from("bookings")
           .select("seat_id")
           .eq("show_slug", showSlug)
-          .gte("expires_at", new Date().toISOString()); // тільки актуальні
+          .gte("expires_at", new Date().toISOString());
 
         if (!error && Array.isArray(data)) {
           busySeats = new Set(data.map((r) => r.seat_id));
         }
       } catch (e) {
-        // якщо нема ключа / таблиці — просто малюємо пустий зал
         console.warn("Не вдалося завантажити броні:", e.message);
       } finally {
         renderHall();
@@ -356,8 +274,6 @@
       url.searchParams.set("seats", ids.join(","));
       url.searchParams.set("amount", String(sum));
       url.searchParams.set("order_id", orderId);
-
-      // ВАЖНО: без ручного encodeURIComponent
       if (name)  url.searchParams.set("name", name);
       if (phone) url.searchParams.set("phone", phone);
       if (email) url.searchParams.set("email", email);
