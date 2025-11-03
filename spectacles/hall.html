@@ -171,10 +171,15 @@
 
     // -------- 2. Тарифи по рядах (ти потім підставиш свої) --------
     function priceForRow(row) {
-      if (row <= 5) return 220;
-      if (row <= 10) return 180;
-      if (row <= 15) return 140;
-      return 100;
+      if (row <= 1) return 170;
+      if (row <= 2-3) return 200;
+      if (row <= 4-6) return 180;
+      if (row <= 7-8) return 170;
+      if (row <= 9-10) return 160;
+      if (row <= 11-12) return 140;
+      if (row <= 13-14) return 120;
+      if (row <= 15-16) return 100;
+      if (row <= 17-18) return 70;
     }
 
     // -------- 3. Підготуємо масив місць --------
