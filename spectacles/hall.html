@@ -2,157 +2,131 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Вибір місць — Ваш Адмін</title>
   <link rel="stylesheet" href="../styles.css" />
   <style>
     body { background:#f4f4f6; }
     main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
 
-    /* === УПРАВЛЯЕМЫЕ РАЗМЕРЫ === */
+    /* ===== ПАРАМЕТРЫ РАЗМЕРОВ (можно подстроить) ===== */
     :root{
-      --seat: 42px;   /* размер места (ширина/высота) */
-      --gap: 8px;     /* расстояние между местами */
-      --pass: 40px;   /* ширина прохода */
-      --label: 26px;  /* ширина колонки с номерами рядов */
-      --fs: 14px;     /* размер цифр */
+      --seat: 36px;   /* базовый размер места (ПК) */
+      --gap: 8px;
+      --pass: 36px;   /* ширина прохода между 10 и 11 */
+      --label: 26px;  /* колонка с номерами рядов */
+      --fs: 13px;
+    }
+    @media (max-width: 480px){
+      :root{
+        --seat: 28px;  /* базовый мобильно-микро размер (можно сделать ещё меньше) */
+        --gap: 6px;
+        --pass: 24px;
+        --label: 22px;
+        --fs: 12px;
+      }
     }
 
+    /* ===== ВЬЮПОРТ/КАНВА ===== */
     .hall-wrap{
       background:#fff;
       border-radius:14px;
-      padding:22px;
+      padding:12px 12px 18px;
       margin-bottom:24px;
-      overflow-x:auto;  /* теперь можно двигать по горизонтали */
     }
 
+    .toolbar-zoom{
+      display:flex; gap:8px; align-items:center; margin:6px 0 10px;
+      flex-wrap:wrap;
+    }
+    .toolbar-zoom .btn{
+      padding:8px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer;
+    }
+
+    .hall-viewport{
+      position:relative;
+      width:100%;
+      height: min(72vh, 560px);      /* окно просмотра; можно увеличить/уменьшить */
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      overflow:hidden;                /* панорамируем внутри без полос прокрутки */
+      touch-action:none;              /* важно для жестов */
+      background:#fafafa;
+    }
+
+    .hall-canvas{
+      position:absolute; left:0; top:0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* ===== СЕТКА СТРОК/МЕСТ ===== */
+    .row-wrap{ margin-bottom:8px; }
     .hall-row{
-      display:flex;
-      gap:var(--gap);
-      margin-bottom:8px;
-      align-items:center;
-      flex-wrap:nowrap;
+      display:flex; gap:var(--gap); align-items:center; flex-wrap:nowrap;
     }
-
     .row-label{
-      width:var(--label);
-      flex:0 0 var(--label);
-      text-align:right;
-      font-size:13px;
-      color:#475569;
+      width:var(--label); flex:0 0 var(--label); text-align:right; font-size:12px; color:#475569;
     }
-
     .seat{
-      width:var(--seat);
-      height:var(--seat);
-      flex:0 0 var(--seat);
-      border-radius:10px;
-      background:#fff;
-      border:1px solid #d0d5dd;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      transition:.15s;
-      font-size:var(--fs);
-      user-select:none;
+      width:var(--seat); height:var(--seat); flex:0 0 var(--seat);
+      border-radius:10px; background:#fff; border:1px solid #d0d5dd;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:.15s; font-size:var(--fs); user-select:none;
     }
-
     .seat:hover { background:#e5edff; }
     .seat.selected { background:#155EEF; color:#fff; border-color:#155EEF; }
     .seat.disabled { background:#e2e8f0; border-color:#e2e8f0; color:#64748b; cursor:not-allowed; }
-
-    .pass-gap{
-      width:var(--pass);
-      height:1px;
-      flex:0 0 var(--pass);
-    }
+    .pass-gap{ width:var(--pass); height:1px; flex:0 0 var(--pass); }
 
     .row-price-inline{
-      font-size:12px;
-      color:#475569;
-      margin:4px 0 12px calc(var(--label) + 8px);
+      font-size:12px; color:#475569;
+      margin:4px 0 10px calc(var(--label) + 2px);
     }
 
-    .order-form{
-      background:#fff;
-      border-radius:14px;
-      padding:26px;
-    }
-
-    .flex-row{ display:flex; gap:16px; flex-wrap:wrap; }
-
-    .form-group{
-      flex:1 1 240px;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-
+    /* ===== ФОРМА ЗАКАЗА ===== */
+    .order-form{ background:#fff; border-radius:14px; padding:18px; }
+    .flex-row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .form-group{ flex:1 1 240px; display:flex; flex-direction:column; gap:6px; }
     .form-group input{
-      height:44px;
-      border:1px solid #d0d5dd;
-      border-radius:10px;
-      padding:0 12px;
-      font-size:15px;
+      height:44px; border:1px solid #d0d5dd; border-radius:10px; padding:0 12px; font-size:15px;
     }
-
     .primary-btn{
-      background:#155EEF;
-      color:#fff;
-      border:none;
-      border-radius:999px;
-      padding:11px 30px;
-      font-size:15px;
-      font-weight:600;
-      cursor:pointer;
+      background:#155EEF; color:#fff; border:none; border-radius:999px; padding:11px 30px;
+      font-size:15px; font-weight:600; cursor:pointer;
     }
     .primary-btn:disabled{ background:#95b5ff; cursor:not-allowed; }
 
     .muted{ color:#64748b; font-size:13px; }
     .badge-loge{
-      display:inline-block;
-      background:#e2e8f0;
-      border-radius:999px;
-      padding:6px 16px;
-      margin-right:10px;
-      margin-top:14px;
-      font-size:13px;
-      color:#0f172a;
-    }
-
-    /* === АДАПТИВ === */
-    @media (max-width:480px){
-      :root{
-        --seat:36px;
-        --gap:6px;
-        --pass:28px;
-        --label:22px;
-        --fs:13px;
-      }
-    }
-
-    @media (max-width:360px){
-      :root{
-        --seat:32px;
-        --gap:5px;
-        --pass:24px;
-        --label:20px;
-        --fs:12px;
-      }
+      display:inline-block; background:#e2e8f0; border-radius:999px; padding:6px 16px; margin-right:10px; margin-top:10px; font-size:13px; color:#0f172a;
     }
   </style>
 </head>
-
 <body>
+  <!-- общий хедер -->
   <div id="site-header"></div>
+
   <main>
     <h1>Вибір місць</h1>
     <p id="show-label" class="muted">Вистава: —</p>
 
     <div class="hall-wrap">
-      <div id="hall"></div>
-      <div style="margin-top:10px;">
+      <div class="toolbar-zoom">
+        <button class="btn" id="zoom-out">−</button>
+        <button class="btn" id="zoom-in">+</button>
+        <button class="btn" id="zoom-100">100%</button>
+        <button class="btn" id="zoom-fit">Вписати</button>
+        <span class="muted" id="zoom-label" style="margin-left:6px">100%</span>
+      </div>
+
+      <div class="hall-viewport" id="viewport">
+        <div class="hall-canvas" id="canvas">
+          <div id="hall"></div>
+        </div>
+      </div>
+
+      <div>
         <span class="badge-loge">Ложа А (18 місць)</span>
         <span class="badge-loge">Ложа Б (18 місць)</span>
       </div>
@@ -185,12 +159,16 @@
       </p>
     </div>
   </main>
+
+  <!-- общий футер -->
   <div id="site-footer"></div>
 
+  <!-- подключаем инклюды и (при желании) supabase -->
   <script src="/scripts/include.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
+    /* ===== БАЗОВЫЕ ДАННЫЕ ===== */
     const params = new URLSearchParams(location.search);
     const showSlug = params.get("show") || "shevchenko/ledi";
     document.getElementById("show-label").textContent = "Вистава: " + showSlug.replace("/", " — ");
@@ -219,84 +197,225 @@
       }
     }
 
-    const hallEl=document.getElementById("hall");
-    const selected=new Set();
-    const seatCountEl=document.getElementById("seat-count");
-    const seatSumEl=document.getElementById("seat-sum");
-    const btnCheckout=document.getElementById("to-checkout");
-    let busySeats=new Set();
+    /* ===== РЕНДЕР СХЕМЫ ===== */
+    const hallEl = document.getElementById("hall");
+    const selected = new Set();
+    const seatCountEl = document.getElementById("seat-count");
+    const seatSumEl = document.getElementById("seat-sum");
+    const btnCheckout = document.getElementById("to-checkout");
+
+    let busySeats = new Set(); // при необходимости подхватим из Supabase
 
     function renderHall(){
-      hallEl.innerHTML="";
+      hallEl.innerHTML = "";
       for(let r=1;r<=ROWS;r++){
-        const wrap=document.createElement("div");
-        const rowEl=document.createElement("div");
-        rowEl.className="hall-row";
+        const wrap = document.createElement("div");
+        wrap.className = "row-wrap";
 
-        const lbl=document.createElement("div");
-        lbl.className="row-label";
-        lbl.textContent=r;
+        const rowEl = document.createElement("div");
+        rowEl.className = "hall-row";
+
+        const lbl = document.createElement("div");
+        lbl.className = "row-label";
+        lbl.textContent = r;
         rowEl.appendChild(lbl);
 
         for(let s=1;s<=SEATS_PER_ROW;s++){
-          if(s===PASS_AFTER+1){
-            const gap=document.createElement("div");
-            gap.className="pass-gap";
+          if (s === PASS_AFTER + 1){
+            const gap = document.createElement("div");
+            gap.className = "pass-gap";
             rowEl.appendChild(gap);
           }
-          const seatId=`P${r}-M${s}`;
-          const seat=ALL_SEATS.find(x=>x.id===seatId);
-          const el=document.createElement("div");
-          el.className="seat";
-          el.textContent=s;
-          el.title=`Ряд ${r}, місце ${s} — ${seat.price} грн`;
-          if(busySeats.has(seatId)) el.classList.add("disabled");
-          else el.onclick=()=>{
-            if(selected.has(seatId)){selected.delete(seatId);el.classList.remove("selected");}
-            else{selected.add(seatId);el.classList.add("selected");}
-            updateSummary();
-          };
+          const seatId = `P${r}-M${s}`;
+          const seat = ALL_SEATS.find(x=>x.id===seatId);
+          const el = document.createElement("div");
+          el.className = "seat";
+          el.textContent = s;
+          el.title = `Ряд ${r}, місце ${s} — ${seat.price} грн`;
+          if (busySeats.has(seatId)) {
+            el.classList.add("disabled");
+          } else {
+            el.onclick = ()=>{
+              if(selected.has(seatId)){ selected.delete(seatId); el.classList.remove("selected"); }
+              else { selected.add(seatId); el.classList.add("selected"); }
+              updateSummary();
+            };
+          }
           rowEl.appendChild(el);
         }
+
         wrap.appendChild(rowEl);
-        const price=document.createElement("div");
-        price.className="row-price-inline";
-        price.textContent=`Ряд ${r} • ${priceForRow(r)} грн`;
-        wrap.appendChild(price);
+
+        const priceLine = document.createElement("div");
+        priceLine.className = "row-price-inline";
+        priceLine.textContent = `Ряд ${r} • ${priceForRow(r)} грн`;
+        wrap.appendChild(priceLine);
+
         hallEl.appendChild(wrap);
       }
     }
 
     function updateSummary(){
       const ids=[...selected];
-      seatCountEl.textContent=ids.length;
-      const sum=ids.reduce((a,id)=>{
+      seatCountEl.textContent = ids.length;
+      const sum = ids.reduce((a,id)=>{
         const s=ALL_SEATS.find(x=>x.id===id);
         return a+(s?s.price:0);
       },0);
-      seatSumEl.textContent=sum;
-      btnCheckout.disabled=!ids.length;
+      seatSumEl.textContent = sum;
+      btnCheckout.disabled = !ids.length;
     }
 
     renderHall();
 
-    btnCheckout.onclick=()=>{
+    /* ===== ПЕРЕХОД К ОПЛАТЕ ===== */
+    btnCheckout.onclick = ()=>{
       const ids=[...selected];
       const sum=+seatSumEl.textContent||0;
-      const name=document.getElementById("buyer-name").value.trim();
-      const phone=document.getElementById("buyer-phone").value.trim();
-      const email=document.getElementById("buyer-email").value.trim();
-      const orderId="SHEV-"+Date.now();
-      const url=new URL(location.origin+"/checkout.html");
-      url.searchParams.set("show",showSlug);
-      url.searchParams.set("seats",ids.join(","));
-      url.searchParams.set("amount",sum);
-      url.searchParams.set("order_id",orderId);
-      if(name) url.searchParams.set("name",name);
-      if(phone) url.searchParams.set("phone",phone);
-      if(email) url.searchParams.set("email",email);
+      const name = document.getElementById("buyer-name").value.trim();
+      const phone= document.getElementById("buyer-phone").value.trim();
+      const email= document.getElementById("buyer-email").value.trim();
+      const orderId = "SHEV-"+Date.now();
+
+      const url=new URL(location.origin + "/checkout.html");
+      url.searchParams.set("show", showSlug);
+      url.searchParams.set("seats", ids.join(","));
+      url.searchParams.set("amount", sum);
+      url.searchParams.set("order_id", orderId);
+      if(name)  url.searchParams.set("name", name);
+      if(phone) url.searchParams.set("phone", phone);
+      if(email) url.searchParams.set("email", email);
       location.href=url.toString();
     };
+
+    /* ====== ЗУМ/ПАН ЛОГИКА ====== */
+    const viewport = document.getElementById("viewport");
+    const canvas = document.getElementById("canvas");
+    const zl = document.getElementById("zoom-label");
+
+    let scale = 1;
+    let minScale = 0.6;   // можно уменьшить до 0.4, чтобы увидеть весь зал
+    let maxScale = 3.0;
+    let tx = 0, ty = 0;   // translation (смещение)
+    let lastTouches = []; // для pinch
+    let isPanning = false;
+    let startX = 0, startY = 0;
+
+    function applyTransform(){
+      canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      zl.textContent = Math.round(scale*100) + "%";
+    }
+
+    function fitToViewport(){
+      // прикидываем "естественную" ширину схемы
+      // грубо:  (label + 20 мест + проход + gap'ы)
+      const seat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--seat'));
+      const gap  = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+      const pass = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pass'));
+      const label= parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--label'));
+
+      const totalSeatsWidth = seat*SEATS_PER_ROW + gap*(SEATS_PER_ROW-1);
+      const width = label + gap + totalSeatsWidth + pass; // с запасом под проход
+
+      const vpw = viewport.clientWidth;
+      let s = vpw / width;
+      // ограничим разумно
+      s = Math.max(Math.min(s, 1.2), 0.45);
+      scale = s;
+      tx = 8;  // маленький отступ слева
+      ty = 8;
+      applyTransform();
+    }
+
+    // начальная подгонка под окно
+    setTimeout(fitToViewport, 50);
+    window.addEventListener('resize', ()=> setTimeout(fitToViewport, 50));
+
+    function distance(t1, t2){
+      const dx = t2.clientX - t1.clientX;
+      const dy = t2.clientY - t1.clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    viewport.addEventListener('pointerdown', (e)=>{
+      viewport.setPointerCapture(e.pointerId);
+      isPanning = true;
+      startX = e.clientX - tx;
+      startY = e.clientY - ty;
+    });
+    viewport.addEventListener('pointermove', (e)=>{
+      if(!isPanning) return;
+      tx = e.clientX - startX;
+      ty = e.clientY - startY;
+      applyTransform();
+    });
+    viewport.addEventListener('pointerup', ()=>{ isPanning=false; });
+    viewport.addEventListener('pointercancel', ()=>{ isPanning=false; });
+
+    // поддержка жестов двумя пальцами (через Touch Events)
+    viewport.addEventListener('touchstart', (e)=>{
+      if(e.touches.length === 2){
+        lastTouches = [e.touches[0], e.touches[1]];
+      }
+    }, {passive:false});
+
+    viewport.addEventListener('touchmove', (e)=>{
+      if(e.touches.length === 2 && lastTouches.length === 2){
+        e.preventDefault();
+        const [a1, a2] = lastTouches;
+        const [b1, b2] = [e.touches[0], e.touches[1]];
+        const da = distance(a1, a2);
+        const db = distance(b1, b2);
+        if(da>0){
+          const factor = db/da;
+          const prev = scale;
+          scale = Math.max(minScale, Math.min(maxScale, scale*factor));
+
+          // масштабируем относительно центра вьюпорта (упрощённо)
+          const cx = viewport.clientWidth/2;
+          const cy = viewport.clientHeight/2;
+          tx = cx - (cx - tx) * (scale/prev);
+          ty = cy - (cy - ty) * (scale/prev);
+          applyTransform();
+        }
+        lastTouches = [b1, b2];
+      }
+    }, {passive:false});
+
+    viewport.addEventListener('touchend', ()=>{ lastTouches=[]; });
+
+    // дабл-клик/дабл-тап — приблизить
+    viewport.addEventListener('dblclick', (e)=>{
+      const prev = scale;
+      scale = Math.min(maxScale, scale*1.25);
+      const cx = e.clientX - viewport.getBoundingClientRect().left;
+      const cy = e.clientY - viewport.getBoundingClientRect().top;
+      tx = cx - (cx - tx) * (scale/prev);
+      ty = cy - (cy - ty) * (scale/prev);
+      applyTransform();
+    });
+
+    // кнопки зума
+    document.getElementById('zoom-in').onclick = ()=>{
+      const prev = scale;
+      scale = Math.min(maxScale, scale*1.15);
+      const cx = viewport.clientWidth/2, cy = viewport.clientHeight/2;
+      tx = cx - (cx - tx) * (scale/prev);
+      ty = cy - (cy - ty) * (scale/prev);
+      applyTransform();
+    };
+    document.getElementById('zoom-out').onclick = ()=>{
+      const prev = scale;
+      scale = Math.max(minScale, scale/1.15);
+      const cx = viewport.clientWidth/2, cy = viewport.clientHeight/2;
+      tx = cx - (cx - tx) * (scale/prev);
+      ty = cy - (cy - ty) * (scale/prev);
+      applyTransform();
+    };
+    document.getElementById('zoom-100').onclick = ()=>{
+      scale = 1; tx = 8; ty = 8; applyTransform();
+    };
+    document.getElementById('zoom-fit').onclick = fitToViewport;
   </script>
 </body>
 </html>
