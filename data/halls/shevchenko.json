@@ -1,0 +1,11 @@
+{
+  "rows": 18,
+  "seatsPerRow": 20,
+
+  "rowOverrides": {},
+  "leftPadByRow": {},
+  "bigGapAfterRow": null,
+
+  "passAfterListDefault": [10],
+  "passAfterListByRow": {}
+}
