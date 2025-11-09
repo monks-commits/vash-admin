@@ -1,45 +1,61 @@
-<!DOCTYPE html><html lang="uk">
+<!doctype html>
+<html lang="uk">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Вистава — Ваш Адмін</title>
   <link rel="stylesheet" href="/styles.css"/>
-  <style>.hero{display:grid;gap:12px}@media(min-width:900px){.hero{grid-template-columns:320px 1fr}}.hero img{width:100%;height:420px;object-fit:cover;border-radius:12px;background:#eee}</style>
+  <style>
+    .wrap{max-width:1200px;margin:0 auto;padding:24px 16px;}
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:28px}
+    .poster{width:100%;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    .btn{display:inline-block;background:#3b82f6;color:#fff;padding:12px 18px;border-radius:999px;font-weight:700;text-decoration:none}
+    .muted{color:#6b7280}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
-<div id="site-header"></div>
-<script type="module" src="/scripts/include.js"></script>
+  <div id="site-header"></div>
+  <script type="module" src="/scripts/include.js"></script>
 
-<main class="container">
-  <div id="wrap" class="section"></div>
-</main>
+  <main class="wrap">
+    <div id="content"></div>
+  </main>
 
-<div id="site-footer"></div>
+  <div id="site-footer"></div>
 
-<script>
-(async()=>{
-  const q=new URLSearchParams(location.search);
-  const slug=q.get('show');
-  const el=document.getElementById('wrap');
-  if(!slug){ el.innerHTML='<p>Немає параметра <code>show</code>.</p>'; return; }
+  <script>
+    const q = new URLSearchParams(location.search);
+    const showParam = q.get('show') || 'shevchenko/ledi'; // формат "театр/спектакль"
+    const [theatre, slug] = showParam.split('/');
 
-  const r=await fetch(`/data/shows/${slug}.json`,{cache:'no-store'});
-  if(!r.ok){ el.innerHTML='<p>Не знайдено опис вистави.</p>'; return; }
-  const s=await r.json();
-
-  const poster = s.poster ? `/${s.poster.replace(/^\/+/,'')}` : '';
-  el.innerHTML = `
-    <div class="hero">
-      <img src="${poster}" alt="${s.title||''}" onerror="this.style.display='none'"/>
-      <div>
-        <h1 style="margin-top:0">${s.title||''}</h1>
-        <div class="meta" style="margin:6px 0 12px">${[s.city,s.theatre,s.stage].filter(Boolean).join(' • ')}</div>
-        <div class="content">${s.description||''}</div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <a class="btn" href="/spectacles/hall.html?show=${encodeURIComponent(slug)}">Вибрати місця</a>
-          <a class="btn secondary" href="/afisha.html">Назад до афіші</a>
-        </div>
-      </div>
-    </div>`;
-})();
-</script>
-</body></html>
+    async function load(){
+      // файл описания: /data/shows/{theatre}/{slug}.json
+      let data=null;
+      try{
+        const r = await fetch(`/data/shows/${theatre}/${slug}.json`, {cache:'no-store'});
+        if(r.ok) data = await r.json();
+      }catch{}
+      const title = data?.title || slug;
+      const city  = data?.city  || (theatre==='akademia' ? 'Кривий Ріг' : '');
+      const theatreName = data?.theatre || (theatre==='akademia' ? 'Академія руху' : 'Театр ім. Т. Г. Шевченка');
+      const poster = data?.poster ? ('/'+data.poster.replace(/^\//,'')) : `/images/posters/${theatre}/${slug}.jpg`;
+      const html = `
+        <h1>${title}</h1>
+        <p class="muted">${city ? city+' • ' : ''}${theatreName}${data?.stage ? ' • '+data.stage : ''}</p>
+        <div class="layout" style="margin-top:10px">
+          <img class="poster" src="${poster}" alt="${title}">
+          <div>
+            ${data?.description || '<p>Опис очікується найближчим часом.</p>'}
+            <p style="margin-top:16px">
+              <a class="btn" href="/spectacles/hall.html?show=${encodeURIComponent(showParam)}">Вибрати місця</a>
+            </p>
+            <p style="margin-top:12px"><a href="/afisha_akademia.html">← Назад до афіші Академії</a></p>
+          </div>
+        </div>`;
+      document.getElementById('content').innerHTML = html;
+    }
+    load();
+  </script>
+</body>
+</html>
