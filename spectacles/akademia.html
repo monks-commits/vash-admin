@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title id="page-title">Академія руху — квитки</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+    .row-label { width: 90px; color: #666; }
+    .seats { display: grid; grid-auto-flow: column; grid-auto-columns: 34px; gap: 6px; }
+    .gap { width: 34px; }
+    .seat { border: 1px solid #bbb; background: #e8e8e8; border-radius: 6px; padding: 6px 0; cursor: pointer; }
+    .seat.selected { outline: 2px solid #2b80ff; border-color: #2b80ff; font-weight: 600; background: #e8f0ff; }
+    .seat.disabled { background: #f0f0f0; border-color: #ddd; color: #aaa; cursor: not-allowed; }
+    .toolbar { display: flex; gap: 14px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
+    .toolbar .stat { background: #f6f7f9; padding: 8px 12px; border-radius: 8px; }
+    #buy-btn:disabled { opacity: .6; cursor: not-allowed; }
+    #buy-note { color: #a66; font-size: 0.95rem; }
+    .hero { display:flex; gap:16px; align-items:flex-start; margin-bottom:16px; }
+    .hero img { width: 220px; height: auto; border-radius: 8px; border:1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <header id="app-header"></header>
+
+  <main class="container">
+    <div class="hero">
+      <img id="poster-img" alt="Постер вистави" />
+      <div>
+        <h1 id="show-title">Вистава</h1>
+        <p>Дата: <span id="show-date">—</span></p>
+        <div class="toolbar">
+          <div class="stat">Обрано місць: <strong id="tickets-counter">0</strong></div>
+          <div class="stat">Сума: <strong id="total-amount">—</strong> ₴</div>
+          <button id="buy-btn" class="btn btn-primary" disabled>Придбати квитки</button>
+          <span id="buy-note"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="hall" class="hall"></div>
+  </main>
+
+  <footer id="app-footer"></footer>
+
+  <script>
+    (async () => {
+      try {
+        const h = await fetch('/partials/header.html'); 
+        if (h.ok) document.getElementById('app-header').innerHTML = await h.text();
+        const f = await fetch('/partials/footer.html'); 
+        if (f.ok) document.getElementById('app-footer').innerHTML = await f.text();
+      } catch {}
+    })();
+  </script>
+
+  <script src="/scripts/seatmap.js"></script>
+</body>
+</html>
