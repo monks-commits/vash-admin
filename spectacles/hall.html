@@ -86,197 +86,344 @@
   <script src="/scripts/include.js"></script>
 
   <script>
-    // =========== ПАРАМЕТРИ ===========
+  // ---------- чтение параметров ----------
+  const q = new URLSearchParams(location.search);
+  let theatre = q.get('theatre')?.trim().toLowerCase() || '';
+  let showParam = q.get('show')?.trim() || '';
+  let slug = '';
 
-    const params   = new URLSearchParams(location.search);
-    const theatre  = (params.get("theatre") || "akademia").toLowerCase(); // default: Академія
-    const showSlug = params.get("show") || (theatre === "shevchenko" ? "ledi" : "akakiy");
+  if (showParam.includes('/')) {
+    const [t, s] = showParam.split('/');
+    theatre = theatre || (t || '').toLowerCase();
+    slug = (s || '').toLowerCase();
+  } else {
+    slug = showParam.toLowerCase();
+  }
+  if (!theatre || !slug) {
+    document.getElementById('hall').textContent = 'Помилка: відсутні параметри show/theatre.';
+    throw new Error('Missing theatre or show slug');
+  }
 
-    document.getElementById("show-label").textContent =
-      "Вистава: " + theatre + " — " + showSlug;
+  document.getElementById('show-label').textContent = `Вистава: ${theatre} — ${slug}`;
 
-    // Дві незалежні геометрії: Шевченко та Академія
-    const GEOMS = {
-      shevchenko: {
-        ROWS: 18,
-        SEATS_PER_ROW: 20,
-        PASS_AFTER: 10,
-        BIG_GAP_AFTER_ROW: null,   // немає великого проходу
-        LEFT_PAD_BY_ROW: {}        // без зсуву першого ряду
-      },
-      akademia: {
-        ROWS: 18,
-        SEATS_PER_ROW: 23,
-        PASS_AFTER: 10,
-        BIG_GAP_AFTER_ROW: 17,     // великий прохід між 17 і 18
-        // зсув 1-го ряду: місце №1 під №7 другого ряду ⇒ 6 "порожніх" зліва
-        LEFT_PAD_BY_ROW: { 1: 6 }
+  // ---------- ссылки на DOM ----------
+  const hallEl      = document.getElementById('hall');
+  const seatCountEl = document.getElementById('seat-count');
+  const seatSumEl   = document.getElementById('seat-sum');
+  const btnCheckout = document.getElementById('to-checkout');
+
+  // ---------- состояние ----------
+  const selected = new Set();          // выбранные seatIds
+  const statusMap = new Map();         // seatId -> 'sold'|'reserved'
+  const DEFAULT_STAGE = { shevchenko: 'big', akademia: 'main' };
+
+  // fallback цены, если нет зон и нет явных цен по рядам
+  function fallbackPrice(r){
+    if (r<=1) return 170;
+    if (r<=2) return 200;
+    if (r<=3) return 200;
+    if (r<=6) return 180;
+    if (r<=8) return 170;
+    if (r<=10) return 160;
+    if (r<=12) return 140;
+    if (r<=14) return 120;
+    if (r<=16) return 100;
+    return 70;
+  }
+
+  async function fetchJSON(url){
+    const res = await fetch(url, {cache:'no-store'});
+    if (!res.ok) {
+      const err = new Error('HTTP '+res.status);
+      err.status = res.status;
+      err.url = url;
+      throw err;
+    }
+    return res.json();
+  }
+
+  // ---------- рендер ПЛОСКОГО формата ----------
+  function renderFlatHall(G, priceByRow){
+    hallEl.innerHTML = '';
+
+    const totalRows = Number(G.rows);
+    const seatsPerRowDefault = Number(G.seatsPerRow);
+    const leftPadByRow = G.leftPadByRow || {};
+    const bigGapAfterRow = G.bigGapAfterRow ? Number(G.bigGapAfterRow) : null;
+
+    function seatsInRow(r){
+      if (G.rowOverrides && G.rowOverrides[String(r)] != null) {
+        return Number(G.rowOverrides[String(r)]);
       }
-    };
-
-    // Активна геометрія
-    const G = GEOMS[theatre] || GEOMS.akademia;
-
-    // Ціни (можна розвести по театрах — поки спільні)
-    function priceForRow(r){
-      if (r<=1) return 170;
-      if (r<=2) return 200;
-      if (r<=3) return 200;
-      if (r<=6) return 180;
-      if (r<=8) return 170;
-      if (r<=10) return 160;
-      if (r<=12) return 140;
-      if (r<=14) return 120;
-      if (r<=16) return 100;
-      return 70;
+      return seatsPerRowDefault;
+    }
+    function passListForRow(r){
+      if (G.passAfterListByRow && Array.isArray(G.passAfterListByRow[String(r)])) {
+        return G.passAfterListByRow[String(r)];
+      }
+      return Array.isArray(G.passAfterListDefault) ? G.passAfterListDefault : [];
     }
 
-    // =========== РЕНДЕР ===========
+    for (let r=1; r<=totalRows; r++){
+      const rowEl = document.createElement('div');
+      rowEl.className = 'hall-row';
 
-    const hallEl       = document.getElementById("hall");
-    const selected     = new Set();
-    const seatCountEl  = document.getElementById("seat-count");
-    const seatSumEl    = document.getElementById("seat-sum");
-    const btnCheckout  = document.getElementById("to-checkout");
+      const lbl = document.createElement('div');
+      lbl.className = 'row-label';
+      lbl.textContent = r;
+      rowEl.appendChild(lbl);
 
-    // seat_id -> 'sold' | 'reserved'
-    let statusMap = new Map();
+      const pad = Number(leftPadByRow[String(r)] || 0);
+      for (let p=0; p<pad; p++){
+        const pg = document.createElement('div');
+        pg.className = 'pad-gap';
+        rowEl.appendChild(pg);
+      }
 
-    function renderHall(){
-      hallEl.innerHTML = "";
-      for (let r=1; r<=G.ROWS; r++){
-        const rowEl = document.createElement("div");
-        rowEl.className = "hall-row";
+      const seatsCount = seatsInRow(r);
+      const passes = passListForRow(r) || [];
 
-        const lbl = document.createElement("div");
-        lbl.className = "row-label";
-        lbl.textContent = r;
-        rowEl.appendChild(lbl);
-
-        // Зсув ряду (для Академії в 1-му ряду)
-        const pad = G.LEFT_PAD_BY_ROW[r] || 0;
-        for (let p=0; p<pad; p++){
-          const pg = document.createElement("div");
-          pg.className = "pad-gap";
-          rowEl.appendChild(pg);
+      for (let s=1; s<=seatsCount; s++){
+        if (passes.includes(s-1)){
+          const gap = document.createElement('div');
+          gap.className = 'pass-gap';
+          rowEl.appendChild(gap);
         }
 
-        // Місця
-        for (let s=1; s<=G.SEATS_PER_ROW; s++){
-          // Центральний прохід після PASS_AFTER
-          if (s === G.PASS_AFTER + 1){
-            const gap = document.createElement("div");
-            gap.className = "pass-gap";
-            rowEl.appendChild(gap);
+        const seatId = `P${r}-M${s}`;
+        const price  = priceByRow.get(r) ?? fallbackPrice(r);
+
+        const el = document.createElement('div');
+        el.className = 'seat available';
+        el.textContent = s;
+        el.title = `Ряд ${r}, місце ${s} — ${price} грн`;
+
+        const st = statusMap.get(seatId);
+        if (st === 'sold'){
+          el.classList.remove('available'); el.classList.add('sold');
+        } else if (st === 'reserved'){
+          el.classList.remove('available'); el.classList.add('disabled');
+        } else {
+          el.addEventListener('click', ()=>toggleSelect(el, seatId, price, r));
+        }
+
+        rowEl.appendChild(el);
+      }
+
+      hallEl.appendChild(rowEl);
+
+      if (bigGapAfterRow && r === bigGapAfterRow){
+        const sep = document.createElement('div');
+        sep.className = 'row-big-sep';
+        hallEl.appendChild(sep);
+      }
+    }
+  }
+
+  // ---------- рендер РЯДОВОГО формата (как в data/halls/akademia.json) ----------
+  function renderRowTableHall(H, priceByRow){
+    hallEl.innerHTML = '';
+
+    const rows = Array.isArray(H.rows) ? H.rows : [];
+    const bigGapAfterRow = H.bigGapAfterRow ? Number(H.bigGapAfterRow) : (theatre==='akademia' ? 17 : null);
+
+    for (const rowDef of rows){
+      const r = Number(rowDef.row);
+      const seats = Number(rowDef.seats);
+      const aisles = Array.isArray(rowDef.aisles) ? rowDef.aisles.slice().sort((a,b)=>a-b) : [];
+      const zones = Array.isArray(rowDef.zones) ? rowDef.zones : [];
+      const leftPad = Number(rowDef.leftPad || 0) || (theatre==='akademia' && r===1 && seats===11 ? 6 : 0);
+
+      const rowEl = document.createElement('div');
+      rowEl.className = 'hall-row';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'row-label';
+      lbl.textContent = r;
+      rowEl.appendChild(lbl);
+
+      for (let p=0; p<leftPad; p++){
+        const pg = document.createElement('div');
+        pg.className = 'pad-gap';
+        rowEl.appendChild(pg);
+      }
+
+      // helper: цена по зоне; если зон нет -> весь ряд закрыт (как у тебя для 7 и 18 рядов)
+      function priceFromZones(seatNum){
+        if (!zones.length) return 0; // закрыт
+        for (const z of zones){
+          const a = Number(z.from), b = Number(z.to), pr = Number(z.price);
+          if (seatNum>=a && seatNum<=b){
+            return isNaN(pr) ? 0 : pr;
           }
+        }
+        return 0; // не попал ни в одну зону -> закрыт
+      }
 
-          const seatId    = `P${r}-M${s}`;
-          const seatPrice = priceForRow(r);
+      for (let s=1; s<=seats; s++){
+        if (aisles.includes(s-1)){
+          const gap = document.createElement('div');
+          gap.className = 'pass-gap';
+          rowEl.appendChild(gap);
+        }
 
-          const el = document.createElement("div");
-          el.className = "seat available";
-          el.textContent = s;
-          el.title = `Ряд ${r}, місце ${s} — ${seatPrice} грн`;
+        const seatId = `P${r}-M${s}`;
+        // приоритет: зона -> явная цена по ряду из show.json -> фолбэк
+        let price = priceFromZones(s);
+        if (!price) price = priceByRow.get(r) ?? 0;
+        if (!price) price = (zones.length ? 0 : fallbackPrice(r));
+
+        const el = document.createElement('div');
+        el.textContent = s;
+
+        // если price == 0, считаем место закрытым
+        if (price <= 0){
+          el.className = 'seat disabled';
+          el.title = `Ряд ${r}, місце ${s} — недоступно`;
+        } else {
+          el.className = 'seat available';
+          el.title = `Ряд ${r}, місце ${s} — ${price} грн`;
 
           const st = statusMap.get(seatId);
-          if (st === "sold"){
-            el.classList.remove("available");
-            el.classList.add("sold");
-          } else if (st === "reserved"){
-            el.classList.remove("available");
-            el.classList.add("selected");
+          if (st === 'sold'){
+            el.classList.remove('available'); el.classList.add('sold');
+          } else if (st === 'reserved'){
+            el.classList.remove('available'); el.classList.add('disabled');
           } else {
-            el.addEventListener("click", ()=>{
-              if (el.classList.contains("selected")){
-                el.classList.remove("selected");
-                el.classList.add("available");
-                selected.delete(seatId);
-              } else {
-                el.classList.remove("available");
-                el.classList.add("selected");
-                selected.add(seatId);
-              }
-              updateSummary();
-            });
+            el.addEventListener('click', ()=>toggleSelect(el, seatId, price, r));
           }
-
-          rowEl.appendChild(el);
         }
 
-        hallEl.appendChild(rowEl);
+        rowEl.appendChild(el);
+      }
 
-        // Великий вертикальний прохід (тільки для Академії)
-        if (G.BIG_GAP_AFTER_ROW && r === G.BIG_GAP_AFTER_ROW){
-          const sep = document.createElement("div");
-          sep.className = "row-big-sep";
-          hallEl.appendChild(sep);
-        }
+      hallEl.appendChild(rowEl);
+
+      if (bigGapAfterRow && r === bigGapAfterRow){
+        const sep = document.createElement('div');
+        sep.className = 'row-big-sep';
+        hallEl.appendChild(sep);
       }
     }
+  }
 
-    function updateSummary(){
-      const ids = [...selected];
-      seatCountEl.textContent = ids.length;
-      const sum = ids.reduce((acc, id)=>{
-        const row = parseInt(id.split("-")[0].slice(1),10);
-        return acc + priceForRow(row);
-      }, 0);
-      seatSumEl.textContent = sum;
-      btnCheckout.disabled = (ids.length === 0);
+  // ---------- выбор / суммы ----------
+  function toggleSelect(el, seatId, price, row){
+    if (el.classList.contains('selected')){
+      el.classList.remove('selected');
+      el.classList.add('available');
+      selected.delete(seatId);
+    } else {
+      el.classList.remove('available');
+      el.classList.add('selected');
+      selected.add(seatId);
     }
+    updateSummary();
+  }
 
-    // =========== СТАТУСИ (опціонально з Supabase) ===========
+  function updateSummary(){
+    const ids = [...selected];
+    seatCountEl.textContent = ids.length;
+    const sum = ids.reduce((acc, id)=>{
+      const row = parseInt(id.split('-')[0].slice(1),10);
+      // сумма уже считается клик-временем по цене конкретного места,
+      // здесь оставим резервный фолбэк на случай, если придётся пересчитать
+      return acc + 0;
+    }, 0);
+    // Чтобы сумма работала корректно, лучше хранить цену для seatId:
+    // Простой вариант — закодировать цену в title и парсить,
+    // но короче — пересчитаем по DOM:
+    let total = 0;
+    document.querySelectorAll('.seat.selected').forEach(el=>{
+      const title = el.getAttribute('title') || '';
+      const m = title.match(/—\s*(\d+)\s*грн/);
+      if (m) total += Number(m[1]||0);
+    });
+    seatSumEl.textContent = total;
+    btnCheckout.disabled = (ids.length === 0);
+  }
 
-    (async function tryFetchStatuses(){
+  // ---------- загрузка show + hall + статусы ----------
+  (async function boot(){
+    try {
+      // show.json
+      const showURL = `/data/shows/${theatre}/${slug}.json`;
+      const show = await fetchJSON(showURL);
+
+      // цены по рядам из show.json (если есть)
+      const priceByRow = new Map();
+      if (Array.isArray(show.rows)){
+        show.rows.forEach(r=>{
+          const rowNum = Number(r.row), pr = Number(r.price);
+          if (!isNaN(rowNum) && !isNaN(pr)) priceByRow.set(rowNum, pr);
+        });
+      }
+
+      // hall.json: сначала вложенный путь, затем плоский
+      const stage = (show.stage || DEFAULT_STAGE[theatre] || 'main').toLowerCase();
+      let H = null;
       try{
+        H = await fetchJSON(`/data/halls/${theatre}/${stage}.json`);
+      }catch(e){
+        if (e.status === 404) {
+          H = await fetchJSON(`/data/halls/${theatre}.json`);
+        } else throw e;
+      }
+
+      // статусы мест (опционально)
+      try {
         const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // очікуємо таблицю bookings зі стовпцями: show_slug, seat_id, status, expires_at
         const { data, error } = await sb
           .from("bookings")
           .select("seat_id,status,expires_at")
-          .eq("show_slug", `${theatre}/${showSlug}`);
+          .eq("show_slug", `${theatre}/${slug}`);
 
         if (!error && Array.isArray(data)){
           const nowIso = new Date().toISOString();
           data.forEach(row=>{
-            if (row.status === "reserved" && row.expires_at && row.expires_at < nowIso) return;
+            if (row.status === 'reserved' && row.expires_at && row.expires_at < nowIso) return;
             statusMap.set(row.seat_id, row.status);
           });
         }
-      } catch(e){
-        console.warn("Статуси місць недоступні:", e.message);
-      } finally {
-        renderHall();
+      } catch(e) { console.warn('Статуси місць недоступні:', e.message); }
+
+      // выберем рендер в зависимости от формы данных
+      if (Array.isArray(H.rows) && H.rows.length && typeof H.rows[0] === 'object' && 'row' in H.rows[0]){
+        renderRowTableHall(H, priceByRow);     // твой формат Академії
+      } else {
+        renderFlatHall(H, priceByRow);         // плоский формат (Шевченко)
       }
-    })();
+    } catch (e){
+      console.error(e);
+      hallEl.textContent = 'Не вдалося завантажити схему залу.';
+    }
+  })();
 
-    // =========== ПЕРЕХІД ДО ОПЛАТИ ===========
+  // ---------- переход к оплате ----------
+  document.getElementById('to-checkout').addEventListener('click', ()=>{
+    const ids = [...selected];
+    const sum = Number(seatSumEl.textContent) || 0;
 
-    document.getElementById("to-checkout").addEventListener("click", ()=>{
-      const ids = [...selected];
-      const sum = Number(seatSumEl.textContent) || 0;
+    const name  = document.getElementById('buyer-name').value.trim();
+    const phone = document.getElementById('buyer-phone').value.trim();
+    const email = document.getElementById('buyer-email').value.trim();
 
-      const name  = document.getElementById("buyer-name").value.trim();
-      const phone = document.getElementById("buyer-phone").value.trim();
-      const email = document.getElementById("buyer-email").value.trim();
+    const orderId = (theatre === 'shevchenko' ? 'SHEV-' : 'AKAD-') + Date.now();
 
-      const prefix  = theatre === "shevchenko" ? "SHEV" : "AKAD";
-      const orderId = `${prefix}-` + Date.now();
+    const url = new URL(location.origin + '/checkout.html');
+    url.searchParams.set('show', `${theatre}/${slug}`);
+    url.searchParams.set('seats', ids.join(','));
+    url.searchParams.set('amount', String(sum));
+    url.searchParams.set('order_id', orderId);
+    if (name)  url.searchParams.set('name', name);
+    if (phone) url.searchParams.set('phone', phone);
+    if (email) url.searchParams.set('email', email);
+    location.href = url.toString();
+  });
+</script>
 
-      const url = new URL(location.origin + "/checkout.html");
-      url.searchParams.set("show", `${theatre}/${showSlug}`);
-      url.searchParams.set("seats", ids.join(","));
-      url.searchParams.set("amount", String(sum));
-      url.searchParams.set("order_id", orderId);
-      if (name)  url.searchParams.set("name", name);
-      if (phone) url.searchParams.set("phone", phone);
-      if (email) url.searchParams.set("email", email);
-
-      location.href = url.toString();
-    });
-  </script>
 </body>
 </html>
