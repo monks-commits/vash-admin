@@ -17,30 +17,36 @@
   </style>
 </head>
 <body>
+  <div id="site-header"></div>
+  <script type="module" src="/scripts/include.js"></script>
+
   <main class="wrap">
     <h1 class="h1">Академія руху — Афіша</h1>
     <div id="grid" class="grid"></div>
     <div id="empty" class="empty" style="display:none">Наразі афіша порожня.</div>
   </main>
 
-  <script>
-    const GRID = document.getElementById('grid');
-    const EMPTY = document.getElementById('empty');
+  <div id="site-footer"></div>
 
-    async function load() {
+  <script>
+    (async function () {
+      const GRID = document.getElementById('grid');
+      const EMPTY = document.getElementById('empty');
       try {
-        const res = await fetch('/data/posters/akademia.json', {cache:'no-store'});
-        if (!res.ok) throw new Error('not ok');
+        // JSON существует: /data/posters/akademia.json
+        const res = await fetch('/data/posters/akademia.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load posters');
         const shows = await res.json();
-        if (!Array.isArray(shows) || !shows.length) {
+
+        if (!Array.isArray(shows) || shows.length === 0) {
           EMPTY.style.display = 'block';
           return;
         }
+
         GRID.innerHTML = shows.map(s => {
           const poster = s.poster || `/images/posters/akademia/${s.slug}.jpg`;
-          - const href = `/spectacles/akademia.html?show=${encodeURIComponent(s.slug)}`;
-+ const href = `/show_akademia.html?show=${encodeURIComponent(s.slug)}`;
-
+          // идём СНАЧАЛА на страницу описания
+          const href = `/show_akademia.html?show=${encodeURIComponent(s.slug)}`;
           return `
             <article class="card">
               <a href="${href}">
@@ -49,11 +55,11 @@
               </a>
             </article>`;
         }).join('');
-      } catch {
+      } catch (e) {
+        console.error(e);
         EMPTY.style.display = 'block';
       }
-    }
-    load();
+    })();
   </script>
 </body>
 </html>
