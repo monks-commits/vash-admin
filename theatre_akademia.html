@@ -1,29 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Академія Руху — афіша | Ваш Адмін</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Академія руху — зал та квитки</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .legend { margin: 12px 0; padding: 0 0 0 18px; }
+    .sector { margin: 16px 0 28px; }
+    .row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+    .row-label { width: 90px; color: #666; }
+    .seats { display: grid; grid-template-columns: repeat(12, 34px); gap: 6px; }
+    .seat { border: 1px solid #ccc; border-radius: 6px; padding: 6px 0; cursor: pointer; }
+    .seat.selected { outline: 2px solid #2b80ff; border-color: #2b80ff; font-weight: 600; }
+    .toolbar { display: flex; gap: 14px; align-items: center; margin: 16px 0; }
+    .toolbar .stat { background: #f6f7f9; padding: 8px 12px; border-radius: 8px; }
+    #buy-btn:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
 </head>
 <body>
-  <div id="site-header"></div>
 
-  <main class="main">
-    <div class="section" style="display:grid;grid-template-columns:260px 1fr;gap:16px">
-      <img src="images/akademia.jpg" alt="Академія Руху" style="width:100%;border-radius:12px;object-fit:cover" />
-      <div>
-        <h1 style="margin:0 0 8px">Академія Руху</h1>
-        <div class="meta">Дніпро</div>
-        <p class="meta" style="margin-top:8px">Офіційний продаж без комісій.</p>
-        <div style="margin-top:12px">
-          <a class="btn" href="afisha.html?city=Дніпро&theatre=Академія%20Руху">Перейти до афіші</a>
-        </div>
-      </div>
+  <header id="app-header"></header>
+
+  <main class="container">
+    <h1>Академія руху</h1>
+
+    <ul id="price-legend" class="legend"></ul>
+
+    <div class="toolbar">
+      <div class="stat">Обрано місць: <strong id="tickets-counter">0</strong></div>
+      <div class="stat">Сума: <strong id="total-amount">0</strong> ₴</div>
+      <button id="buy-btn" class="btn btn-primary" disabled>Придбати квитки</button>
     </div>
+
+    <div id="hall" class="hall"></div>
   </main>
 
-  <div id="site-footer"></div>
-  <script type="module" src="scripts/include.js"></script>
+  <footer id="app-footer"></footer>
+
+  <script>
+    (async () => {
+      try {
+        const h = await fetch('/partials/header.html'); 
+        if (h.ok) document.getElementById('app-header').innerHTML = await h.text();
+        const f = await fetch('/partials/footer.html'); 
+        if (f.ok) document.getElementById('app-footer').innerHTML = await f.text();
+      } catch {}
+    })();
+  </script>
+
+  <script src="/scripts/seatmap-akademia.js"></script>
 </body>
 </html>
