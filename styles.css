@@ -282,3 +282,17 @@ body, html, .main{
   font-size:14px; color:#0f172a; padding:6px 0; border-bottom:1px dotted #e5e7eb;
 }
 .row-price .dots{ flex:1 1 auto; border-bottom:1px dotted #e5e7eb; height:0; }
+
+/* Центровка схемы зала на странице спектакля */
+.hall-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.hall-rows {
+  display: inline-block;
+  text-align: center;
+}
+
