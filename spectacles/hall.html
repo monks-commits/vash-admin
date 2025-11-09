@@ -10,27 +10,27 @@
     main { max-width:1100px; margin:0 auto; padding:24px 16px 50px; }
 
     .hall-wrap { background:#fff; border-radius:14px; padding:22px; margin-bottom:24px; }
-    .hall-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .hall-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:nowrap; }
     .row-label { width:26px; text-align:right; font-size:12px; color:#475569; flex:0 0 26px; }
 
     .seat {
       width:36px; height:36px; border-radius:10px;
       display:flex; align-items:center; justify-content:center;
       border:1px solid #d0d5dd; background:#fff; color:#0f172a;
-      font-size:13px; user-select:none; transition:.15s; cursor:default;
+      font-size:13px; user-select:none; transition:.15s; cursor:pointer;
+      box-sizing:border-box;
     }
-
-    .seat.disabled { background:#eceff3; border-color:#e3e8ef; color:#94a3b8; cursor:not-allowed; }
-    .seat.available { background:#fde68a; border-color:#fbbf24; cursor:pointer; }
+    .seat.available { background:#fde68a; border-color:#fbbf24; }
     .seat.available:hover { filter:brightness(0.97); }
     .seat.selected  { background:#ef4444; border-color:#ef4444; color:#fff; }
     .seat.sold      { background:#22c55e; border-color:#16a34a; color:#fff; cursor:not-allowed; }
+    .seat.disabled  { background:#eceff3; border-color:#e3e8ef; color:#94a3b8; cursor:not-allowed; }
 
-    .pass-gap { width:36px; height:1px; flex:0 0 36px; }
-    .pad-gap  { width:36px; height:1px; flex:0 0 36px; } /* искусственный «отступ» слева */
+    .pass-gap { width:36px; height:1px; flex:0 0 36px; } /* центральний прохід */
+    .pad-gap  { width:36px; height:1px; flex:0 0 36px; } /* «порожня» клітинка для зсуву ряду */
 
-    .row-sep  { height:24px; }          /* обычная межрядовая дистанция (если понадобится) */
-    .row-big-sep { height:34px; }       /* большой проход между 17 и 18 рядами */
+    .row-sep      { height:18px; }        /* звичайний вертикальний інтервал */
+    .row-big-sep  { height:34px; }        /* великий прохід (між 17 і 18 для Академії) */
 
     .order-form { background:#fff; border-radius:14px; padding:22px; }
     .flex-row { display:flex; gap:12px; flex-wrap:wrap; }
@@ -43,6 +43,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- header -->
   <div id="site-header"></div>
 
   <main>
@@ -75,35 +76,48 @@
       </p>
       <button id="to-checkout" class="primary-btn" disabled>Перейти до оплати</button>
       <p class="muted" style="margin-top:10px;">
-        * Опція вибору і ціни працюють звично; для Академії застосована своя геометрія залу.
+        Геометрія залу автоматично підлаштовується під театр (Шевченко / Академія).
       </p>
     </div>
   </main>
 
+  <!-- footer -->
   <div id="site-footer"></div>
   <script src="/scripts/include.js"></script>
 
   <script>
-    // -------- ПАРАМЕТРИ ЗАЛУ ДЛЯ АКАДЕМІЇ --------
-    const params = new URLSearchParams(location.search);
-    const theatre = params.get("theatre") || "akademia";
-    const showSlug = params.get("show") || "akakiy";
+    // =========== ПАРАМЕТРИ ===========
+
+    const params   = new URLSearchParams(location.search);
+    const theatre  = (params.get("theatre") || "akademia").toLowerCase(); // default: Академія
+    const showSlug = params.get("show") || (theatre === "shevchenko" ? "ledi" : "akakiy");
 
     document.getElementById("show-label").textContent =
       "Вистава: " + theatre + " — " + showSlug;
 
-    // базовая геометрия (как у тебя сейчас)
-    const ROWS = 18;
-    const SEATS_PER_ROW = 23;      // твой текущий правый блок до 23
-    const PASS_AFTER = 10;         // центральный проход после 10 места
+    // Дві незалежні геометрії: Шевченко та Академія
+    const GEOMS = {
+      shevchenko: {
+        ROWS: 18,
+        SEATS_PER_ROW: 20,
+        PASS_AFTER: 10,
+        BIG_GAP_AFTER_ROW: null,   // немає великого проходу
+        LEFT_PAD_BY_ROW: {}        // без зсуву першого ряду
+      },
+      akademia: {
+        ROWS: 18,
+        SEATS_PER_ROW: 23,
+        PASS_AFTER: 10,
+        BIG_GAP_AFTER_ROW: 17,     // великий прохід між 17 і 18
+        // зсув 1-го ряду: місце №1 під №7 другого ряду ⇒ 6 "порожніх" зліва
+        LEFT_PAD_BY_ROW: { 1: 6 }
+      }
+    };
 
-    // 1) Сдвиг 1-го ряда: 1-е место под 7-м второго ⇒ нужно 6 «пустых мест» слева
-    const LEFT_PAD_BY_ROW = { 1: 6 };
+    // Активна геометрія
+    const G = GEOMS[theatre] || GEOMS.akademia;
 
-    // 2) Большой вертикальный проход после 17-го ряда
-    const BIG_GAP_AFTER_ROW = 17;
-
-    // цены по рядам — оставляю как было (при необходимости правь)
+    // Ціни (можна розвести по театрах — поки спільні)
     function priceForRow(r){
       if (r<=1) return 170;
       if (r<=2) return 200;
@@ -117,19 +131,20 @@
       return 70;
     }
 
-    // -------- РЕНДЕР --------
-    const hallEl = document.getElementById("hall");
-    const selected = new Set();
-    const seatCountEl = document.getElementById("seat-count");
-    const seatSumEl   = document.getElementById("seat-sum");
-    const btnCheckout = document.getElementById("to-checkout");
+    // =========== РЕНДЕР ===========
 
-    let statusMap = new Map(); // seat_id -> 'sold' | 'reserved'
+    const hallEl       = document.getElementById("hall");
+    const selected     = new Set();
+    const seatCountEl  = document.getElementById("seat-count");
+    const seatSumEl    = document.getElementById("seat-sum");
+    const btnCheckout  = document.getElementById("to-checkout");
+
+    // seat_id -> 'sold' | 'reserved'
+    let statusMap = new Map();
 
     function renderHall(){
       hallEl.innerHTML = "";
-
-      for (let r=1; r<=ROWS; r++){
+      for (let r=1; r<=G.ROWS; r++){
         const rowEl = document.createElement("div");
         rowEl.className = "hall-row";
 
@@ -138,22 +153,24 @@
         lbl.textContent = r;
         rowEl.appendChild(lbl);
 
-        // вставляем «левую подкладку» (сдвиг ряда) если нужна
-        const pad = LEFT_PAD_BY_ROW[r] || 0;
+        // Зсув ряду (для Академії в 1-му ряду)
+        const pad = G.LEFT_PAD_BY_ROW[r] || 0;
         for (let p=0; p<pad; p++){
           const pg = document.createElement("div");
           pg.className = "pad-gap";
           rowEl.appendChild(pg);
         }
 
-        for (let s=1; s<=SEATS_PER_ROW; s++){
-          if (s === PASS_AFTER + 1){
+        // Місця
+        for (let s=1; s<=G.SEATS_PER_ROW; s++){
+          // Центральний прохід після PASS_AFTER
+          if (s === G.PASS_AFTER + 1){
             const gap = document.createElement("div");
             gap.className = "pass-gap";
             rowEl.appendChild(gap);
           }
 
-          const seatId = `P${r}-M${s}`;
+          const seatId    = `P${r}-M${s}`;
           const seatPrice = priceForRow(r);
 
           const el = document.createElement("div");
@@ -188,8 +205,8 @@
 
         hallEl.appendChild(rowEl);
 
-        // большой проход между 17 и 18
-        if (r === BIG_GAP_AFTER_ROW){
+        // Великий вертикальний прохід (тільки для Академії)
+        if (G.BIG_GAP_AFTER_ROW && r === G.BIG_GAP_AFTER_ROW){
           const sep = document.createElement("div");
           sep.className = "row-big-sep";
           hallEl.appendChild(sep);
@@ -208,13 +225,15 @@
       btnCheckout.disabled = (ids.length === 0);
     }
 
-    // -------- ПОДХВАТ СТАТУСОВ (опционально) --------
+    // =========== СТАТУСИ (опціонально з Supabase) ===========
+
     (async function tryFetchStatuses(){
       try{
         const SUPABASE_URL = "https://yqhzekifwxotizsmaeaf.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_z1h_G-7K7HGCjOUtRZpI9Q_o1m9inZM";
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // очікуємо таблицю bookings зі стовпцями: show_slug, seat_id, status, expires_at
         const { data, error } = await sb
           .from("bookings")
           .select("seat_id,status,expires_at")
@@ -234,7 +253,8 @@
       }
     })();
 
-    // -------- ПЕРЕХОД К ОПЛАТЕ --------
+    // =========== ПЕРЕХІД ДО ОПЛАТИ ===========
+
     document.getElementById("to-checkout").addEventListener("click", ()=>{
       const ids = [...selected];
       const sum = Number(seatSumEl.textContent) || 0;
@@ -243,7 +263,8 @@
       const phone = document.getElementById("buyer-phone").value.trim();
       const email = document.getElementById("buyer-email").value.trim();
 
-      const orderId = "AKAD-" + Date.now();
+      const prefix  = theatre === "shevchenko" ? "SHEV" : "AKAD";
+      const orderId = `${prefix}-` + Date.now();
 
       const url = new URL(location.origin + "/checkout.html");
       url.searchParams.set("show", `${theatre}/${showSlug}`);
