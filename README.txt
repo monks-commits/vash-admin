@@ -1,43 +1,51 @@
-# Патч: Академія руху — карта зала + лічильник + передача в checkout
+# Академія руху — сірий зал + проходи + майбутні ціни/квоти
 
-**Структура для копирования в ваш репозиторий (`vash-admin`)**:
+Файли для копіювання в репозиторій (`vash-admin`):
 ```
-/data/akademia_hall.json
+/data/akademia_layout.json
 /scripts/seatmap-akademia.js
-/theatre_akademia.html   (если у вас уже есть — сравните и слейте изменения)
+/theatre_akademia.html
 ```
 
-## Быстрые шаги
-1) Скопируйте файлы из этого архива в корень репозитория, соблюдая папки `/data` и `/scripts`.
-2) Откройте `/theatre_akademia.html` — проверьте, что страница подхватывает общий `header.html` и `footer.html` из `/partials/`.
-3) Отредактируйте цены/ряды в `/data/akademia_hall.json` под реальную схему Академії.
-4) Убедитесь, что `checkout.html` на вашей стороне читает `localStorage.selectedTickets`. Если нет — добавьте фрагмент:
-```html
-<div id="selected-list"></div>
-<p><strong>До сплати:</strong> <span id="selected-total">0</span> ₴</p>
-<script>
-  (function () {
-    const box = document.getElementById('selected-list');
-    const totalEl = document.getElementById('selected-total');
-    const raw = localStorage.getItem('selectedTickets');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    let sum = 0;
-    box.innerHTML = '';
-    data.seats.forEach(item => {
-      sum += item.price;
-      const p = document.createElement('p');
-      p.textContent = `Ряд ${item.row}, Місце ${item.seat} — ${item.price} ₴`;
-      box.appendChild(p);
-    });
-    totalEl.textContent = sum.toString();
-  })();
-</script>
-```
-5) Залейте изменения и задеплойте на GitHub Pages/Vercel.
+## Що вже працює
+- Весь зал відмальовується **сірим**; місця **клікабельні**, рахуються у лічильнику.
+- **Проходи** задаються нулем у масиві `segments` (0 = gap).
+- Якщо ціни **не призначені**, сума показує «—», а кнопка «Придбати квитки» — **неактивна**.
+- Коли додаси ціни — сума рахується, і кнопка стане активною.
 
-## Примечания
-- По умолчанию сетка мест рассчитана на 12 кресел в ряду (подстроить можно через `grid-template-columns` в `<style>` или в `styles.css`).
-- Кнопка «Придбати квитки» активируется только при наличии выбранных мест.
-- Выбор сохраняется в `localStorage` и переносится на `checkout.html`.
-- Для блокировки проданных мест можно будет добавить массив `disabled: ["ряд-місце"]` в JSON и отмечать их классом `.seat.disabled` в скрипте.
+## Як задати кількість місць і проходи
+Відкрий `/data/akademia_layout.json`:
+```
+"rows": [
+  { "row": 1, "segments": [11, 0, 17, 0, 11] },
+  ...
+]
+```
+- Число = кількість місць у сегменті.
+- `0` = прохід шириною в одне місце.
+- Нумерація місць іде **без урахування проходів** (1,2,3… по всьому ряду).
+
+## Як увімкнути ціни (коли з'являться квоти)
+Є два способи — обирай зручний:
+1. **По рядам (зони):**
+```
+"zones": [
+  { "label": "Преміум", "price": 220, "rows": [1,2,3] },
+  { "label": "Стандарт", "price": 200, "rows": [4,5,6] }
+]
+```
+2. **Точково по місцях (пріоритет вище за зони):**
+```
+"seatPrices": {
+  "1-5": 220,
+  "7-10": 180
+}
+```
+
+> Після того як ціни з'являться, **кнопка покупки розблокується** (або постав `"allowUnpricedCheckout": true`, якщо хочеш дозволити оформлення без цін).
+
+## Як вимкнути чужі/зайві місця
+Додай у `disabled` ключі `"ряд-місце"`, наприклад:
+```
+"disabled": ["1-1", "1-2", "10-17"]
+```
