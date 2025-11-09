@@ -29,24 +29,21 @@
   <div id="site-footer"></div>
 
   <script>
-    (async function () {
-      const GRID = document.getElementById('grid');
-      const EMPTY = document.getElementById('empty');
-      try {
-        // JSON существует: /data/posters/akademia.json
-        const res = await fetch('/data/posters/akademia.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to load posters');
-        const shows = await res.json();
+    const GRID = document.getElementById('grid');
+    const EMPTY = document.getElementById('empty');
 
-        if (!Array.isArray(shows) || shows.length === 0) {
+    async function load() {
+      try {
+        const res = await fetch('/data/posters/akademia.json', {cache:'no-store'});
+        if (!res.ok) throw new Error('not ok');
+        const shows = await res.json();
+        if (!Array.isArray(shows) || !shows.length) {
           EMPTY.style.display = 'block';
           return;
         }
-
         GRID.innerHTML = shows.map(s => {
           const poster = s.poster || `/images/posters/akademia/${s.slug}.jpg`;
-          // идём СНАЧАЛА на страницу описания
-          const href = `/show_akademia.html?show=${encodeURIComponent(s.slug)}`;
+          const href = `/show.html?show=${encodeURIComponent('akademia/' + s.slug)}`; // ЕДИНЫЙ ФОРМАТ
           return `
             <article class="card">
               <a href="${href}">
@@ -55,11 +52,11 @@
               </a>
             </article>`;
         }).join('');
-      } catch (e) {
-        console.error(e);
+      } catch {
         EMPTY.style.display = 'block';
       }
-    })();
+    }
+    load();
   </script>
 </body>
 </html>
