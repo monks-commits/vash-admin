@@ -1,0 +1,70 @@
+{
+  "venue": "Академія руху (Дніпро)",
+  "currency": "UAH",
+  "sectors": [
+    {
+      "name": "Партер",
+      "rows": [
+        {
+          "row": 1,
+          "seats": 12,
+          "price": 250
+        },
+        {
+          "row": 2,
+          "seats": 12,
+          "price": 250
+        },
+        {
+          "row": 3,
+          "seats": 12,
+          "price": 250
+        },
+        {
+          "row": 4,
+          "seats": 12,
+          "price": 200
+        },
+        {
+          "row": 5,
+          "seats": 12,
+          "price": 200
+        },
+        {
+          "row": 6,
+          "seats": 12,
+          "price": 200
+        },
+        {
+          "row": 7,
+          "seats": 12,
+          "price": 150
+        },
+        {
+          "row": 8,
+          "seats": 12,
+          "price": 150
+        },
+        {
+          "row": 9,
+          "seats": 12,
+          "price": 150
+        }
+      ]
+    }
+  ],
+  "priceLegend": [
+    {
+      "label": "Преміум",
+      "price": 250
+    },
+    {
+      "label": "Стандарт",
+      "price": 200
+    },
+    {
+      "label": "Економ",
+      "price": 150
+    }
+  ]
+}
