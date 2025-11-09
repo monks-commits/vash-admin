@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Вистава — Академія руху</title>
+  <link rel="stylesheet" href="/styles.css"/>
+  <style>
+    .wrap{max-width:1200px;margin:0 auto;padding:24px 16px;}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start}
+    .poster{width:100%;border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.12)}
+    .h1{font-size:clamp(26px,4vw,42px);font-weight:800;margin:0 0 12px}
+    .meta{color:#6b7280;margin:6px 0 18px}
+    .btn{display:inline-block;background:#628ef7;color:#fff;padding:10px 16px;border-radius:10px;font-weight:700}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+  <script type="module" src="/scripts/include.js"></script>
+
+  <main class="wrap">
+    <div id="view" class="grid"></div>
+    <p style="margin-top:16px">
+      <a href="/afisha_akademia.html">← Назад до афіші Академії</a>
+    </p>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('show');
+    const VIEW = document.getElementById('view');
+
+    async function load() {
+      try {
+        const res = await fetch('/data/shows/akademia/index.json', {cache:'no-store'});
+        const list = await res.json();
+        const s = list.find(x => x.slug === slug);
+        if (!s) { VIEW.innerHTML = '<p>Вистава не знайдена.</p>'; return; }
+
+        const when = s.datetime ? new Date(s.datetime) : null;
+        const whenStr = when ? when.toLocaleString('uk-UA', { dateStyle:'medium', timeStyle:'short'}) : '—';
+
+        VIEW.innerHTML = `
+          <img class="poster" src="${s.poster}" alt="${s.title}">
+          <section>
+            <h1 class="h1">${s.title} ${s.subtitle ? `— ${s.subtitle}` : ''}</h1>
+            <div class="meta">${s.city||'Кривий Ріг'} • Академія руху${s.stage?` • ${s.stage}`:''}</div>
+            ${s.price_hint ? `<p><i>${s.price_hint}</i></p>`:''}
+            <p style="margin:8px 0 16px">Дата і час: <b>${whenStr}</b></p>
+            <article style="line-height:1.6;white-space:pre-wrap">${s.description||''}</article>
+            <p style="margin-top:18px">
+              <a class="btn" href="/theatre_akademia.html?show=${encodeURIComponent(slug)}">Вибрати місця</a>
+            </p>
+          </section>
+        `;
+      } catch (e) {
+        VIEW.innerHTML = '<p>Не вдалося завантажити опис вистави.</p>';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
