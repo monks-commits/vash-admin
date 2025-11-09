@@ -1,0 +1,77 @@
+[
+  {
+    "slug": "akakiy",
+    "title": "Акакій",
+    "poster": "/images/posters/akademia/akakiy.jpg"
+  },
+  {
+    "slug": "chorni-doshky",
+    "title": "Чорні дошки",
+    "poster": "/images/posters/akademia/chorni-doshky.jpg"
+  },
+  {
+    "slug": "khem",
+    "title": "ХЕМ",
+    "poster": "/images/posters/akademia/khem.jpg"
+  },
+  {
+    "slug": "omriyani-zori",
+    "title": "Омріяні зорі",
+    "poster": "/images/posters/akademia/omriyani-zori.jpg"
+  },
+  {
+    "slug": "peppi-dovhapanchokha",
+    "title": "Пеппі Довгапанчоха",
+    "poster": "/images/posters/akademia/peppi-dovhapanchokha.jpg"
+  },
+  {
+    "slug": "piter-pen",
+    "title": "Пітер Пен",
+    "poster": "/images/posters/akademia/piter-pen.jpg"
+  },
+  {
+    "slug": "refleksiya",
+    "title": "Рефлексія",
+    "poster": "/images/posters/akademia/refleksiya.jpg"
+  },
+  {
+    "slug": "rusalonka",
+    "title": "Русалонька",
+    "poster": "/images/posters/akademia/rusalonka.jpg"
+  },
+  {
+    "slug": "sonechko-vseredyni",
+    "title": "Сонечко всередині",
+    "poster": "/images/posters/akademia/sonechko-vseredyni.jpg"
+  },
+  {
+    "slug": "spivy-sontsya-i-tini",
+    "title": "Співи сонця і тіні",
+    "poster": "/images/posters/akademia/spivy-sontsya-i-tini.jpg"
+  },
+  {
+    "slug": "vsi-myshi-lyublyat-syr",
+    "title": "Всі миші люблять сир",
+    "poster": "/images/posters/akademia/vsi-myshi-lyublyat-syr.jpg"
+  },
+  {
+    "slug": "zalyshaysya-soboyu",
+    "title": "Залишайся собою",
+    "poster": "/images/posters/akademia/zalyshaysya-soboyu.jpg"
+  },
+  {
+    "slug": "zapysky-bozhevylnoho",
+    "title": "Записки божевільного",
+    "poster": "/images/posters/akademia/zapysky-bozhevylnoho.jpg"
+  },
+  {
+    "slug": "pokahontas",
+    "title": "Покахонтас",
+    "poster": "/images/posters/akademia/pokahontas.jpg"
+  },
+  {
+    "slug": "sumnyy-vals",
+    "title": "Сумний вальс",
+    "poster": "/images/posters/akademia/sumnyy-vals.jpg"
+  }
+]
