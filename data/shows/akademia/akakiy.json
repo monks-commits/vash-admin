@@ -1,17 +1,38 @@
 {
-  "slug": "akakiy",
-  "title": "Акакій",
-  "date": "",
-  "poster": "/images/posters/akademia/akakiy.jpg",
-  "allowUnpricedCheckout": false,
-  "description": "Пластична драма за мотивами «Шинелі» М. Гоголя — про «маленьку людину», що на смертному ложі переживає своє життя. Мрія про нову шинель, байдужість начальства, втрата і останній польот душі до свободи. Роздуми про крихкість щастя і людську гідність.",
-  "duration": "",
-  "location": "м. Кривий Ріг, вул. Шурупова, 3",
-  "contacts": [
-    "067-357-70-55",
-    "067-357-70-56"
-  ],
-  "seatPrices": {},
-  "zones": [],
-  "disabled": []
+  "title": "Акакій — пластична драма",
+  "stage": "",
+  "city": "Кривий Ріг",
+  "theatre": "Академія руху",
+  "poster": "images/posters/akademia/akakiy.jpg",
+  "description": "<p>Історія маленької людини, яка на смертному ложі знов переживає своє життя. Канцелярська рутина перетворила його на безпристрасну істоту. Нова шинель стала нав’язливою мрією і відчуттям щастя, але втрата та байдужість начальства зламують героя. Душа дає йому останній шанс — відчути свободу і політ над світом марних пристрастей.</p>",
+
+  "reserved": [],
+  "sell_mode": "only",
+  "available": [],
+
+  "rows": [
+    { "section": "parter", "row": 1,  "seats": 11, "aisles": [],          "price": 220 },
+
+    { "section": "parter", "row": 2,  "seats": 23, "aisles": [6,17],      "price": 200 },
+    { "section": "parter", "row": 3,  "seats": 23, "aisles": [6,17],      "price": 200 },
+    { "section": "parter", "row": 4,  "seats": 23, "aisles": [6,17],      "price": 200 },
+    { "section": "parter", "row": 5,  "seats": 23, "aisles": [6,17],      "price": 200 },
+    { "section": "parter", "row": 6,  "seats": 23, "aisles": [6,17],      "price": 200 },
+
+    { "section": "parter", "row": 7,  "seats": 23, "aisles": [6,17],      "price": 0   },
+
+    { "section": "parter", "row": 8,  "seats": 23, "aisles": [6,17],      "price": 180 },
+    { "section": "parter", "row": 9,  "seats": 23, "aisles": [6,17],      "price": 180 },
+    { "section": "parter", "row": 10, "seats": 23, "aisles": [6,17],      "price": 180 },
+    { "section": "parter", "row": 11, "seats": 23, "aisles": [6,17],      "price": 180 },
+    { "section": "parter", "row": 12, "seats": 23, "aisles": [6,17],      "price": 180 },
+    { "section": "parter", "row": 13, "seats": 23, "aisles": [6,17],      "price": 180 },
+
+    { "section": "parter", "row": 14, "seats": 23, "aisles": [6,17],      "price": 120 },
+    { "section": "parter", "row": 15, "seats": 23, "aisles": [6,17],      "price": 120 },
+    { "section": "parter", "row": 16, "seats": 23, "aisles": [6,17],      "price": 120 },
+    { "section": "parter", "row": 17, "seats": 23, "aisles": [6,17],      "price": 120 },
+
+    { "section": "parter", "row": 18, "seats": 20, "aisles": [10],        "price": 0   }
+  ]
 }
