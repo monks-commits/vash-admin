@@ -10,12 +10,15 @@
     .sector { margin: 16px 0 28px; }
     .row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
     .row-label { width: 90px; color: #666; }
-    .seats { display: grid; grid-template-columns: repeat(12, 34px); gap: 6px; }
-    .seat { border: 1px solid #ccc; border-radius: 6px; padding: 6px 0; cursor: pointer; }
-    .seat.selected { outline: 2px solid #2b80ff; border-color: #2b80ff; font-weight: 600; }
-    .toolbar { display: flex; gap: 14px; align-items: center; margin: 16px 0; }
+    .seats { display: grid; grid-auto-flow: column; grid-auto-columns: 34px; gap: 6px; }
+    .gap { width: 34px; }
+    .seat { border: 1px solid #bbb; background: #e8e8e8; border-radius: 6px; padding: 6px 0; cursor: pointer; }
+    .seat.selected { outline: 2px solid #2b80ff; border-color: #2b80ff; font-weight: 600; background: #e8f0ff; }
+    .seat.disabled { background: #f0f0f0; border-color: #ddd; color: #aaa; cursor: not-allowed; }
+    .toolbar { display: flex; gap: 14px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
     .toolbar .stat { background: #f6f7f9; padding: 8px 12px; border-radius: 8px; }
-    #buy-btn:disabled { opacity: .5; cursor: not-allowed; }
+    #buy-btn:disabled { opacity: .6; cursor: not-allowed; }
+    #buy-note { color: #a66; font-size: 0.95rem; }
   </style>
 </head>
 <body>
@@ -25,12 +28,11 @@
   <main class="container">
     <h1>Академія руху</h1>
 
-    <ul id="price-legend" class="legend"></ul>
-
     <div class="toolbar">
       <div class="stat">Обрано місць: <strong id="tickets-counter">0</strong></div>
-      <div class="stat">Сума: <strong id="total-amount">0</strong> ₴</div>
+      <div class="stat">Сума: <strong id="total-amount">—</strong> ₴</div>
       <button id="buy-btn" class="btn btn-primary" disabled>Придбати квитки</button>
+      <span id="buy-note"></span>
     </div>
 
     <div id="hall" class="hall"></div>
