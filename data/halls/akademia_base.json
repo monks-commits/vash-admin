@@ -1,185 +1,23 @@
 {
-  "venue": "Академія руху (Дніпро)",
-  "currency": "UAH",
+  "theatre": "akademia",
   "rows": [
-    {
-      "row": 1,
-      "segments": [
-        0,
-        0,
-        11,
-        0,
-        0
-      ]
-    },
-    {
-      "row": 2,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 3,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 4,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 5,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 6,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 7,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 8,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 9,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 10,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 11,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 12,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 13,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 14,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 15,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 16,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 17,
-      "segments": [
-        6,
-        0,
-        11,
-        0,
-        6
-      ]
-    },
-    {
-      "row": 18,
-      "segments": [
-        10,
-        0,
-        0,
-        10
-      ]
-    }
+    { "row": 1,  "seats": 11, "aisles": [] },
+    { "row": 2,  "seats": 23, "aisles": [6,17] },
+    { "row": 3,  "seats": 23, "aisles": [6,17] },
+    { "row": 4,  "seats": 23, "aisles": [6,17] },
+    { "row": 5,  "seats": 23, "aisles": [6,17] },
+    { "row": 6,  "seats": 23, "aisles": [6,17] },
+    { "row": 7,  "seats": 23, "aisles": [6,17] },
+    { "row": 8,  "seats": 23, "aisles": [6,17] },
+    { "row": 9,  "seats": 23, "aisles": [6,17] },
+    { "row": 10, "seats": 23, "aisles": [6,17] },
+    { "row": 11, "seats": 23, "aisles": [6,17] },
+    { "row": 12, "seats": 23, "aisles": [6,17] },
+    { "row": 13, "seats": 23, "aisles": [6,17] },
+    { "row": 14, "seats": 23, "aisles": [6,17] },
+    { "row": 15, "seats": 23, "aisles": [6,17] },
+    { "row": 16, "seats": 23, "aisles": [6,17] },
+    { "row": 17, "seats": 23, "aisles": [6,17] },
+    { "row": 18, "seats": 20, "aisles": [10] }
   ]
 }
