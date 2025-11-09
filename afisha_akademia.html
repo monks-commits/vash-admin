@@ -38,7 +38,9 @@
         }
         GRID.innerHTML = shows.map(s => {
           const poster = s.poster || `/images/posters/akademia/${s.slug}.jpg`;
-          const href = `/spectacles/akademia.html?show=${encodeURIComponent(s.slug)}`;
+          - const href = `/spectacles/akademia.html?show=${encodeURIComponent(s.slug)}`;
++ const href = `/show_akademia.html?show=${encodeURIComponent(s.slug)}`;
+
           return `
             <article class="card">
               <a href="${href}">
