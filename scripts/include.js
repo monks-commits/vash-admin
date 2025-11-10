@@ -1,19 +1,18 @@
-// /scripts/include.js  (ES-module, без HTML-комментариев)
-async function inject(partialName, targetId) {
+// Подтягиваем header и footer на страницах, где есть контейнеры #site-header и #site-footer
+(async () => {
   try {
-    const res = await fetch(`/${partialName}.html`, { cache: "no-cache" });
-    if (!res.ok) return;
-    const html = await res.text();
-    const mount = document.getElementById(targetId);
-    if (mount) mount.innerHTML = html;
+    const header = document.getElementById('site-header');
+    if (header) {
+      const r = await fetch('/header.html', { cache: 'no-store' });
+      header.innerHTML = await r.text();
+    }
+
+    const footer = document.getElementById('site-footer');
+    if (footer) {
+      const r = await fetch('/footer.html', { cache: 'no-store' });
+      footer.innerHTML = await r.text();
+    }
   } catch (e) {
-    console.error("include.js:", e);
+    console.warn('include.js:', e);
   }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  inject("header", "site-header");
-  inject("footer", "site-footer");
-});
-
-export {}; // чтобы файл точно трактовался как модуль
+})();
