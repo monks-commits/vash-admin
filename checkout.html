@@ -53,104 +53,108 @@
   <div id="site-footer"></div>
   <script src="/scripts/include.js"></script>
   <script>
-    // ---- параметры из URL ----
-    const q = new URLSearchParams(location.search);
-    const show = q.get("show") || "";
-    const seats = (q.get("seats") || "").split(",").filter(Boolean);
-    const amount = Number(q.get("amount") || 0);
-    let orderId = q.get("order_id") || ("ORD-" + Date.now());
+(async function () {
+  const btn = document.querySelector('#pay-btn') || document.querySelector('button[type="button"], button.primary-btn');
+  const $name  = document.querySelector('input[name="buyer_name"]')  || document.querySelector('#buyer-name');
+  const $phone = document.querySelector('input[name="buyer_phone"]') || document.querySelector('#buyer-phone');
+  const $email = document.querySelector('input[name="buyer_email"]') || document.querySelector('#buyer-email');
 
-    document.getElementById("order-info").textContent =
-      `Вистава: ${show || "—"} · Місця: ${seats.join(", ") || "—"} · Сума: ${amount} грн · Номер: ${orderId}`;
+  // параметры из URL
+  const q = new URLSearchParams(location.search);
+  const show      = q.get('show');                           // shevchenko/ledi или akademia/akakiy
+  const order_id  = q.get('order_id');                       // SHEV-..., AKAD-...
+  const amount    = Number(q.get('amount') || '0');          // сумма
+  const seats     = (q.get('seats') || '').split(',').filter(Boolean); // ["P18-M10", ...]
 
-    const nameEl  = document.getElementById("name");
-    const phoneEl = document.getElementById("phone");
-    const emailEl = document.getElementById("email");
-    const msgEl   = document.getElementById("msg");
-    const payBtn  = document.getElementById("pay");
+  // утилита ошибки
+  const fail = (msg) => {
+    console.error(msg);
+    const box = document.querySelector('.error-box') || document.querySelector('.alert') || document.querySelector('.muted');
+    if (box) { box.textContent = msg; box.style.color = '#b91c1c'; }
+    alert(msg);
+  };
 
-    function showError(text){
-      msgEl.className = "error"; msgEl.textContent = text;
+  // сабмит
+  btn?.addEventListener('click', async () => {
+    const buyer_name  = ($name?.value || '').trim();
+    const buyer_phone = ($phone?.value || '').trim();
+    const buyer_email = ($email?.value || '').trim();
+
+    // минимальная валидация (если хотите — уберите «обязательность»)
+    if (!buyer_name || !buyer_phone || !buyer_email) {
+      return fail('Будь ласка, заповніть ім’я, телефон та email.');
     }
-    function showOk(text){
-      msgEl.className = "ok"; msgEl.textContent = text;
+    if (!order_id || !show || !amount || !seats.length) {
+      return fail('Неповні параметри замовлення. Спробуйте ще раз.');
     }
 
-    async function startPay(){
-      msgEl.className = ""; msgEl.textContent = "";
-      payBtn.disabled = true;
-
-      try{
-        const payload = {
-          amount,
-          order_id: orderId,
-          show_slug: show,
-          seats,
-          buyer_name: nameEl.value.trim(),
-          buyer_phone: phoneEl.value.trim(),
-          buyer_email: emailEl.value.trim(),
-          description: `Квитки: ${show} · ${seats.join(", ")}`
-        };
-
-        // ВАЖНО: только edge-функция! Никаких прямых insert в таблицу отсюда.
-        const resp = await fetch("https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign",{
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        // Если упали на дубликате (409) — сгенерируем новый order_id и повторим один раз
-        if (resp.status === 409){
-          orderId = orderId + "-R" + Date.now();
-          const resp2 = await fetch("https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign",{
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...payload, order_id: orderId })
-          });
-          if (!resp2.ok){
-            const t2 = await resp2.text();
-            throw new Error(`LiqPay-sign 2nd try: ${resp2.status} ${t2}`);
-          }
-          const data2 = await resp2.json();
-          return redirectToLiqPay(data2);
+    try {
+      // 1) сохраняем заказ (upsert) — liqpay-sign
+      const signRes = await fetch(
+        'https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-sign',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount,
+            order_id,
+            show_slug: show,
+            seats,
+            buyer_name,
+            buyer_phone,
+            buyer_email,
+            description: `Квитки: ${show} (${seats.join(', ')})`
+          })
         }
+      );
 
-        if (!resp.ok){
-          const t = await resp.text();
-          throw new Error(`LiqPay-sign: ${resp.status} ${t}`);
+      if (!signRes.ok) {
+        const t = await signRes.text();
+        return fail(`Не вдалося зберегти замовлення (HTTP ${signRes.status}). ${t || ''}`);
+      }
+
+      // 2) запрашиваем данные для LiqPay — liqpay-init
+      const initRes = await fetch(
+        'https://yqhzekifwxotizsmaeaf.supabase.co/functions/v1/liqpay-init',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount,
+            order_id,
+            description: `Замовлення ${order_id}`
+          })
         }
+      );
 
-        const data = await resp.json();
-        redirectToLiqPay(data);
-
-      } catch(e){
-        console.error(e);
-        showError("Не вдалося зберегти замовлення. Спробуйте ще раз.");
-        payBtn.disabled = false;
+      if (!initRes.ok) {
+        const t = await initRes.text();
+        return fail(`Помилка формування платежу (HTTP ${initRes.status}). ${t || ''}`);
       }
-    }
 
-    function redirectToLiqPay(data){
-      // ожидаем из функции { action, data, signature } — стандарт LiqPay
-      if (!data || !data.action || !data.data || !data.signature){
-        showError("Внутрішня помилка. Дані LiqPay не отримані.");
-        payBtn.disabled = false;
-        return;
-      }
-      // создаём автопост формой
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = data.action;
-      form.innerHTML = `
-        <input type="hidden" name="data" value="${data.data}">
-        <input type="hidden" name="signature" value="${data.signature}">
-      `;
+      const { action, data, signature } = await initRes.json();
+
+      // 3) Ставим авто-форму LiqPay и отправляем
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = action;
+      form.style.display = 'none';
+
+      const i1 = document.createElement('input');
+      i1.name = 'data'; i1.value = data;
+      const i2 = document.createElement('input');
+      i2.name = 'signature'; i2.value = signature;
+
+      form.append(i1, i2);
       document.body.appendChild(form);
-      showOk("Переходимо до LiqPay…");
       form.submit();
+    } catch (e) {
+      fail('Проблема з мережею або CORS. Спробуйте ще раз.');
+      console.error(e);
     }
+  });
+})();
+</script>
 
-    payBtn.addEventListener("click", startPay);
-  </script>
 </body>
 </html>
